@@ -1,11 +1,11 @@
-# 🚀 ValueFlow - 3-2 소프트웨어 프로젝트 (Software Project)
+# ValueFlow - 3-2 소프트웨어 프로젝트 (Software Project)
 
 > **팀명**: ValueFlow  
 > **주제**: 기업 연계 현장 실습 신청 예정
 
 ---
 
-## 👥 팀원 소개 및 역할 분담 (Team Members & Roles)
+## 팀원 소개 및 역할 분담 (Team Members & Roles)
 
 | 이름 (학번) | 구분 / 직무 | 담당 역할 및 업무 상세 |
 | :--- | :--- | :--- |
@@ -20,23 +20,14 @@
 ## 🛠️ 기술 스택 (Tech Stack)
 
 ### Frontend
-- Framework / Library: React / Vue.js / Next.js / Flutter (선택)
-- Styling: TailwindCSS / Styled-Components / CSS Modules
-- State Management: Redux / Zustand / React Query
 
 ### Backend & AI
-- Server: Node.js (Express / NestJS) / Python (FastAPI / Django / Flask) / Spring Boot
-- Database: PostgreSQL / MySQL / MongoDB / Redis
-- AI / Data: PyTorch / TensorFlow / Scikit-learn / Pandas
 
 ### DevOps & Tools
-- Version Control: Git, GitHub
-- Communication: Slack / Notion / Discord
-- Design: Figma
 
 ---
 
-## 📁 프로젝트 구조 (Directory Structure)
+## 프로젝트 구조 (Directory Structure)
 
 ```text
 3-2SWProject/
@@ -59,12 +50,9 @@
 
 ---
 
-## 🏁 시작 가이드 (Getting Started)
+##  시작 가이드 (Getting Started)
 
 ### 1. 사전 요구사항 (Prerequisites)
-- [Node.js](https://nodejs.org/) (v18.x 이상 권장)
-- [Python](https://www.python.org/) (v3.10 이상 권장)
-- [Git](https://git-scm.com/)
 
 ### 2. 저장소 클론 (Clone Repository)
 ```bash
@@ -81,16 +69,16 @@ cp .env.example .env
 
 ---
 
-## 🤝 협업 가이드 (Collaboration Rules)
+##  협업 가이드 (Collaboration Rules)
 
-### 🌿 Git Branch 전략 (GitHub Flow 기반)
+###  Git Branch 전략 (GitHub Flow 기반)
 - `main`: 배포 및 최종 제출 가능한 안정적인 상태 유지
 - `develop`: 개발 통합 브랜치 (기능 병합용)
 - `feature/<기능명>`: 새로운 기능 개발 (예: `feature/login-ui`, `feature/data-pipeline`)
 - `fix/<버그명>`: 버그 수정 (예: `fix/api-cors-error`)
 - `docs/<문서명>`: 문서 추가 및 수정 (예: `docs/readme-update`)
 
-### 📝 Commit Message 컨벤션
+###  Commit Message 컨벤션
 Commit 메시지는 다음 형식을 준수합니다: `타입: 작업 내용 요약`
 
 | 타입 | 설명 |
@@ -109,7 +97,7 @@ git commit -m "feat: 카카오 소셜 로그인 API 연동"
 git commit -m "fix: 회원가입 시 이메일 유효성 검사 오류 수정"
 ```
 
-### 🔄 Pull Request (PR) 규칙
+###  Pull Request (PR) 규칙
 1. 작업 완료 후 본인의 `feature/*` 브랜치에서 `develop` (또는 `main`) 브랜치로 PR을 생성합니다.
 2. 최소 1명 이상의 팀원 리뷰 및 승인(Approve) 후 Merge를 진행합니다.
 3. PR 템플릿에 작업 내용, 스크린샷, 테스트 결과를 상세히 기재합니다.
