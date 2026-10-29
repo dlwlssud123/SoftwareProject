@@ -1,0 +1,9 @@
+{
+  "provider": "한국사회보장정보원 / 복지로",
+  "endpoint": "https://apis.data.go.kr/B554287/NationalWelfareInformationsV001",
+  "guideVersion": "2.2",
+  "fetchedAt": "2026-10-26T07:46:39.799332+00:00",
+  "catalogCount": 461,
+  "count": 6,
+  "scope": "central_nationwide"
+}

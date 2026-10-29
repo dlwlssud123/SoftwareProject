@@ -1,0 +1,9 @@
+{
+  "provider": "식품안전나라",
+  "service": "COOKRCP01",
+  "documentationUrl": "https://www.foodsafetykorea.go.kr/api/newDatasetDetail.do?svc_no=COOKRCP01",
+  "fetchedAt": "2026-10-26T07:46:53.482870+00:00",
+  "mode": "authenticated",
+  "count": 50,
+  "totalCount": "1156"
+}
