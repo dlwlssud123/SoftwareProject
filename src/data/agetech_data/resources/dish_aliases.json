@@ -1,0 +1,17 @@
+{
+ "description": "음식명(사진 분석 결과 등) → 식품영양성분DB 음식명 별칭. 맞춤법 오기와 같은 음식의 다른 이름만 넣는다. '계란'→'달걀'은 코드에서 일괄 치환한다.",
+ "aliases": [
+  {"alias": "김치찌게", "name": "김치찌개", "rationale": "맞춤법 오기"},
+  {"alias": "된장찌게", "name": "된장찌개", "rationale": "맞춤법 오기"},
+  {"alias": "부대찌게", "name": "부대찌개", "rationale": "맞춤법 오기"},
+  {"alias": "순두부찌게", "name": "순두부찌개", "rationale": "맞춤법 오기"},
+  {"alias": "육계장", "name": "육개장", "rationale": "맞춤법 오기"},
+  {"alias": "설농탕", "name": "설렁탕", "rationale": "맞춤법 오기"},
+  {"alias": "깍뚜기", "name": "깍두기", "rationale": "맞춤법 오기"},
+  {"alias": "밥", "name": "쌀밥", "rationale": "종류 미기재 밥은 쌀밥"},
+  {"alias": "흰밥", "name": "쌀밥", "rationale": "같은 음식"},
+  {"alias": "공기밥", "name": "쌀밥", "rationale": "같은 음식"},
+  {"alias": "공깃밥", "name": "쌀밥", "rationale": "같은 음식"},
+  {"alias": "제육", "name": "제육볶음", "rationale": "같은 음식"}
+ ]
+}
