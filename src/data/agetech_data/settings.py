@@ -27,6 +27,15 @@ def load_secret(name: str, env_file: Path | None = None) -> str:
     return ""
 
 
+def load_secret_any(*names: str, env_file: Path | None = None) -> str:
+    """여러 이름 중 처음 값이 있는 것. 예: 팀 복지 스크립트의 WELFARE_API_KEY 와 DATA_GO_KR_SERVICE_KEY."""
+    for name in names:
+        value = load_secret(name, env_file)
+        if value:
+            return value
+    return ""
+
+
 def redact(text: str, *secrets: str) -> str:
     """메시지에 섞였을 수 있는 비밀값(원문·URL 인코딩)을 *** 로 가린다."""
     from urllib.parse import quote
