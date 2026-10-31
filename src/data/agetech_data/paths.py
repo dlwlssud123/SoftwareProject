@@ -23,3 +23,7 @@ RECIPES_VALIDATED = PROCESSED_DIR / "recipes_validated.json"
 # 커밋하는 보고서
 REPORTS_DIR = REPO_ROOT / "docs" / "data"
 RECIPE_QUALITY_REPORT = REPORTS_DIR / "recipe_quality_report.md"
+
+# 식약처 식품영양성분DB (공공데이터포털 FoodNtrCpntDbInfo03) 수집 원본 — gitignore 대상
+NUTRITION_RAW_DIR = REPO_ROOT / "data" / "raw" / "nutrition"
+NUTRITION_RAW = NUTRITION_RAW_DIR / "foodntr_v03_representative.json"
