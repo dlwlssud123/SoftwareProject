@@ -28,6 +28,16 @@ RECIPE_QUALITY_REPORT = REPORTS_DIR / "recipe_quality_report.md"
 NUTRITION_RAW_DIR = REPO_ROOT / "data" / "raw" / "nutrition"
 NUTRITION_RAW = NUTRITION_RAW_DIR / "foodntr_v03_representative.json"
 
+# 갱신 수집 원본(최신본) — gitignore 대상. 판본 스냅샷은 각 폴더의 snapshots/<소스>/ 아래
+RECIPES_COLLECTED = REPO_ROOT / "data" / "raw" / "recipes" / "cookrcp01_all.json"
+WELFARE_RAW_DIR = REPO_ROOT / "data" / "raw" / "welfare"
+WELFARE_CENTRAL_RAW = WELFARE_RAW_DIR / "central_elderly.json"
+WELFARE_LOCAL_RAW = WELFARE_RAW_DIR / "local_elderly.json"
+
+# 갱신 상태(관리자 화면·worker 가 읽음)와 실행 기록 — gitignore 대상
+REFRESH_STATUS = PROCESSED_DIR / "refresh_status.json"
+REFRESH_LOG = PROCESSED_DIR / "refresh_log.jsonl"
+
 # 영양 매핑 가공 결과(gitignore)와 보고서(커밋)
 FOODS_PROCESSED = PROCESSED_DIR / "foods_v03.json"
 RECIPE_NUTRITION = PROCESSED_DIR / "recipe_ingredient_nutrition.json"
