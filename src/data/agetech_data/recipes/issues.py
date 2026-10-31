@@ -27,6 +27,17 @@ ISSUE_RULES: dict[str, tuple[Severity, str]] = {
     "step_unnumbered": ("info", "문장 앞 번호 없음(칸 번호로 대체)"),
     "step_trailing_marker": ("info", "문장 끝 이미지 표식 문자(a/b/c 등)"),
     "step_text_without_image": ("info", "단계 문장은 있으나 이미지 없음"),
+    # 재료
+    "ingredients_none": ("error", "재료 원문(RCP_PARTS_DTLS) 없음"),
+    "ingredients_unparsed": ("error", "재료 항목을 하나도 분리하지 못함"),
+    "ingredient_unclosed_paren": ("warning", "괄호가 닫히지 않음"),
+    "ingredient_unmatched_close_paren": ("warning", "여는 괄호 없이 닫는 괄호가 있음"),
+    "ingredient_amount_missing": ("warning", "분량 표기 없음"),
+    "ingredient_unit_missing": ("warning", "숫자 분량에 단위가 없음"),
+    "ingredient_qualitative_amount": ("info", "정성 분량(약간·적당량 등)"),
+    "ingredient_no_space_after_comma": ("info", "쉼표 뒤 공백 없음"),
+    "ingredient_trailing_period": ("info", "재료 원문 끝 마침표"),
+    "ingredient_mixed_format": ("info", "한 레시피 안에 분량 표기 형식이 섞여 있음"),
 }
 
 
