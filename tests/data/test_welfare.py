@@ -2,7 +2,8 @@ from datetime import date
 
 import pytest
 
-from agetech_data.welfare.normalize import clean_text, normalize_item, parse_ymd, split_list
+from agetech_data.welfare.normalize import clean_text, normalize_item, normalize_payload, parse_ymd, split_list
+from agetech_data.welfare.query import services_for
 from agetech_data.welfare.regions import MERGED, match_sgg, normalize_ctpv
 
 AS_OF = date(2026, 11, 1)
@@ -33,6 +34,23 @@ def _local(sid, ctpv, sgg, name="사업", status="pending", detail=None, mod="20
     if detail:
         item.update(detail=detail, detail_xml="<wantedDtl><resultCode>0</resultCode></wantedDtl>")
     return item
+
+
+def _records():
+    loc = [
+        _local("WLF00000001", "경상북도", "경산시", "경산 효도수당"),
+        _local("WLF00000002", "경상북도", "", "경북 전체 사업"),
+        _local("WLF00000003", "경상북도", "구미시", "구미 사업"),
+        _local("WLF00000004", "전남광주통합특별시", "광산구", "광산구 장수수당"),
+        _local("WLF00000005", "전남광주통합특별시", "순천시", "순천 사업"),
+        _local("WLF00000006", "대구광역시", "중구", "대구 중구 사업"),
+        _local("WLF00000007", "서울특별시", "중구", "서울 중구 사업"),
+        _local("WLF00000008", "경상북도", "경산시", "끝난 사업", status="fresh",
+               detail={"servId": "WLF00000008", "sprtTrgtCn": "65세 이상", "enfcEndYmd": "20251231"}),
+    ]
+    central = normalize_payload({"meta": {"fetched_at": "2026-11-01T00:00:00+00:00"}, "items": [CENTRAL]}, "central")
+    local = normalize_payload({"meta": {"fetched_at": "2026-11-01T00:00:00+00:00"}, "items": loc}, "local")
+    return central + local
 
 
 # --- 지역 정규화 ----------------------------------------------------------
@@ -117,3 +135,33 @@ def test_period_ended_and_unknown_ctpv_flags():
     assert "period_ended" in ended.quality_flags and ended.period_end == "2025-12-31"
     odd = normalize_item(_local("WLF00000009", "가상도", "어딘가"), "local", None, AS_OF)
     assert odd.ctpv is None and "unknown_ctpv" in odd.quality_flags
+
+
+# --- 지역별 조회 ----------------------------------------------------------
+def _names(matches):
+    return [(m["match"], m["record"].name) for m in matches]
+
+
+def test_services_for_order_and_scope():
+    q, m = services_for(_records(), "경상북도", "경산")
+    assert (q.ctpv, q.sgg) == ("경상북도", "경산시")
+    assert _names(m) == [("district", "경산 효도수당"), ("province", "경북 전체 사업"), ("national", "노인맞춤돌봄서비스")]
+    # 구미 사업·끝난 사업은 빠짐
+    _, m2 = services_for(_records(), "경상북도", "경산", include_ended=True)
+    assert ("district", "끝난 사업") in _names(m2)
+
+
+def test_services_for_merged_region_and_same_name_district():
+    q, m = services_for(_records(), "광주광역시", "광산")
+    assert q.ctpv == MERGED and q.sgg == "광산구" and "통합" in q.notes[0]
+    assert ("district", "광산구 장수수당") in _names(m) and ("district", "순천 사업") not in _names(m)
+    _, m = services_for(_records(), "대구광역시", "중구")
+    assert ("district", "대구 중구 사업") in _names(m) and ("district", "서울 중구 사업") not in _names(m)
+
+
+def test_services_for_unknown_inputs():
+    q, m = services_for(_records(), "없는도", "어딘가")
+    assert q.ctpv is None and [x["match"] for x in m] == ["national"] and q.notes
+    q, m = services_for(_records(), "경상북도", "포항시")
+    assert q.sgg is None and "포항시" in q.notes[0]
+    assert {x["match"] for x in m} == {"province", "national"}
