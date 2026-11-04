@@ -1,7 +1,10 @@
+import json
 from datetime import date
 
 import pytest
 
+from agetech_data import paths
+from agetech_data.welfare import build
 from agetech_data.welfare.normalize import clean_text, normalize_item, normalize_payload, parse_ymd, split_list
 from agetech_data.welfare.query import services_for
 from agetech_data.welfare.regions import MERGED, match_sgg, normalize_ctpv
@@ -165,3 +168,40 @@ def test_services_for_unknown_inputs():
     q, m = services_for(_records(), "경상북도", "포항시")
     assert q.sgg is None and "포항시" in q.notes[0]
     assert {x["match"] for x in m} == {"province", "national"}
+
+
+# --- CLI ------------------------------------------------------------------
+def test_build_main_end_to_end(tmp_path):
+    meta = {"fetched_at": "2026-11-01T00:00:00+00:00", "item_count": 1, "details": {"counts": {"fresh": 1}}}
+    c = tmp_path / "c.json"
+    c.write_text(json.dumps({"meta": meta, "items": [CENTRAL]}, ensure_ascii=False), encoding="utf-8")
+    loc = tmp_path / "l.json"
+    loc.write_text(json.dumps({"meta": meta, "items": [_local("WLF00000001", "경상북도", "경산시")]},
+                              ensure_ascii=False), encoding="utf-8")
+    args = ["--central", str(c), "--local", str(loc), "--output", str(tmp_path / "o.json"), "--report", str(tmp_path / "r.md")]
+    assert build.main(args) == 0
+    first = (tmp_path / "r.md").read_text(encoding="utf-8")
+    assert build.main(args) == 0 and (tmp_path / "r.md").read_text(encoding="utf-8") == first
+    out = json.loads((tmp_path / "o.json").read_text(encoding="utf-8"))
+    assert out["summary"]["by_scope"] == {"national": 1, "district": 1}
+    assert build.main(["--central", str(tmp_path / "none.json"), "--no-report"]) == 1
+
+
+@pytest.mark.skipif(not (paths.WELFARE_CENTRAL_RAW.is_file() and paths.WELFARE_LOCAL_RAW.is_file()),
+                    reason="복지 원문 없음 (refresh 실행 필요)")
+def test_real_welfare_regression():
+    central = json.loads(paths.WELFARE_CENTRAL_RAW.read_text(encoding="utf-8"))
+    local = json.loads(paths.WELFARE_LOCAL_RAW.read_text(encoding="utf-8"))
+    recs = normalize_payload(central, "central") + normalize_payload(local, "local")
+    assert len(recs) == len(central["items"]) + len(local["items"])
+    assert not [r for r in recs if "unknown_ctpv" in r.quality_flags]  # 원천 시도명 모두 인식
+    assert all(r.name and r.detail_url for r in recs)
+    assert len({r.serv_id for r in recs}) == len(recs)
+    # 상세 목록형 항목은 중앙·지자체 모두 공통 키로 읽힌다
+    entries = [e for r in recs for e in r.contacts + r.homepages + r.apply_guides + r.laws + r.forms]
+    assert all(e["name"] or e["value"] for e in entries)
+    assert {e["link_status"] for r in recs for e in r.homepages + r.forms} <= {"ok", "scheme_added", "not_url"}
+    fresh = [r for r in recs if r.detail_status == "fresh"]
+    assert sum(bool(r.target_detail) for r in fresh) >= 0.95 * len(fresh)
+    q, m = services_for(recs, "광주광역시", "광산구")
+    assert q.ctpv == MERGED and any(x["match"] == "district" for x in m)
