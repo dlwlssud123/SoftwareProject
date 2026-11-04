@@ -159,7 +159,33 @@ def render_report(result: dict, output_json: str = "data/processed/recipes_valid
              r["nutrition"]["energy_from_macros_kcal"], r["nutrition"]["energy_ratio"] or "-"] for r in sus[:MAX_ROWS]
         ])
 
-    L += ["", "## 9. 원본 추적과 보완 원칙", "",
+    al = s["allergens"]
+    L += ["", "## 9. 알레르기 유발물질 (재료명 기반 추정)", "",
+          "- 원천에 알레르기 칸이 없어 재료명으로 추정합니다. 기준: " + al["standard"]["name"]
+          + f" (확인일 {al['standard']['checked_at']}). 규칙: `src/data/agetech_data/resources/allergen_rules.json`",
+          "- `direct`는 재료 자체(두부→대두), `usually`는 보통 원료로 들어가는 가공식품(간장→대두·밀)입니다. "
+          "가공식품은 제품마다 달라 원재료 표시를 확인해야 합니다.",
+          f"- 재료명으로 판별할 수 없는 물질(첨가물): {', '.join(al['not_determinable'])} — 레코드 `not_determinable`에 표시합니다.",
+          f"- 하나 이상 추정된 레시피 {al['recipes_with_any']}건({_pct(al['recipes_with_any'], n)}). "
+          f"재료명이 잘렸을 수 있는(괄호 미닫힘 등) 레시피 {al['incomplete']}건은 `complete: false`입니다.", ""]
+    L += _table(["물질", "추정 레시피", "그중 재료 자체(direct)", "가공식품만(usually)"], [
+        [v["label"], v["recipes"], v["direct"], v["recipes"] - v["direct"]] for v in al["by_allergen"].values()
+    ])
+    nc = al["needs_check"]
+    L += ["", f"정할 수 없는 재료(`needs_check`, {nc['recipes']}건 레시피): "
+          + (", ".join(f"`{t}` {c}" for t, c in nc["terms"].items()) or "없음")
+          + ". 소·돼지를 알 수 없는 '갈비'·'육수' 같은 재료로, 확정하지 않고 후보 물질과 함께 둡니다.", "",
+          "앱 현재 규칙(`recommendations.dart`, 재료 원문 전체에서 단어 포함 여부)과 비교한 결과입니다. 앱 선택지 6종만 비교합니다.", ""]
+
+    def ex(items):
+        return "; ".join(f"{e['source_id']} {e['name']}" + (f"({'·'.join(e['evidence'])})" if e["evidence"] else "")
+                         for e in items) or "-"
+    L += _table(["물질", "둘 다", "앱만", "이번 규칙만", "앱만 예시(앱이 맞춘 단어)", "이번 규칙만 예시(근거 재료)"], [
+        [k, v["both"], v["app_only"], v["ours_only"], ex(v["app_only_examples"]), ex(v["ours_only_examples"])]
+        for k, v in al["app_compare"].items()
+    ])
+
+    L += ["", "## 10. 원본 추적과 보완 원칙", "",
           "- 가공 결과의 레시피마다 원본 행 sha256(`raw_sha256`)을, 단계마다 원본 칸(`source_field`)·칸 번호(`source_no`)·"
           "문장 앞 번호(`stated_no`)·원문(`text_raw`)을 보존합니다. 단계 번호를 다시 매기지 않습니다.",
           "- 재료는 원문 조각(`raw_item`)과 원문 줄 번호(`line_no`)를 보존하고, 이를 `name_raw`와 `amount_text`로 "

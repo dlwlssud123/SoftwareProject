@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Literal
 
 from agetech_data import paths
+from agetech_data.recipes.allergens import AllergenResult, app_detect, app_terms_found, detect, load_rules
 from agetech_data.recipes.fields import (
     SOURCE_FIELDS,
     NutritionCheck,
@@ -36,7 +37,7 @@ from agetech_data.recipes.issues import ISSUE_RULES, Issue
 from agetech_data.recipes.steps import StepResult, extract_steps
 from agetech_data.textutil import clean_text, is_blank, sha256_json
 
-SCHEMA_VERSION = 2  # 2: missing_fields·nutrition 추가, summary.nutrition_blank → field_blank·nutrition
+SCHEMA_VERSION = 2  # 2: missing_fields·nutrition·allergens 추가, summary.nutrition_blank → field_blank·nutrition
 Status = Literal["ok", "flagged", "hold"]
 STATUS_ORDER: dict[Status, int] = {"ok": 0, "flagged": 1, "hold": 2}
 
@@ -49,6 +50,7 @@ class RecipeCheck:
     steps: StepResult
     ingredients: IngredientResult
     nutrition: NutritionCheck
+    allergens: AllergenResult
     missing_fields: list[str] = field(default_factory=list)
     issues: list[Issue] = field(default_factory=list)
 
@@ -70,6 +72,7 @@ class RecipeCheck:
             "issues": [i.to_dict() for i in self.all_issues],
             "missing_fields": self.missing_fields,
             "nutrition": self.nutrition.to_dict(),
+            "allergens": self.allergens.to_dict(),
             **self.steps.to_dict(),
             **self.ingredients.to_dict(),
         }
@@ -78,13 +81,15 @@ class RecipeCheck:
 def check_recipe(row: dict) -> RecipeCheck:
     name = clean_text(row.get("RCP_NM"))
     base = ([] if name else [Issue("name_missing")]) + field_issues(row)
+    ingredients = parse_ingredients(row.get("RCP_PARTS_DTLS"))
     return RecipeCheck(
         source_id=str(row.get("RCP_SEQ", "")).strip(),
         name=name,
         raw_sha256=sha256_json(row),
         steps=extract_steps(row),
-        ingredients=parse_ingredients(row.get("RCP_PARTS_DTLS")),
+        ingredients=ingredients,
         nutrition=check_nutrition(row),
+        allergens=detect(ingredients),
         missing_fields=missing_fields(row),
         issues=base,
     )
@@ -127,7 +132,48 @@ def summarize(checks: list[RecipeCheck], rows: list[dict]) -> dict:
             "energy_ratio": dict(Counter(energy_bucket(c.nutrition) for c in checks)),
             "energy_mismatch": sum(c.nutrition.suspect for c in checks),
         },
+        "allergens": summarize_allergens(checks, rows),
     }
+
+
+def summarize_allergens(checks: list[RecipeCheck], rows: list[dict]) -> dict:
+    rules = load_rules()
+    by = {}
+    for r in rules.allergens:
+        if not r.determinable:
+            continue
+        hits = [d for c in checks for d in c.allergens.detected if d["allergen"] == r.name]
+        by[r.name] = {"label": r.label, "recipes": len(hits), "direct": sum(d["kind"] == "direct" for d in hits)}
+    # 앱 현재 규칙과 비교 (앱 선택지 6종)
+    compare = {}
+    for a in ("알류", "우유", "대두", "새우", "밀", "땅콩"):
+        app_only, ours_only, both = [], [], 0
+        for c, row in zip(checks, rows, strict=True):
+            in_app, in_ours = a in app_detect(row.get("RCP_PARTS_DTLS")), a in c.allergens.names
+            both += in_app and in_ours
+            if in_app != in_ours:
+                (app_only if in_app else ours_only).append((c, row))
+        compare[a] = {"both": both, "app_only": len(app_only), "ours_only": len(ours_only),
+                      # 앱만: 앱이 맞춘 단어 / 이번 규칙만: 근거 재료
+                      "app_only_examples": [{"source_id": c.source_id, "name": c.name,
+                                             "evidence": app_terms_found(row.get("RCP_PARTS_DTLS"), a)}
+                                            for c, row in app_only[:5]],
+                      "ours_only_examples": [_example(c, a) for c, _ in ours_only[:5]]}
+    return {
+        "standard": rules.standard,
+        "recipes_with_any": sum(bool(c.allergens.detected) for c in checks),
+        "by_allergen": by,
+        "needs_check": {"recipes": sum(bool(c.allergens.needs_check) for c in checks),
+                        "terms": dict(Counter(n["term"] for c in checks for n in c.allergens.needs_check).most_common())},
+        "incomplete": sum(not c.allergens.complete for c in checks),
+        "not_determinable": [r.name for r in rules.allergens if not r.determinable],
+        "app_compare": compare,
+    }
+
+
+def _example(c: RecipeCheck, allergen: str) -> dict:
+    ev = next((d["evidence"] for d in c.allergens.detected if d["allergen"] == allergen), [])
+    return {"source_id": c.source_id, "name": c.name, "evidence": [e["ingredient"] for e in ev]}
 
 
 def _rel(p: Path) -> str:
