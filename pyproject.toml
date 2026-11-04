@@ -1,0 +1,25 @@
+[project]
+name = "agetech"
+version = "0.1.0"
+description = "ValueFlow 오늘동행 — 데이터 수집·전처리·품질 검사 공통 Python 프로젝트"
+readme = "README.md"
+requires-python = ">=3.12"
+# 데이터 품질 검사 코드는 표준 라이브러리만 사용한다. 서버·RAG 의존성은 각 작업에서 추가.
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.8,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+# 코드 위치가 바뀌면 이 줄과 src/data/agetech_data/paths.py 만 고친다.
+module-name = "agetech_data"
+module-root = "src/data"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
