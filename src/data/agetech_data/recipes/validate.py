@@ -23,15 +23,22 @@ from pathlib import Path
 from typing import Literal
 
 from agetech_data import paths
+from agetech_data.recipes.fields import (
+    SOURCE_FIELDS,
+    NutritionCheck,
+    check_nutrition,
+    energy_bucket,
+    field_issues,
+    missing_fields,
+)
 from agetech_data.recipes.ingredients import IngredientResult, parse_ingredients
 from agetech_data.recipes.issues import ISSUE_RULES, Issue
 from agetech_data.recipes.steps import StepResult, extract_steps
 from agetech_data.textutil import clean_text, is_blank, sha256_json
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2  # 2: missing_fields·nutrition 추가, summary.nutrition_blank → field_blank·nutrition
 Status = Literal["ok", "flagged", "hold"]
 STATUS_ORDER: dict[Status, int] = {"ok": 0, "flagged": 1, "hold": 2}
-NUTRITION_FIELDS = ["INFO_WGT", "INFO_ENG", "INFO_CAR", "INFO_PRO", "INFO_FAT", "INFO_NA"]
 
 
 @dataclass
@@ -41,11 +48,13 @@ class RecipeCheck:
     raw_sha256: str
     steps: StepResult
     ingredients: IngredientResult
+    nutrition: NutritionCheck
+    missing_fields: list[str] = field(default_factory=list)
     issues: list[Issue] = field(default_factory=list)
 
     @property
     def all_issues(self) -> list[Issue]:
-        return self.issues + self.steps.issues + self.ingredients.issues
+        return self.issues + self.nutrition.issues + self.steps.issues + self.ingredients.issues
 
     @property
     def status(self) -> Status:
@@ -59,6 +68,8 @@ class RecipeCheck:
             "status": self.status,
             "raw_sha256": self.raw_sha256,
             "issues": [i.to_dict() for i in self.all_issues],
+            "missing_fields": self.missing_fields,
+            "nutrition": self.nutrition.to_dict(),
             **self.steps.to_dict(),
             **self.ingredients.to_dict(),
         }
@@ -66,13 +77,15 @@ class RecipeCheck:
 
 def check_recipe(row: dict) -> RecipeCheck:
     name = clean_text(row.get("RCP_NM"))
-    base = [] if name else [Issue("name_missing")]
+    base = ([] if name else [Issue("name_missing")]) + field_issues(row)
     return RecipeCheck(
         source_id=str(row.get("RCP_SEQ", "")).strip(),
         name=name,
         raw_sha256=sha256_json(row),
         steps=extract_steps(row),
         ingredients=parse_ingredients(row.get("RCP_PARTS_DTLS")),
+        nutrition=check_nutrition(row),
+        missing_fields=missing_fields(row),
         issues=base,
     )
 
@@ -105,8 +118,15 @@ def summarize(checks: list[RecipeCheck], rows: list[dict]) -> dict:
             "with_paren": sum(bool(i.paren_texts) for i in ings),
             "section_style": dict(Counter(s.style for c in checks for s in c.ingredients.sections)),
         },
-        # 참고(범위 외): 영양 필드 결측 건수. 영양 검증은 식품 매핑 작업에서 다룬다.
-        "nutrition_blank": {f: sum(is_blank(r.get(f)) for r in rows) for f in NUTRITION_FIELDS},
+        "field_blank": {f: sum(is_blank(r.get(f)) for r in rows) for f in SOURCE_FIELDS},
+        "nutrition": {
+            "serving_weight_present": sum(c.nutrition.serving_weight_g is not None for c in checks),
+            "ingredient_servings": dict(sorted(Counter(
+                "·".join(f"{v:g}" for v in i.detail["servings"])
+                for c in checks for i in c.nutrition.issues if i.code == "ingredient_servings_stated").items())),
+            "energy_ratio": dict(Counter(energy_bucket(c.nutrition) for c in checks)),
+            "energy_mismatch": sum(c.nutrition.suspect for c in checks),
+        },
     }
 
 
@@ -117,28 +137,39 @@ def _rel(p: Path) -> str:
         return p.as_posix()
 
 
-def load_rows(path: Path) -> list[dict]:
+def load_payload(path: Path) -> tuple[list[dict], dict | None]:
+    """(레시피 행, 파일 안 수집 메타). 행 목록 / API 원 응답 / 갱신 수집본({"meta", "items"}) 형태를 받는다."""
     data = json.loads(path.read_text(encoding="utf-8-sig"))
-    if isinstance(data, dict):  # API 원 응답 형태도 허용
-        data = data.get("COOKRCP01", data).get("row", [])
+    meta = None
+    if isinstance(data, dict):
+        if isinstance(data.get("items"), list):
+            meta, data = data.get("meta"), data["items"]
+        else:
+            data = data.get("COOKRCP01", data).get("row", [])
     if not isinstance(data, list) or not all(isinstance(r, dict) for r in data):
         raise ValueError(f"레시피 행 목록이 아닙니다: {path}")
-    return data
+    return data, meta
+
+
+def load_rows(path: Path) -> list[dict]:
+    return load_payload(path)[0]
 
 
 def build_result(input_path: Path, source_meta_path: Path | None) -> dict:
     raw_bytes = input_path.read_bytes()
-    rows = load_rows(input_path)
-    meta = None
-    if source_meta_path and source_meta_path.is_file():
+    rows, meta = load_payload(input_path)
+    meta_path = None
+    # 입력 파일 안에 수집 메타가 있으면 그것을 쓴다 (기본 --source-meta 는 앱 50건용이라 섞지 않음)
+    if meta is None and source_meta_path and source_meta_path.is_file():
         meta = json.loads(source_meta_path.read_text(encoding="utf-8-sig"))
+        meta_path = _rel(source_meta_path)
     checks = [check_recipe(r) for r in rows]
     return {
         "schema_version": SCHEMA_VERSION,
         "input": {
             "path": _rel(input_path),
             "sha256": hashlib.sha256(raw_bytes).hexdigest(),
-            "source_meta_path": _rel(source_meta_path) if meta is not None else None,
+            "source_meta_path": meta_path,
             "source_meta": meta,
         },
         "rules": {code: {"severity": s, "label": label} for code, (s, label) in ISSUE_RULES.items()},
@@ -170,13 +201,19 @@ def main(argv: list[str] | None = None) -> int:
     result = build_result(args.input, args.source_meta)
     write_json(args.output_json, result)
     if not args.no_report:
+        command = "uv run python -m agetech_data.recipes.validate"
+        if args.input != paths.RECIPES_RAW:  # 기본 입력이 아니면 다시 만들 수 있게 경로를 적는다
+            command += (f" --input {_rel(args.input)} --output-json {_rel(args.output_json)}"
+                        f" --report {_rel(args.report)}")
         args.report.parent.mkdir(parents=True, exist_ok=True)
-        args.report.write_text(render_report(result), encoding="utf-8", newline="\n")
+        args.report.write_text(render_report(result, _rel(args.output_json), command), encoding="utf-8", newline="\n")
 
     s = result["summary"]
     st = s["status"]
     print(f"레시피 {s['recipes']}건: ok {st['ok']} / flagged {st['flagged']} / hold {st['hold']}")
     print(f"조리 단계 누락 레시피 {s['steps']['recipes_with_gap']}건 (누락 단계 {s['steps']['missing_total']}개)")
+    print(f"원문 영양값 이상 의심 {s['nutrition']['energy_mismatch']}건, "
+          f"1인분 중량 있음 {s['nutrition']['serving_weight_present']}건")
     print(f"가공 결과 → {_rel(args.output_json)}")
     if not args.no_report:
         print(f"보고서   → {_rel(args.report)}")

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import math
+
+from agetech_data.recipes.fields import ENERGY_BUCKETS, SOURCE_FIELDS
 from agetech_data.recipes.issues import ISSUE_RULES
 
 STATUS_LABEL = {"ok": "정상", "flagged": "표시 후 사용", "hold": "노출 보류 후보"}
@@ -22,6 +25,7 @@ SECTION_LABEL = {
     "inline_word": "콜론 없는 머리말 `재료 닭가슴살(60g)…`",
     "title_line": "제목만 있는 줄 `고명`",
 }
+MAX_ROWS = 60  # 긴 목록 표의 최대 행 수 (나머지는 가공 결과 JSON)
 INGREDIENT_WARNINGS = [c for c, (s, _) in ISSUE_RULES.items() if c.startswith("ingredient") and s != "info"]
 INGREDIENT_INFOS = [c for c, (s, _) in ISSUE_RULES.items() if c.startswith("ingredient") and s == "info"]
 
@@ -40,31 +44,34 @@ def _pct(n: int, total: int) -> str:
     return f"{100 * n / total:.1f}%" if total else "-"
 
 
-def render_report(result: dict) -> str:
+def render_report(result: dict, output_json: str = "data/processed/recipes_validated.json",
+                  command: str = "uv run python -m agetech_data.recipes.validate") -> str:
     s, inp, recipes = result["summary"], result["input"], result["recipes"]
     meta = inp.get("source_meta") or {}
     n = s["recipes"]
     L: list[str] = []
     L += ["# 레시피 원본 품질 검증 보고서 (식품안전나라 COOKRCP01)", ""]
-    L += ["> 이 파일은 `uv run python -m agetech_data.recipes.validate`로 생성됩니다. 직접 고치지 마세요.", ""]
+    L += [f"> 이 파일은 `{command}`로 생성됩니다. 직접 고치지 마세요.", ""]
     L += _table(["항목", "값"], [
         ["입력 파일", f"`{inp['path']}`"],
         ["입력 sha256", f"`{inp['sha256'][:16]}…`"],
         ["제공처·서비스", f"{meta.get('provider', '-')} · {meta.get('service', '-')}"],
-        ["수집 시각(fetchedAt)", meta.get("fetchedAt", "-")],
+        ["수집 시각", meta.get("fetchedAt") or meta.get("fetched_at") or "-"],
         ["수집 모드", meta.get("mode", "-")],
-        ["레시피 수 (원본 전체)", f"{n} (전체 {meta.get('totalCount', '-')}건 중)"],
-        ["가공 결과", "`data/processed/recipes_validated.json` (gitignore, 명령으로 재생성)"],
+        ["레시피 수 (원본 전체)", f"{n} (전체 {meta.get('totalCount') or meta.get('total_count') or '-'}건 중)"],
+        ["가공 결과", f"`{output_json}` (gitignore, 명령으로 재생성)"],
     ])
 
     L += ["", "## 1. 요약", ""]
     L += _table(["판정", "의미", "건수", "비율"], [
         [f"`{k}`", STATUS_LABEL[k], v, _pct(v, n)] for k, v in s["status"].items()
     ])
-    st, ing = s["steps"], s["ingredients"]
+    st, ing, nu = s["steps"], s["ingredients"], s["nutrition"]
     L += ["",
           f"- 조리 단계: 총 {st['total']}개. **중간 누락이 있는 레시피 {st['recipes_with_gap']}건, 누락 단계 {st['missing_total']}개**",
-          f"- 재료 항목: 총 {ing['items']}개. 괄호 설명이 있는 항목 {ing['with_paren']}개(원문 그대로 보존)"]
+          f"- 재료 항목: 총 {ing['items']}개. 괄호 설명이 있는 항목 {ing['with_paren']}개(원문 그대로 보존)",
+          f"- 영양: 1인분 중량(`INFO_WGT`)이 있는 레시피 {nu['serving_weight_present']}건({_pct(nu['serving_weight_present'], n)}). "
+          f"**원문 영양값 이상 의심 {nu['energy_mismatch']}건**(계산 열량과 2배 이상 차이)"]
 
     L += ["", "## 2. 판정 기준", ""]
     L += _table(["코드", "수준", "설명", "처리"], [
@@ -92,7 +99,9 @@ def render_report(result: dict) -> str:
                 d = i["detail"]
                 rows.append([r["source_id"], r["name"], f"`{i['code']}`", d.get("line_no", ""),
                              f"`{d.get('raw_item', '')}`"])
-    L += _table(["ID", "메뉴명", "코드", "원문 줄", "원문 항목"], rows) if rows else ["경고 없음."]
+    L += _table(["ID", "메뉴명", "코드", "원문 줄", "원문 항목"], rows[:MAX_ROWS]) if rows else ["경고 없음."]
+    if len(rows) > MAX_ROWS:
+        L += ["", f"외 {len(rows) - MAX_ROWS}건은 가공 결과 JSON의 레시피별 `issues`에 있습니다."]
 
     L += ["", "## 5. 점검 항목별 집계", ""]
     L += _table(["코드", "수준", "설명", "레시피 수", "발생 수"], [
@@ -118,9 +127,39 @@ def render_report(result: dict) -> str:
                               f"`{d.get('context') or d.get('raw_item', '')}`"])
     if infos:
         L += ["", "표기 참고 항목(내용 문제는 아님):", ""]
-        L += _table(["ID", "메뉴명", "코드", "원문 발췌"], infos)
+        L += _table(["ID", "메뉴명", "코드", "원문 발췌"], infos[:MAX_ROWS])
+        if len(infos) > MAX_ROWS:
+            L += ["", f"외 {len(infos) - MAX_ROWS}건은 가공 결과 JSON에 있습니다."]
 
-    L += ["", "## 7. 원본 추적과 보완 원칙", "",
+    L += ["", "## 7. 원천 필드 누락", "",
+          "COOKRCP01 명세의 출력 필드별 빈 값입니다(조리 단계 칸은 3절). 레코드마다 `missing_fields`에 같은 내용이 있습니다.", ""]
+    L += _table(["필드", "명세 설명", "빈 값", "비율"], [
+        [f"`{f}`", SOURCE_FIELDS[f], v, _pct(v, n)] for f, v in s["field_blank"].items()
+    ])
+
+    L += ["", "## 8. 영양값 기준량과 이상 의심", "",
+          "- 명세에서 기준량이 적힌 필드는 `INFO_WGT` '중량(1인분)'뿐입니다. 열량·탄수화물·단백질·지방·나트륨은 기준량·단위 표기가 없어, "
+          "값 범위로 kcal·g·g·g·mg로 읽고 기준량은 `per_serving_unverified`(1인분으로 보이나 명세 미표기)로 둡니다.",
+          f"- 1인분 중량이 있는 레시피 {nu['serving_weight_present']}건 / 없는 레시피 {n - nu['serving_weight_present']}건. "
+          "없으면 1인분이 몇 g인지 알 수 없어 사진 분량과 비교하거나 g당 값으로 바꿀 수 없습니다.",
+          "- 재료 원문 `[N인분]` 표기: " + (", ".join(f"{k}인분 {v}건" for k, v in nu["ingredient_servings"].items())
+                                       or "없음") + ". 표기가 없으면 재료 분량이 몇 인분 기준인지 알 수 없습니다.",
+          "- 계산 열량 = 탄수화물×4 + 단백질×4 + 지방×9. 원문 열량과의 비율이 0.5 미만 또는 2 초과면 "
+          "`nutrition_energy_mismatch`(경고)로 표시합니다. 값을 고치지 않습니다.", ""]
+    L += _table(["계산 열량 ÷ 원문 열량", "레시피 수", "비율"], [
+        [k, nu["energy_ratio"][k], _pct(nu["energy_ratio"][k], n)] for k in ENERGY_BUCKETS if k in nu["energy_ratio"]
+    ])
+    sus = sorted((r for r in recipes if r["nutrition"]["suspect"]),
+                 key=lambda r: -abs(math.log(r["nutrition"]["energy_ratio"] or 1e9)))
+    if sus:
+        L += ["", f"이상 의심 레시피 ({len(sus)}건, 차이가 큰 순" + (f", 상위 {MAX_ROWS}건" if len(sus) > MAX_ROWS else "") + "):", ""]
+        L += _table(["ID", "메뉴명", "원문 열량", "탄수화물·단백질·지방(g)", "계산 열량", "비율"], [
+            [r["source_id"], r["name"], r["nutrition"]["energy_kcal"],
+             " · ".join(f"{r['nutrition'][k]:g}" for k in ("carbohydrate_g", "protein_g", "fat_g")),
+             r["nutrition"]["energy_from_macros_kcal"], r["nutrition"]["energy_ratio"] or "-"] for r in sus[:MAX_ROWS]
+        ])
+
+    L += ["", "## 9. 원본 추적과 보완 원칙", "",
           "- 가공 결과의 레시피마다 원본 행 sha256(`raw_sha256`)을, 단계마다 원본 칸(`source_field`)·칸 번호(`source_no`)·"
           "문장 앞 번호(`stated_no`)·원문(`text_raw`)을 보존합니다. 단계 번호를 다시 매기지 않습니다.",
           "- 재료는 원문 조각(`raw_item`)과 원문 줄 번호(`line_no`)를 보존하고, 이를 `name_raw`와 `amount_text`로 "
@@ -128,8 +167,4 @@ def render_report(result: dict) -> str:
           "- 비어 있는 단계와 분량은 **임의로 채우지 않습니다.** 원문 보완은 재수집했을 때 원본에 값이 생긴 경우에만 반영합니다.",
           "- `hold` 레시피는 원문 보완 전까지 앱 노출 보류를 권고합니다. `flagged` 레시피는 노출하되 앱에서 누락·이상을 표시합니다.",
           "- 수작업 보완이 필요해지면 출처 URL·확인자·확인일을 함께 남기는 별도 파일로 관리합니다(후속 작업)."]
-
-    L += ["", "## 8. 참고 (이번 범위 밖)", "",
-          "영양 필드의 빈 값 건수입니다. 영양값 검증은 공공 영양 DB 매핑 작업에서 다룹니다.", ""]
-    L += _table(["필드", "빈 값", "비율"], [[f"`{k}`", v, _pct(v, n)] for k, v in s["nutrition_blank"].items()])
     return "\n".join(L) + "\n"
