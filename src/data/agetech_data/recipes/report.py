@@ -142,7 +142,7 @@ def render_report(result: dict, output_json: str = "data/processed/recipes_valid
           "값 범위로 kcal·g·g·g·mg로 읽고 기준량은 `per_serving_unverified`(1인분으로 보이나 명세 미표기)로 둡니다.",
           f"- 1인분 중량이 있는 레시피 {nu['serving_weight_present']}건 / 없는 레시피 {n - nu['serving_weight_present']}건. "
           "없으면 1인분이 몇 g인지 알 수 없어 사진 분량과 비교하거나 g당 값으로 바꿀 수 없습니다.",
-          "- 재료 원문 `[N인분]` 표기: " + (", ".join(f"{k}인분 {v}건" for k, v in nu["ingredient_servings"].items())
+          "- 재료 원문 'N인분' 표기(`[2인분]`·`2인분 기준`): " + (", ".join(f"{k}인분 {v}건" for k, v in nu["ingredient_servings"].items())
                                        or "없음") + ". 표기가 없으면 재료 분량이 몇 인분 기준인지 알 수 없습니다.",
           "- 계산 열량 = 탄수화물×4 + 단백질×4 + 지방×9. 원문 열량과의 비율이 0.5 미만 또는 2 초과면 "
           "`nutrition_energy_mismatch`(경고)로 표시합니다. 값을 고치지 않습니다.", ""]

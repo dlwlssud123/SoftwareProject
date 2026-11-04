@@ -34,7 +34,8 @@ ENERGY_RATIO_RANGE = (0.5, 2.0)
 IMAGE_FIELDS = ("ATT_FILE_NO_MAIN", "ATT_FILE_NO_MK")
 
 _NUMBER = re.compile(r"^\d+(?:\.\d+)?$")
-_SERVINGS = re.compile(r"\[\s*(\d+(?:\.\d+)?)\s*인분\s*\]")
+# 재료 분량의 기준 표기: "[2인분]", "2인분 기준", "재료 2인분". 양념 등 일부에만 붙은 "양념장(2인분)"은 보지 않는다.
+_SERVINGS = re.compile(r"\[\s*(\d+(?:\.\d+)?)\s*인분\s*\]|(\d+(?:\.\d+)?)\s*인분\s*기준|재료\s*(\d+(?:\.\d+)?)\s*인분")
 
 
 def missing_fields(row: dict) -> list[str]:
@@ -51,7 +52,7 @@ def read_number(v) -> float | None:
 @dataclass
 class NutritionCheck:
     serving_weight_g: float | None          # INFO_WGT (1인분 중량)
-    ingredient_servings: float | None       # 재료 원문 '[N인분]' 표기 (재료 분량 기준), 없거나 여러 값이면 None
+    ingredient_servings: float | None       # 재료 원문 'N인분' 표기 (재료 분량 기준), 없거나 여러 값이면 None
     values: dict[str, float | None]         # energy_kcal … sodium_mg
     energy_from_macros_kcal: float | None
     energy_ratio: float | None              # 계산 열량 ÷ 원문 열량
@@ -85,7 +86,7 @@ def check_nutrition(row: dict) -> NutritionCheck:
     if weight is None:
         issues.append(Issue("serving_weight_missing"))
 
-    stated = sorted({float(m) for m in _SERVINGS.findall(row.get("RCP_PARTS_DTLS") or "")})
+    stated = sorted({float(next(g for g in m if g)) for m in _SERVINGS.findall(row.get("RCP_PARTS_DTLS") or "")})
     if stated:
         issues.append(Issue("ingredient_servings_stated", {"servings": stated}))
     servings = stated[0] if len(stated) == 1 else None

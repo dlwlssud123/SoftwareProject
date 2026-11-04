@@ -57,7 +57,7 @@ def test_select_samples_attaches_extra_cases_and_reports_missing():
     recs = [to_api_record(check_recipe(r), r, META) for r in (_row("29"), _row("33", MANUAL01=""))]
     samples, missing = select_samples(recs)
     by_id = {s["recipe"]["recipe_id"]: s["cases"] for s in samples}
-    assert "재료 원문에 [N인분] 표기" in by_id["29"]             # 이미 고른 표본에 사례만 덧붙임
+    assert "재료 원문에 N인분 표기" in by_id["29"]               # 이미 고른 표본에 사례만 덧붙임
     assert by_id["33"] == ["조리 단계 누락 → hold"]
     assert "원문 영양값 이상 의심 → flagged" in missing
 

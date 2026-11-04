@@ -95,7 +95,7 @@ SAMPLE_CASES: list[tuple[str, Callable[[dict], bool]]] = [
     ("원문 영양값 이상 의심 → flagged", lambda r: r["nutrition"]["suspect"]),
     ("재료 괄호 미닫힘 → flagged, 알레르기 추정 불완전", lambda r: not r["allergens"]["complete"]),
     ("정할 수 없는 재료(needs_check)", lambda r: bool(r["allergens"]["needs_check"])),
-    ("재료 원문에 [N인분] 표기", lambda r: r["nutrition"]["ingredient_servings"] is not None),
+    ("재료 원문에 N인분 표기", lambda r: r["nutrition"]["ingredient_servings"] is not None),
 ]
 
 

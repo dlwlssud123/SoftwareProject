@@ -47,6 +47,10 @@ def test_nutrition_flags_missing_weight_and_servings_marker():
     assert n.ingredient_servings == 2.0 and n.issues[1].detail == {"servings": [2.0]}
     many = check_nutrition(_row(RCP_PARTS_DTLS="[1인분] 두부 50g\n[2인분] 두부 100g"))
     assert many.ingredient_servings is None and many.issues[-1].detail == {"servings": [1.0, 2.0]}
+    # "2인분 기준"(3459 등 23건)·"재료 2인분"도 기준 표기. 양념에만 붙은 "(2인분)"은 아님
+    assert check_nutrition(_row(RCP_PARTS_DTLS="2인분 기준<br>\n두부 200g")).ingredient_servings == 2.0
+    assert check_nutrition(_row(RCP_PARTS_DTLS="재료 1인분 봄동 50g")).ingredient_servings == 1.0
+    assert check_nutrition(_row(RCP_PARTS_DTLS="두부 100g\n양념장(2인분): 간장 5g")).ingredient_servings is None
 
 
 def test_energy_mismatch_is_a_warning_not_a_fix():
