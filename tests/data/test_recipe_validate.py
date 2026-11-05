@@ -80,3 +80,10 @@ def test_accepts_refresh_collected_shape_and_prefers_embedded_meta(tmp_path):
 def test_report_is_deterministic(tmp_path):
     inp, meta = _write(tmp_path, [GOOD, GAP])
     assert render_report(build_result(inp, meta)) == render_report(build_result(inp, meta))
+
+
+def test_v1_nutrition_blank_summary_remains_compatible(tmp_path):
+    inp, meta = _write(tmp_path, [GOOD, GAP])
+    summary = build_result(inp, meta)["summary"]
+    expected = ("INFO_WGT", "INFO_ENG", "INFO_CAR", "INFO_PRO", "INFO_FAT", "INFO_NA")
+    assert summary["nutrition_blank"] == {key: summary["field_blank"][key] for key in expected}

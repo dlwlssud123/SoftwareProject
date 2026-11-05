@@ -23,7 +23,16 @@ from pathlib import Path
 from typing import Literal
 
 from agetech_data import paths
-from agetech_data.recipes.allergens import AllergenResult, app_detect, app_terms_found, detect, load_rules
+from agetech_data.recipes.allergens import (
+    AllergenResult,
+    app_detect,
+    app_terms_found,
+    detect,
+    load_rules,
+)
+from agetech_data.recipes.fields import (
+    NUTRIENTS as NUTRITION_SOURCE_FIELDS,
+)
 from agetech_data.recipes.fields import (
     SOURCE_FIELDS,
     NutritionCheck,
@@ -37,7 +46,7 @@ from agetech_data.recipes.issues import ISSUE_RULES, Issue
 from agetech_data.recipes.steps import StepResult, extract_steps
 from agetech_data.textutil import clean_text, is_blank, sha256_json
 
-SCHEMA_VERSION = 2  # 2: missing_fields·nutrition·allergens 추가, summary.nutrition_blank → field_blank·nutrition
+SCHEMA_VERSION = 2  # 2: missing_fields·nutrition·allergens 추가, field_blank·nutrition (nutrition_blank 호환 키 유지)
 Status = Literal["ok", "flagged", "hold"]
 STATUS_ORDER: dict[Status, int] = {"ok": 0, "flagged": 1, "hold": 2}
 
@@ -124,6 +133,9 @@ def summarize(checks: list[RecipeCheck], rows: list[dict]) -> dict:
             "section_style": dict(Counter(s.style for c in checks for s in c.ingredients.sections)),
         },
         "field_blank": {f: sum(is_blank(r.get(f)) for r in rows) for f in SOURCE_FIELDS},
+        # v1 consumers, including the verified correction report, still read this key.
+        "nutrition_blank": {f: sum(is_blank(r.get(f)) for r in rows)
+                            for f in ("INFO_WGT", *NUTRITION_SOURCE_FIELDS)},
         "nutrition": {
             "serving_weight_present": sum(c.nutrition.serving_weight_g is not None for c in checks),
             "ingredient_servings": dict(sorted(Counter(

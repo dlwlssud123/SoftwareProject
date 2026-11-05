@@ -46,6 +46,7 @@ class Rule:
     exact: tuple[str, ...] = ()
     exclude: tuple[str, ...] = ()
     determinable: bool = True
+    contextual: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -74,7 +75,7 @@ def _t(xs) -> tuple[str, ...]:
 def load_rules(path: Path = RULES_FILE) -> Rules:
     d = json.loads(path.read_text(encoding="utf-8"))
     allergens = tuple(Rule(a["name"], a.get("label", a["name"]), _t(a.get("direct")), _t(a.get("usually")),
-                           _t(a.get("exact")), _t(a.get("exclude")), a.get("determinable", True))
+                           _t(a.get("exact")), _t(a.get("exclude")), a.get("determinable", True), _t(a.get("contextual")))
                       for a in d["allergens"])
     ambiguous = tuple(Ambiguous(_t(a["terms"]), tuple(a["candidates"]), _t(a.get("exclude"))) for a in d["ambiguous"])
     return Rules(d["standard"], allergens, ambiguous)
@@ -93,10 +94,14 @@ def match_name(name: str, rules: Rules | None = None, context: str = "") -> list
     ctx = re.sub(r"\s+", "", context).casefold()
     out = []
     for r in rules.allergens:
-        if not r.determinable or not k or any(x in k or x in ctx for x in r.exclude):
+        if not r.determinable or not k or any(x in k for x in r.exclude):
             continue
         hits = ([(t, "direct") for t in r.direct if t in k] + [(t, "usually") for t in r.usually if t in k]
                 + [(t, "direct") for t in r.exact if t == k])
+        # Only generic meat cuts depend on the surrounding species. Explicit
+        # components in another segment retain their own evidence.
+        if any(x in ctx for x in r.exclude):
+            hits = [(term, kind) for term, kind in hits if term not in r.contextual]
         if hits:
             term, kind = max(hits, key=lambda h: (len(h[0]), h[1] == "direct"))
             out.append((r.name, term, kind))
@@ -150,10 +155,10 @@ def _evidence(ing: Ingredient, rules: Rules) -> tuple[list[tuple[str, dict]], di
             if a not in seen:
                 seen.add(a)
                 out.append((a, {"ingredient": ing.name, "term": t, "kind": kind, "from": "item_text"}))
-    if out:
-        return out, None
     amb = ambiguous_of(ing.name, rules)
-    return [], ({"ingredient": ing.name, "term": amb[0], "candidates": list(amb[1])} if amb else None)
+    if amb and not any(allergen in amb[1] for allergen, _ in out):
+        return out, {"ingredient": ing.name, "term": amb[0], "candidates": list(amb[1])}
+    return out, None
 
 
 def detect(ingredients: IngredientResult, rules: Rules | None = None) -> AllergenResult:

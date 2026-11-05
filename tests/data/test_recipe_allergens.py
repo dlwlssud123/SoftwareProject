@@ -1,5 +1,4 @@
 import pytest
-
 from agetech_data.recipes.allergens import app_detect, detect, load_rules, match_name
 from agetech_data.recipes.ingredients import parse_ingredients
 from agetech_data.recipes.validate import check_recipe
@@ -86,3 +85,20 @@ def test_check_recipe_includes_allergens():
     row = {"RCP_SEQ": "1", "RCP_NM": "새우두부조림", "RCP_PARTS_DTLS": "새우 50g, 두부 100g", "MANUAL01": "1. 굽는다"}
     d = check_recipe(row).to_dict()["allergens"]
     assert d["basis"] == "ingredient_name" and [x["allergen"] for x in d["detected"]] == ["대두", "새우"]
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("땅콩버터(우유 함유) 50g", ["우유", "땅콩"]),
+    ("메밀가루(밀가루 혼합) 50g", ["메밀", "밀"]),
+    ("양고기(쇠고기 혼합) 50g", ["쇠고기"]),
+    ("소고기(돼지고기 혼합) 50g", ["돼지고기", "쇠고기"]),
+])
+def test_explicit_components_survive_other_segment_exclusions(text, expected):
+    assert _detect(text).names == expected
+
+
+def test_detected_milk_does_not_resolve_ambiguous_meat():
+    result = _detect("찜갈비(우유) 300g")
+    assert result.names == ["우유"]
+    assert result.needs_check == [{"ingredient": "찜갈비", "term": "갈비", "candidates": ["쇠고기", "돼지고기"]}]
+    assert _detect("다진고기(돼지고기) 100g").needs_check == []
