@@ -58,8 +58,9 @@ def normalize_ctpv(name: str | None) -> str | None:
 
 
 def normalize_sgg(name: str | None) -> str | None:
+    """시군구명 → 공백 제거한 이름. '-'처럼 글자·숫자가 없는 자리 표시는 시군구 없음(None)으로 본다."""
     k = _key(name)
-    return k or None
+    return k if any(ch.isalnum() for ch in k) else None
 
 
 def match_sgg(user_input: str | None, known: set[str] | list[str]) -> str | None:

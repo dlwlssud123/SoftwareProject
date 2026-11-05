@@ -26,7 +26,7 @@
 | `serv_id` | 문자열 | `servId` | 식별자 |
 | `source` | `central`/`local` | | 원천 |
 | `scope` | `national`/`province`/`district` | | 전국(중앙부처) / 시도 전체(시군구 없음) / 시군구 |
-| `ctpv`, `sgg` | 문자열·null | `ctpvNm`, `sggNm` | 정규화한 시도·시군구 (중앙은 null) |
+| `ctpv`, `sgg` | 문자열·null | `ctpvNm`, `sggNm` | 정규화한 시도·시군구 (중앙은 null). 원천 시군구가 `-`처럼 글자 없는 자리 표시면 null(시도 전체) |
 | `ctpv_raw`, `sgg_raw` | 문자열·null | | 원천 표기 그대로 |
 | `name`, `summary` | 문자열 | `servNm`, `servDgst` | 서비스명, 요약 |
 | `target_detail` | 문자열·null | `tgtrDtlCn` / `sprtTrgtCn` | 지원 대상 (상세) |

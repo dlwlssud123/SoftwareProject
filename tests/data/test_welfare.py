@@ -7,7 +7,7 @@ from agetech_data import paths
 from agetech_data.welfare import build
 from agetech_data.welfare.normalize import clean_text, normalize_item, normalize_payload, parse_ymd, split_list
 from agetech_data.welfare.query import services_for
-from agetech_data.welfare.regions import MERGED, match_sgg, normalize_ctpv
+from agetech_data.welfare.regions import MERGED, match_sgg, normalize_ctpv, normalize_sgg
 
 AS_OF = date(2026, 11, 1)
 
@@ -138,6 +138,14 @@ def test_period_ended_and_unknown_ctpv_flags():
     assert "period_ended" in ended.quality_flags and ended.period_end == "2025-12-31"
     odd = normalize_item(_local("WLF00000009", "가상도", "어딘가"), "local", None, AS_OF)
     assert odd.ctpv is None and "unknown_ctpv" in odd.quality_flags
+
+
+@pytest.mark.parametrize("sgg_raw", ["-", " - ", "－", "", None])
+def test_placeholder_sgg_is_province_wide(sgg_raw):
+    # 원천 시군구 칸이 '-'인 사업(실데이터 WLF00004534 대구·WLF00004142 경기)은 시도 전체 사업이다
+    r = normalize_item(_local("WLF00000010", "대구광역시", sgg_raw), "local", None, AS_OF)
+    assert (r.scope, r.ctpv, r.sgg) == ("province", "대구광역시", None)
+    assert normalize_sgg(sgg_raw) is None and normalize_sgg("남구") == "남구"
 
 
 # --- 지역별 조회 ----------------------------------------------------------
