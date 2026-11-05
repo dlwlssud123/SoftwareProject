@@ -5,7 +5,9 @@ from agetech_data.recipes.validate import build_result, check_recipe, main
 
 
 def _row(seq, name="테스트", parts="두부 20g(2×2×2cm)", **manual):
-    row = {"RCP_SEQ": seq, "RCP_NM": name, "RCP_PARTS_DTLS": parts}
+    row = {"RCP_SEQ": seq, "RCP_NM": name, "RCP_PARTS_DTLS": parts, "ATT_FILE_NO_MAIN": "http://img/main.png",
+           # 4×10 + 4×5 + 9×4.4 = 99.6 ≈ 원문 열량 100 (영양 점검 통과)
+           "INFO_ENG": "100", "INFO_CAR": "10", "INFO_PRO": "5", "INFO_FAT": "4.4", "INFO_NA": "200", "INFO_WGT": ""}
     row.update({f"MANUAL{i:02d}": "" for i in range(1, 21)})
     row.update({f"MANUAL_IMG{i:02d}": "" for i in range(1, 21)})
     row.update(manual)
@@ -64,6 +66,24 @@ def test_accepts_raw_api_response_shape(tmp_path):
     assert build_result(inp, meta)["summary"]["recipes"] == 1
 
 
+def test_accepts_refresh_collected_shape_and_prefers_embedded_meta(tmp_path):
+    """갱신 수집본({"meta", "items"})은 파일 안 메타를 쓰고, 기본 --source-meta(앱 50건용)를 섞지 않는다."""
+    embedded = {"provider": "식품안전나라", "service": "COOKRCP01", "fetched_at": "2026-10-31T16:29:00+00:00",
+                "total_count": 1156}
+    inp, meta = _write(tmp_path, {"meta": embedded, "items": [GOOD, GAP]}, meta={"fetchedAt": "앱 50건 메타"})
+    res = build_result(inp, meta)
+    assert res["summary"]["recipes"] == 2
+    assert res["input"]["source_meta"] == embedded and res["input"]["source_meta_path"] is None
+    assert "2026-10-31T16:29:00+00:00" in render_report(res) and "전체 1156건 중" in render_report(res)
+
+
 def test_report_is_deterministic(tmp_path):
     inp, meta = _write(tmp_path, [GOOD, GAP])
     assert render_report(build_result(inp, meta)) == render_report(build_result(inp, meta))
+
+
+def test_v1_nutrition_blank_summary_remains_compatible(tmp_path):
+    inp, meta = _write(tmp_path, [GOOD, GAP])
+    summary = build_result(inp, meta)["summary"]
+    expected = ("INFO_WGT", "INFO_ENG", "INFO_CAR", "INFO_PRO", "INFO_FAT", "INFO_NA")
+    assert summary["nutrition_blank"] == {key: summary["field_blank"][key] for key in expected}

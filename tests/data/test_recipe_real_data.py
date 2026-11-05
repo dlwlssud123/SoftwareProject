@@ -82,3 +82,19 @@ def test_name_amount_and_paren_preserved(by_id, raw_rows):
         kept = {p for i in by_id[row["RCP_SEQ"]]["ingredients"] for p in i["paren_texts"]}
         for p in re.findall(r"\(([^()]*)\)", src):
             assert p in kept, (row["RCP_SEQ"], p)
+
+
+def test_source_nutrition_kept_and_suspects_flagged(by_id, raw_rows):
+    for row in raw_rows:  # 원문 영양값을 바꾸지 않는다
+        assert by_id[row["RCP_SEQ"]]["nutrition"]["energy_kcal"] == float(row["INFO_ENG"])
+    # 271~281 찌개류: 탄수화물·단백질·지방이 원문 열량의 1/5 안팎 → 원문 영양값 이상 의심
+    suspects = {rid for rid, r in by_id.items() if r["nutrition"]["suspect"]}
+    assert suspects == {"271", "272", "273", "274", "276", "277", "278", "280", "281"}
+
+
+def test_known_allergens(by_id):
+    def names(rid):
+        return [d["allergen"] for d in by_id[rid]["allergens"]["detected"]]
+    assert "새우" in names("33")                                  # 사과 새우 북엇국
+    assert "땅콩" in names("642") and "대두" not in names("642")  # 앱 규칙은 땅콩의 '콩'을 대두로 봄
+    assert all(r["allergens"]["not_determinable"] == ["아황산류"] for r in by_id.values())
