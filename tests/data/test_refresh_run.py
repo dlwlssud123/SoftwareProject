@@ -91,3 +91,83 @@ def test_cli_exit_codes_list_and_rollback(tmp_path, capsys):
     assert len(store.load_latest()["items"]) == 2
     assert main(["--list"], **{k: common[k] for k in ("registry", "status_path", "log_path")}) == 0
     assert "현재 판본" in capsys.readouterr().out
+
+
+# --- 게시 실패 시 최신본·포인터·상태 일관성 (PR #8 리뷰) -------------------------
+def _fail_pointer_writes(monkeypatch):
+    from agetech_data.refresh import snapshot as snap_mod
+    real = snap_mod._atomic_write_bytes
+
+    def fake(path, data):
+        if path.name == "current.json":
+            raise OSError("current.json 쓰기 실패(시험)")
+        return real(path, data)
+    monkeypatch.setattr(snap_mod, "_atomic_write_bytes", fake)
+
+
+def _status(tmp_path, name):
+    return json.loads((tmp_path / "status.json").read_text(encoding="utf-8"))["sources"][name]
+
+
+def test_pointer_failure_marks_failed_and_keeps_files_and_status_consistent(tmp_path, monkeypatch):
+    reg = _registry(tmp_path, {"a": [_payload([1, 2, 3]), _payload([1, 2, 3, 4])]})
+    clock = Clock()
+    _run(tmp_path, reg, now=clock)
+    store = SnapshotStore("a", reg["a"].latest)
+    good = store.pointer()
+    _fail_pointer_writes(monkeypatch)
+    [r] = _run(tmp_path, reg, now=clock)
+    assert r["status"] == "failed" and "current.json" in r["error"]
+    assert len(store.load_latest()["items"]) == 3 and store.pointer() == good and store.ids() == [good["snapshot_id"]]
+    s = _status(tmp_path, "a")
+    assert s["serving"] == good and s["last_status"] == "failed" and s["consecutive_failures"] == 1
+
+
+def test_prune_failure_is_ok_with_warning_and_status_follows_new_snapshot(tmp_path, monkeypatch):
+    reg = _registry(tmp_path, {"a": [_payload([1]), _payload([1, 2])]})
+    clock = Clock()
+    _run(tmp_path, reg, now=clock, keep=1)
+
+    def broken_prune(self, current=None):
+        raise OSError("삭제 권한 없음(시험)")
+    monkeypatch.setattr(SnapshotStore, "prune", broken_prune)
+    [r] = _run(tmp_path, reg, now=clock, keep=1)
+    store = SnapshotStore("a", reg["a"].latest, keep=1)
+    assert r["status"] == "ok" and any("정리 실패" in w for w in r["warnings"])
+    s = _status(tmp_path, "a")
+    assert s["serving"] == store.pointer() and s["serving"]["item_count"] == 2 and len(store.load_latest()["items"]) == 2
+    assert s["last_warnings"] == r["warnings"]
+
+
+def test_next_run_repairs_latest_and_reconciles_status(tmp_path):
+    """지난 실행이 게시 도중·상태 기록 전에 멈춘 경우: 다음 실행이 최신본을 포인터에 맞추고 상태도 맞춘다."""
+    reg = _registry(tmp_path, {"a": [_payload([1, 2]), CollectError("HTTP 500")]})
+    clock = Clock()
+    _run(tmp_path, reg, now=clock)
+    store = SnapshotStore("a", reg["a"].latest)
+    good = store.pointer()
+    reg["a"].latest.write_text(json.dumps(_payload([7, 8, 9])), encoding="utf-8")   # 최신본만 바뀐 채 멈춤
+    st = json.loads((tmp_path / "status.json").read_text(encoding="utf-8"))
+    st["sources"]["a"]["serving"] = {"snapshot_id": "ghost"}                          # 상태도 어긋남
+    (tmp_path / "status.json").write_text(json.dumps(st), encoding="utf-8")
+    [r] = _run(tmp_path, reg, now=clock)
+    assert r["status"] == "failed" and "다시 맞춤" in r["repaired"]
+    assert store.load_latest() == _payload([1, 2])
+    s = _status(tmp_path, "a")
+    assert s["serving"] == good and "다시 맞춤" in s["last_repair"]["note"]
+
+
+def test_cli_rollback_failure_keeps_current(tmp_path, monkeypatch, capsys):
+    reg = _registry(tmp_path, {"a": [_payload([1, 2]), _payload([1, 2, 3])]})
+    common = {"registry": reg, "status_path": tmp_path / "status.json", "log_path": tmp_path / "log.jsonl"}
+    run_kw = {"sleep": lambda s: None, "log": lambda m: None, "secret_loader": lambda *n: "k"}
+    clock = Clock()
+    main([], now=clock, **common, **run_kw)
+    main([], now=clock, **common, **run_kw)
+    store = SnapshotStore("a", reg["a"].latest)
+    current, first = store.pointer(), store.ids()[0]
+    _fail_pointer_writes(monkeypatch)
+    assert main(["--rollback", "a", first], **common) == 1
+    assert "되돌리기 실패" in capsys.readouterr().err
+    assert store.pointer() == current and len(store.load_latest()["items"]) == 3
+    assert _status(tmp_path, "a")["serving"] == current
