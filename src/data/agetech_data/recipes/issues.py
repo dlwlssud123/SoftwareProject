@@ -17,6 +17,12 @@ Severity = Literal["error", "warning", "info"]
 ISSUE_RULES: dict[str, tuple[Severity, str]] = {
     # 기본 필드
     "name_missing": ("error", "메뉴명(RCP_NM) 없음"),
+    "image_missing": ("info", "대표 이미지(ATT_FILE_NO_MAIN·MK) 없음"),
+    # 영양·기준량
+    "nutrition_value_invalid": ("warning", "영양 값(열량·탄수화물·단백질·지방·나트륨)이 비었거나 숫자가 아님"),
+    "nutrition_energy_mismatch": ("warning", "탄수화물·단백질·지방으로 계산한 열량이 원문 열량과 2배 이상 차이(원문 영양값 이상 의심)"),
+    "serving_weight_missing": ("info", "1인분 중량(INFO_WGT) 없음 — 영양값의 기준 중량 확인 불가"),
+    "ingredient_servings_stated": ("info", "재료 원문에 'N인분' 표기([2인분]·2인분 기준) — 재료 분량의 기준"),
     # 조리 단계
     "steps_none": ("error", "조리 단계 문장이 하나도 없음"),
     "step_first_missing": ("error", "1단계(준비 과정) 누락"),

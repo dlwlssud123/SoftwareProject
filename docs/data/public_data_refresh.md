@@ -58,12 +58,22 @@ uv run python -m agetech_data.refresh --rollback welfare_local 20261101T030000Z
 
 ## 3. 동작 순서와 실패 처리
 
+0. 점검: 지난 실행이 게시·복구 도중 멈춰 최신본이 현재 판본(`current.json`)과 다르면 판본 파일로 다시 맞추고, 남은 백업(`<최신본>.bak`)을 지운다 (`last_repair`에 기록)
 1. 키 확인 → 없으면 실패 (이전 판본 유지)
 2. 수집: 페이지·상세 조회. HTTP 5xx·응답 해석 실패는 최대 5회 재시도(대기 2·4·6·8초). 인증키 미등록 등 결과 코드는 즉시 실패, 일일 한도 초과는 재시도 없이 중단(복지 상세는 위 "나눠 받기")
 3. 검증: 받은 건수 = 원천 totalCount, ID 형식·중복, 필수 필드(레시피 메뉴명, 복지 서비스명), 복지 상세 ID 일치, **급감 방지**(`--min-ratio`)
-4. 게시: 판본 파일(`<최신본 폴더>/snapshots/<소스>/<판본ID>.json`, 판본ID는 UTC 시각)과 최신본을 임시 파일 → 이름 바꾸기로 교체, `current.json` 포인터 갱신, 오래된 판본 정리
+4. 게시 — **커밋 지점은 `current.json` 포인터 기록**이다. 포인터가 가리키는 판본과 최신본 내용은 항상 같다.
+   1. 새 판본 파일(`<최신본 폴더>/snapshots/<소스>/<판본ID>.json`, 판본ID는 UTC 시각) 저장
+   2. 이전 최신본을 `<최신본>.bak`으로 백업
+   3. 최신본 교체 → 4. 포인터 기록(커밋) → 5. 백업 삭제·오래된 판본 정리
+   - 4 전에 실패하면 최신본을 백업으로 되돌리고 새 판본 파일을 지운 뒤 **그 소스를 실패로 처리**한다(이전 판본 유지).
+   - 5의 실패(정리 권한 등)는 이미 커밋된 게시를 무르지 않고 `last_warnings`에 남긴다. 남은 판본은 다음 게시 때 정리된다.
+   - 복구까지 실패하면 오류에 그 사실을 적고, 다음 실행의 0번 점검이 포인터 기준으로 최신본을 맞춘다.
+   - 파일 하나를 쓸 때는 임시 파일 → 이름 바꾸기로 교체해 중간 실패에도 기존 파일이 남는다.
 5. 변경 감지: 이전 최신본과 ID 기준 추가·삭제·변경 건수와 예시 ID. 복지는 조회수(`inqNum`)를 빼고 비교
-6. 상태 기록: 소스마다 바로 `data/processed/refresh_status.json`에 반영, 실행 기록을 `refresh_log.jsonl`에 한 줄씩 추가
+6. 상태 기록: 소스마다 바로 `data/processed/refresh_status.json`에 반영, 실행 기록을 `refresh_log.jsonl`에 한 줄씩 추가. `serving`은 실제 포인터를 따르므로, 상태 기록 전에 멈췄어도 다음 실행에서 맞춰진다
+
+**되돌리기**(`--rollback`)도 같은 커밋 순서다. 포인터 기록 전에 실패하면 최신본·현재 판본은 그대로이고 종료 코드 1이다.
 
 키와 키가 들어간 URL은 출력·오류 메시지·상태 파일·판본 파일 어디에도 남기지 않는다.
 
@@ -76,14 +86,16 @@ uv run python -m agetech_data.refresh --rollback welfare_local 20261101T030000Z
 | `label` | 소스 표시 이름 |
 | `last_attempt_at`, `last_status`, `last_error`, `last_duration_sec` | 마지막 시도 시각(UTC)·`ok`/`failed`·오류 문장(키 없음)·소요 초 |
 | `last_success_at`, `consecutive_failures` | 마지막 성공 시각, 연속 실패 횟수 (성공 시 0) |
-| `serving` | **지금 쓰고 있는 판본** `{snapshot_id, file, sha256, item_count, fetched_at, published_at, rollback?}` — 실패해도 바뀌지 않음 |
+| `serving` | **지금 쓰고 있는 판본** `{snapshot_id, file, sha256, item_count, fetched_at, published_at, rollback?}` — 실제 포인터(`current.json`)와 같음. 실패하면 이전 판본 그대로 |
 | `item_count`, `previous_count` | 마지막 성공 판본 건수, 그 이전 건수 |
 | `changes` | `{first_snapshot, added, removed, changed, unchanged, samples:{added, removed, changed}}` (예시 ID 최대 20개) |
 | `quality` | 소스별 품질 요약. 레시피는 레시피 품질 검증 판정 건수 `{ok, flagged, hold}`, 복지는 `{detail_status: {fresh, cached, stale, pending}}` |
 | `details` | 복지만: `{counts, fetched_this_run, remaining, stopped_by_quota, daily_limit, max_age_days}` — `remaining > 0`이면 다음 실행에서 이어 받음 |
 | `rolled_back_at` | 되돌리기를 했으면 그 시각 |
+| `last_warnings` | 마지막 실행의 경고(게시는 됐지만 오래된 판본 정리·백업 삭제 실패 등). 없으면 `[]` |
+| `last_repair` | 실행 시작 점검에서 최신본을 다시 맞췄으면 `{at, note}` |
 
-**관리자 화면 권장 표시**: 소스별 `serving.snapshot_id`·`fetched_at`(원천 확인 시각), `last_status`, `consecutive_failures ≥ 1`이면 경고, `changes`의 추가·삭제·변경 건수, 레시피 `quality.hold` 건수, 복지 `details.remaining`(상세 미수집 건수).
+**관리자 화면 권장 표시**: 소스별 `serving.snapshot_id`·`fetched_at`(원천 확인 시각), `last_status`, `consecutive_failures ≥ 1`이면 경고, `last_warnings`가 있으면 주의, `changes`의 추가·삭제·변경 건수, 레시피 `quality.hold` 건수, 복지 `details.remaining`(상세 미수집 건수).
 
 **2026-11-01 첫 실행 결과**: 레시피 1,156건·영양 8,807건 정상(두 번째 실행 변경 0건). 복지는 상세 한도를 첫 시도에서 소진해 목록만 게시(중앙 130·지자체 1,338건, 상세 `pending`) — 다음 실행부터 상세를 채운다.
 

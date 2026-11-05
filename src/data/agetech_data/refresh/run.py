@@ -58,7 +58,12 @@ def refresh_source(src: Source, *, fetch, sleep, log, keep: int, min_ratio: floa
     started = now()
     store = SnapshotStore(src.name, src.latest, keep)
     key = secret_loader(*src.key_names)
-    result = {"source": src.name, "label": src.label, "attempt_at": _iso(started)}
+    result = {"source": src.name, "label": src.label, "attempt_at": _iso(started), "warnings": []}
+    try:  # 지난 실행이 게시·복구 도중 멈췄으면 최신본을 현재 판본과 다시 맞춘다
+        result["repaired"] = store.repair()
+    except OSError as e:
+        result["repaired"] = None
+        result["warnings"].append(f"최신본 점검 실패: {e}")
     try:
         if not key:
             raise CollectError(f"{' 또는 '.join(src.key_names)} 가 비어 있습니다. 레포 루트 .env 를 확인하세요.")
@@ -72,6 +77,7 @@ def refresh_source(src: Source, *, fetch, sleep, log, keep: int, min_ratio: floa
         changes = diff(prev_items, items, src.id_of, content_of=src.content_of)
         quality = src.quality(items) if src.quality else None
         pointer = store.publish(payload, snapshot_id(started))
+        result["warnings"] += store.warnings
         result.update(status="ok", item_count=len(items), previous_count=len(prev_items) if prev_items is not None else None,
                       changes=changes, quality=quality, snapshot=pointer, error=None,
                       notes=(payload.get("meta") or {}).get("details"))
@@ -79,16 +85,25 @@ def refresh_source(src: Source, *, fetch, sleep, log, keep: int, min_ratio: floa
         expected = isinstance(e, CollectError) or type(e).__name__ == "CollectError"
         msg = str(e) if expected else f"{type(e).__name__}: {e}"
         result.update(status="failed", error=redact(msg, key))
+    try:  # 상태 파일의 serving 은 실제 포인터를 따른다 (게시가 무산됐으면 이전 판본)
+        result["serving_now"] = store.pointer()
+    except (OSError, ValueError) as e:
+        result["serving_now"] = None
+        result["warnings"].append(f"현재 판본 포인터 읽기 실패: {e}")
+    result["warnings"] = [redact(w, key) for w in result["warnings"]]
     result["duration_sec"] = round((now() - started).total_seconds(), 1)
     return result
 
 
 def merge_status(status: dict, result: dict) -> dict:
-    """소스별 상태 갱신. 실패해도 마지막 정상 판본 정보(last_success_at·serving)는 유지한다."""
+    """소스별 상태 갱신. 실패해도 마지막 정상 판본 정보(last_success_at·serving)는 유지한다.
+    serving 은 실제 포인터(serving_now)를 따른다 — 지난 실행이 상태 기록 전에 멈춰 어긋났어도 여기서 맞춰진다."""
     prev = status["sources"].get(result["source"], {})
     entry = {**prev, "label": result["label"], "last_attempt_at": result["attempt_at"],
              "last_status": result["status"], "last_error": result["error"],
-             "last_duration_sec": result["duration_sec"]}
+             "last_duration_sec": result["duration_sec"], "last_warnings": result.get("warnings") or []}
+    if result.get("repaired"):
+        entry["last_repair"] = {"at": result["attempt_at"], "note": result["repaired"]}
     if result["status"] == "ok":
         entry.update(last_success_at=result["attempt_at"], consecutive_failures=0,
                      serving=result["snapshot"], item_count=result["item_count"],
@@ -96,6 +111,8 @@ def merge_status(status: dict, result: dict) -> dict:
                      details=result.get("notes"))
     else:
         entry["consecutive_failures"] = prev.get("consecutive_failures", 0) + 1
+        if result.get("serving_now"):
+            entry["serving"] = result["serving_now"]
     status["sources"][result["source"]] = entry
     return status
 
@@ -121,6 +138,10 @@ def run_sources(names: list[str], *, registry: dict[str, Source] = SOURCES, fetc
                                                       "duration_sec")} | {"changes": {k: (r.get("changes") or {}).get(k)
                                                       for k in ("added", "removed", "changed")}},
                                ensure_ascii=False) + "\n")
+        if r.get("repaired"):
+            log(f"[{name}] 점검: {r['repaired']}")
+        for w in r.get("warnings") or []:
+            log(f"[{name}] 경고: {w}")
         if r["status"] == "ok":
             c, d = r["changes"], r.get("notes")
             log(f"[{name}] 정상: {r['item_count']}건 (추가 {c['added']}, 삭제 {c['removed']}, 변경 {c['changed']}) "
@@ -165,16 +186,22 @@ def main(argv: list[str] | None = None, *, registry: dict[str, Source] = SOURCES
         name, sid = args.rollback
         if name not in registry:
             ap.error(f"알 수 없는 소스: {name}")
+        store = SnapshotStore(name, registry[name].latest, args.keep)
         try:
-            pointer = SnapshotStore(name, registry[name].latest, args.keep).rollback(sid)
+            pointer = store.rollback(sid)
         except FileNotFoundError as e:
             print(str(e), file=sys.stderr)
             return 1
+        except OSError as e:
+            print(f"{name}: 되돌리기 실패 — 최신본·현재 판본은 이전 그대로입니다 ({e})", file=sys.stderr)
+            return 1
         status = load_status(status_path)
         entry = status["sources"].setdefault(name, {"label": registry[name].label})
-        entry.update(serving=pointer, rolled_back_at=pointer["published_at"])
-        _write_json(status_path, status)
+        entry.update(serving=pointer, rolled_back_at=pointer["published_at"], last_warnings=store.warnings)
+        _write_json(status_path, status)  # 여기서 멈춰도 다음 갱신 실행이 serving 을 포인터에 맞춘다
         print(f"{name}: 판본 {sid} 으로 되돌림 → 최신본 교체")
+        for w in store.warnings:
+            print(f"{name}: 경고: {w}", file=sys.stderr)
         return 0
     options = {"detail_budget": args.detail_budget} if args.detail_budget is not None else None
     results = run_sources(args.source or list(registry), registry=registry, keep=args.keep,

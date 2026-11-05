@@ -1,0 +1,1393 @@
+{
+  "schema_version": 1,
+  "description": "레시피 API 계약 표본 (데이터 → 서버·앱). 대표 사례만 골랐다. 필드 정의는 contract 문서.",
+  "contract": "docs/data/recipe_contract.md",
+  "input": {
+    "path": "src/frontend/assets/data/recipes.json",
+    "sha256": "d5db8e9435fe667902790df87b621ee88d88e40732a8a8128ea6e2dc62cfb354"
+  },
+  "samples": [
+    {
+      "cases": [
+        "정상 · 1인분 중량 있음"
+      ],
+      "recipe": {
+        "recipe_id": "108",
+        "name": "오렌지와 당근 만남주스",
+        "category": "후식",
+        "cooking_method": "기타",
+        "hashtag": null,
+        "images": {
+          "small": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00108_1.png",
+          "large": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00108_1.png"
+        },
+        "ingredients_text": "오렌지 당근펀치\n당근 100g(1/2개), 오렌지 100g(1/2개)",
+        "ingredients": [
+          {
+            "order_no": 1,
+            "section": "오렌지 당근펀치",
+            "name": "당근",
+            "name_raw": "당근",
+            "amount_text": "100g(1/2개)",
+            "amount": 100.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 2,
+            "section": "오렌지 당근펀치",
+            "name": "오렌지",
+            "name_raw": "오렌지",
+            "amount_text": "100g(1/2개)",
+            "amount": 100.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          }
+        ],
+        "steps": [
+          {
+            "no": 1,
+            "text": "오렌지는 깨끗이 씻어 껍질을 벗긴다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_1.jpg",
+            "source_field": "MANUAL01"
+          },
+          {
+            "no": 2,
+            "text": "당근은 깨끗이 씻어 작은 토막으로 썬다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_2.jpg",
+            "source_field": "MANUAL02"
+          },
+          {
+            "no": 3,
+            "text": "당근, 오렌지, 물(50ml)을 믹서에 곱게 간다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_3.jpg",
+            "source_field": "MANUAL03"
+          },
+          {
+            "no": 4,
+            "text": "믹서에 갈아낸 주스는 고운 체로 거른다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_4.jpg",
+            "source_field": "MANUAL04"
+          },
+          {
+            "no": 5,
+            "text": "주스를 살얼음이 생길 만큼 시원하게 냉동한다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_5.jpg",
+            "source_field": "MANUAL05"
+          },
+          {
+            "no": 6,
+            "text": "컵에 담아 마무리한다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_6.jpg",
+            "source_field": "MANUAL06"
+          }
+        ],
+        "missing_step_nos": [],
+        "nutrition": {
+          "basis": "per_serving_unverified",
+          "serving_weight_g": 250.0,
+          "ingredient_servings": null,
+          "energy_kcal": 60.0,
+          "carbohydrate_g": 14.0,
+          "protein_g": 1.0,
+          "fat_g": 0.0,
+          "sodium_mg": 76.0,
+          "energy_from_macros_kcal": 60.0,
+          "energy_ratio": 1.0,
+          "suspect": false
+        },
+        "sodium_tip": "시판되는 대부분의 주스는 가공되고 농축되는 과정에서 나트륨이 첨가되는 경우가 있어 과일, 채소를 직접 갈아 마시면 나트륨 섭취를 줄일 수 있어요.",
+        "allergens": {
+          "basis": "ingredient_name",
+          "detected": [],
+          "needs_check": [],
+          "not_determinable": [
+            "아황산류"
+          ],
+          "complete": true
+        },
+        "quality": {
+          "status": "ok",
+          "issues": [],
+          "info_codes": [],
+          "missing_fields": [
+            "HASH_TAG"
+          ]
+        },
+        "source": {
+          "provider": "식품안전나라",
+          "service": "COOKRCP01",
+          "source_id": "108",
+          "fetched_at": "2026-10-26T07:46:53.482870+00:00",
+          "raw_sha256": "a820e3619ada32d09f10e062b8574d16869b8c8777cd428581a84870d050385b"
+        }
+      }
+    },
+    {
+      "cases": [
+        "정상 · 알레르기 근거가 가공식품(usually)",
+        "재료 원문에 N인분 표기"
+      ],
+      "recipe": {
+        "recipe_id": "29",
+        "name": "부추 콩가루 찜",
+        "category": "반찬",
+        "cooking_method": "찌기",
+        "hashtag": "날콩가루",
+        "images": {
+          "small": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00029_2.png",
+          "large": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00029_1.png"
+        },
+        "ingredients_text": "[1인분]조선부추 50g, 날콩가루 7g(1⅓작은술)\n·양념장 : 저염간장 3g(2/3작은술), 다진 대파 5g(1작은술), 다진 마늘 2g(1/2쪽), 고춧가루 2g(1/3작은술), 요리당 2g(1/3작은술), 참기름 2g(1/3작은술), 참깨 약간",
+        "ingredients": [
+          {
+            "order_no": 1,
+            "section": null,
+            "name": "조선부추",
+            "name_raw": "조선부추",
+            "amount_text": "50g",
+            "amount": 50.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 2,
+            "section": null,
+            "name": "날콩가루",
+            "name_raw": "날콩가루",
+            "amount_text": "7g(1⅓작은술)",
+            "amount": 7.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 3,
+            "section": "양념장",
+            "name": "저염간장",
+            "name_raw": "저염간장",
+            "amount_text": "3g(2/3작은술)",
+            "amount": 3.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 4,
+            "section": "양념장",
+            "name": "다진 대파",
+            "name_raw": "다진 대파",
+            "amount_text": "5g(1작은술)",
+            "amount": 5.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 5,
+            "section": "양념장",
+            "name": "다진 마늘",
+            "name_raw": "다진 마늘",
+            "amount_text": "2g(1/2쪽)",
+            "amount": 2.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 6,
+            "section": "양념장",
+            "name": "고춧가루",
+            "name_raw": "고춧가루",
+            "amount_text": "2g(1/3작은술)",
+            "amount": 2.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 7,
+            "section": "양념장",
+            "name": "요리당",
+            "name_raw": "요리당",
+            "amount_text": "2g(1/3작은술)",
+            "amount": 2.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 8,
+            "section": "양념장",
+            "name": "참기름",
+            "name_raw": "참기름",
+            "amount_text": "2g(1/3작은술)",
+            "amount": 2.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 9,
+            "section": "양념장",
+            "name": "참깨",
+            "name_raw": "참깨",
+            "amount_text": "약간",
+            "amount": null,
+            "unit": null,
+            "amount_kind": "qualitative"
+          }
+        ],
+        "steps": [
+          {
+            "no": 1,
+            "text": "부추는 깨끗이 씻어 물기를 제거하고, 5cm 길이로 썰고 부추에 날콩가루를 넣고 고루 섞이도록 버무린다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/20230206/20230206054820_1675673300714.jpg",
+            "source_field": "MANUAL01"
+          },
+          {
+            "no": 2,
+            "text": "찜기에 면보를 깔고 부추를 넣은 후 김이 오르게 쪄서 파랗게 익힌다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/20230206/20230206054834_1675673314720.jpg",
+            "source_field": "MANUAL02"
+          },
+          {
+            "no": 3,
+            "text": "저염간장에 다진 대파, 다진 마늘, 고춧가루, 요리당 , 참기름, 참깨를 섞어 양념장을 만들고 찐 부추는 그릇에 담아낸다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/20230206/20230206054908_1675673348152.jpg",
+            "source_field": "MANUAL03"
+          }
+        ],
+        "missing_step_nos": [],
+        "nutrition": {
+          "basis": "per_serving_unverified",
+          "serving_weight_g": null,
+          "ingredient_servings": 1.0,
+          "energy_kcal": 215.0,
+          "carbohydrate_g": 20.0,
+          "protein_g": 14.0,
+          "fat_g": 9.0,
+          "sodium_mg": 240.0,
+          "energy_from_macros_kcal": 217.0,
+          "energy_ratio": 1.01,
+          "suspect": false
+        },
+        "sodium_tip": "콩가루로 버무려 감칠맛과 고소한 맛으로 나트륨 사용량을 줄여보세요. 부추는 피를 맑게 하고 허약 체질을 개선하여 성인병을 예방하는데 효과가 있지만, 알레르기 체질이나 위장이 약한 사람은 부작용이 생길 수 있으니 주의하세요.",
+        "allergens": {
+          "basis": "ingredient_name",
+          "detected": [
+            {
+              "allergen": "대두",
+              "kind": "direct",
+              "evidence": [
+                {
+                  "ingredient": "날콩가루",
+                  "term": "콩가루",
+                  "kind": "direct"
+                },
+                {
+                  "ingredient": "저염간장",
+                  "term": "간장",
+                  "kind": "usually"
+                }
+              ]
+            },
+            {
+              "allergen": "밀",
+              "kind": "usually",
+              "evidence": [
+                {
+                  "ingredient": "저염간장",
+                  "term": "간장",
+                  "kind": "usually"
+                }
+              ]
+            }
+          ],
+          "needs_check": [],
+          "not_determinable": [
+            "아황산류"
+          ],
+          "complete": true
+        },
+        "quality": {
+          "status": "ok",
+          "issues": [],
+          "info_codes": [
+            "ingredient_qualitative_amount",
+            "ingredient_servings_stated",
+            "serving_weight_missing"
+          ],
+          "missing_fields": [
+            "INFO_WGT"
+          ]
+        },
+        "source": {
+          "provider": "식품안전나라",
+          "service": "COOKRCP01",
+          "source_id": "29",
+          "fetched_at": "2026-10-26T07:46:53.482870+00:00",
+          "raw_sha256": "ea90d678c7ca517fba542ba0e8ff53b14b60a7b0b92738f6da039f37429a85bd"
+        }
+      }
+    },
+    {
+      "cases": [
+        "조리 단계 누락 → hold"
+      ],
+      "recipe": {
+        "recipe_id": "33",
+        "name": "사과 새우 북엇국",
+        "category": "국&찌개",
+        "cooking_method": "끓이기",
+        "hashtag": null,
+        "images": {
+          "small": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00033_2.png",
+          "large": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00033_1.png"
+        },
+        "ingredients_text": "북엇국\n북어채 25g(15개), 새우 10g(3마리), 사과 30g(1/5개), 양파 40g(1/4개),\n표고버섯 20g(2장), 물 300ml(1½컵)",
+        "ingredients": [
+          {
+            "order_no": 1,
+            "section": "북엇국",
+            "name": "북어채",
+            "name_raw": "북어채",
+            "amount_text": "25g(15개)",
+            "amount": 25.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 2,
+            "section": "북엇국",
+            "name": "새우",
+            "name_raw": "새우",
+            "amount_text": "10g(3마리)",
+            "amount": 10.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 3,
+            "section": "북엇국",
+            "name": "사과",
+            "name_raw": "사과",
+            "amount_text": "30g(1/5개)",
+            "amount": 30.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 4,
+            "section": "북엇국",
+            "name": "양파",
+            "name_raw": "양파",
+            "amount_text": "40g(1/4개)",
+            "amount": 40.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 5,
+            "section": "북엇국",
+            "name": "표고버섯",
+            "name_raw": "표고버섯",
+            "amount_text": "20g(2장)",
+            "amount": 20.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 6,
+            "section": "북엇국",
+            "name": "물",
+            "name_raw": "물",
+            "amount_text": "300ml(1½컵)",
+            "amount": 300.0,
+            "unit": "ml",
+            "amount_kind": "measured"
+          }
+        ],
+        "steps": [
+          {
+            "no": 2,
+            "text": "북어채를 잘게 손으로 찢어 찬물에 헹구어 준비한 후 양파, 표고버섯, 사과는 채 썰고 새우는 등쪽의 두세 마디에 꼬챙이를 넣어 내장을 뺀 후 헹군다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00033_2.png",
+            "source_field": "MANUAL02"
+          },
+          {
+            "no": 3,
+            "text": "찬물에 북어채, 새우, 표고버섯, 양파를 넣고 20분 정도 끓인 후 사과를 넣어 북어의 씁쓸한 맛을 없앤다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00033_3.png",
+            "source_field": "MANUAL03"
+          },
+          {
+            "no": 5,
+            "text": "그릇에 담아낸다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00033_5.png",
+            "source_field": "MANUAL05"
+          }
+        ],
+        "missing_step_nos": [
+          1,
+          4
+        ],
+        "nutrition": {
+          "basis": "per_serving_unverified",
+          "serving_weight_g": null,
+          "ingredient_servings": null,
+          "energy_kcal": 65.0,
+          "carbohydrate_g": 2.0,
+          "protein_g": 12.0,
+          "fat_g": 1.0,
+          "sodium_mg": 78.0,
+          "energy_from_macros_kcal": 65.0,
+          "energy_ratio": 1.0,
+          "suspect": false
+        },
+        "sodium_tip": "소금과 간장 대신 북어채와 새우의 짠맛으로 간을 한 담백한 맛의 북엇국을 만들었어요. 홍합이나 바지락을 넣으면 시원한 국물을 연출 할 수 있어요.",
+        "allergens": {
+          "basis": "ingredient_name",
+          "detected": [
+            {
+              "allergen": "새우",
+              "kind": "direct",
+              "evidence": [
+                {
+                  "ingredient": "새우",
+                  "term": "새우",
+                  "kind": "direct"
+                }
+              ]
+            }
+          ],
+          "needs_check": [],
+          "not_determinable": [
+            "아황산류"
+          ],
+          "complete": true
+        },
+        "quality": {
+          "status": "hold",
+          "issues": [
+            {
+              "code": "step_gap",
+              "severity": "warning",
+              "label": "마지막 단계 이전 번호가 비어 있음(중간 누락)",
+              "detail": {
+                "missing_nos": [
+                  1,
+                  4
+                ]
+              }
+            },
+            {
+              "code": "step_first_missing",
+              "severity": "error",
+              "label": "1단계(준비 과정) 누락",
+              "detail": {}
+            }
+          ],
+          "info_codes": [
+            "serving_weight_missing"
+          ],
+          "missing_fields": [
+            "INFO_WGT",
+            "HASH_TAG"
+          ]
+        },
+        "source": {
+          "provider": "식품안전나라",
+          "service": "COOKRCP01",
+          "source_id": "33",
+          "fetched_at": "2026-10-26T07:46:53.482870+00:00",
+          "raw_sha256": "f155a4081232d3228ca04a6a7bd83dd9edf5da6d6f815010e204239d7e30db98"
+        }
+      }
+    },
+    {
+      "cases": [
+        "원문 영양값 이상 의심 → flagged"
+      ],
+      "recipe": {
+        "recipe_id": "271",
+        "name": "닭고기김치찌개",
+        "category": "국&찌개",
+        "cooking_method": "끓이기",
+        "hashtag": "가슴살",
+        "images": {
+          "small": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00271_2.png",
+          "large": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00271_1.png"
+        },
+        "ingredients_text": "재료 닭가슴살(60g), 애호박(30g), 미나리(20g), 청양고추(3g), 두부(60g)\n김치(120g), 참기름(20g), 느타리버섯(10g), 달걀(50g)\n육수 다시마(5g), 무(40g), 대파(5g), 양파(10g), 마른 고추(3g), 멸치(10g)\n마늘(10g), 청주(10g), 물(300g)",
+        "ingredients": [
+          {
+            "order_no": 1,
+            "section": "재료",
+            "name": "닭가슴살",
+            "name_raw": "닭가슴살",
+            "amount_text": "(60g)",
+            "amount": 60.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 2,
+            "section": "재료",
+            "name": "애호박",
+            "name_raw": "애호박",
+            "amount_text": "(30g)",
+            "amount": 30.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 3,
+            "section": "재료",
+            "name": "미나리",
+            "name_raw": "미나리",
+            "amount_text": "(20g)",
+            "amount": 20.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 4,
+            "section": "재료",
+            "name": "청양고추",
+            "name_raw": "청양고추",
+            "amount_text": "(3g)",
+            "amount": 3.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 5,
+            "section": "재료",
+            "name": "두부",
+            "name_raw": "두부",
+            "amount_text": "(60g)",
+            "amount": 60.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 6,
+            "section": "재료",
+            "name": "김치",
+            "name_raw": "김치",
+            "amount_text": "(120g)",
+            "amount": 120.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 7,
+            "section": "재료",
+            "name": "참기름",
+            "name_raw": "참기름",
+            "amount_text": "(20g)",
+            "amount": 20.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 8,
+            "section": "재료",
+            "name": "느타리버섯",
+            "name_raw": "느타리버섯",
+            "amount_text": "(10g)",
+            "amount": 10.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 9,
+            "section": "재료",
+            "name": "달걀",
+            "name_raw": "달걀",
+            "amount_text": "(50g)",
+            "amount": 50.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 10,
+            "section": "육수",
+            "name": "다시마",
+            "name_raw": "다시마",
+            "amount_text": "(5g)",
+            "amount": 5.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 11,
+            "section": "육수",
+            "name": "무",
+            "name_raw": "무",
+            "amount_text": "(40g)",
+            "amount": 40.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 12,
+            "section": "육수",
+            "name": "대파",
+            "name_raw": "대파",
+            "amount_text": "(5g)",
+            "amount": 5.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 13,
+            "section": "육수",
+            "name": "양파",
+            "name_raw": "양파",
+            "amount_text": "(10g)",
+            "amount": 10.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 14,
+            "section": "육수",
+            "name": "마른 고추",
+            "name_raw": "마른 고추",
+            "amount_text": "(3g)",
+            "amount": 3.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 15,
+            "section": "육수",
+            "name": "멸치",
+            "name_raw": "멸치",
+            "amount_text": "(10g)",
+            "amount": 10.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 16,
+            "section": "육수",
+            "name": "마늘",
+            "name_raw": "마늘",
+            "amount_text": "(10g)",
+            "amount": 10.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 17,
+            "section": "육수",
+            "name": "청주",
+            "name_raw": "청주",
+            "amount_text": "(10g)",
+            "amount": 10.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 18,
+            "section": "육수",
+            "name": "물",
+            "name_raw": "물",
+            "amount_text": "(300g)",
+            "amount": 300.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          }
+        ],
+        "steps": [
+          {
+            "no": 1,
+            "text": "육수 재료를 넣고 중간 불로 끓인 뒤 체에 걸러 육수를 만든다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00271_1.png",
+            "source_field": "MANUAL01"
+          },
+          {
+            "no": 2,
+            "text": "닭가슴살은 채 썬 뒤 물에 넣고 삶는다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00271_2.png",
+            "source_field": "MANUAL02"
+          },
+          {
+            "no": 3,
+            "text": "애호박은 반달 썰고, 미나리는 5㎝ 길이로 썰고, 청양고추는 잘게 썬 뒤 찬물에 담가 씨를 빼고, 두부는 한입 크기로 썰어 물에 담가둔다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00271_3.png",
+            "source_field": "MANUAL03"
+          },
+          {
+            "no": 4,
+            "text": "김치를 한입 크기로 썬 뒤 참기름에 볶다가 육수를 붓는다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00271_4.png",
+            "source_field": "MANUAL04"
+          },
+          {
+            "no": 5,
+            "text": "두부, 애호박, 느타리버섯, 미나리, 닭가슴살을 넣어 끓어오르면 달걀물과 청양고추를 넣고 조금 더 끓여 마무리한다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00271_5.png",
+            "source_field": "MANUAL05"
+          }
+        ],
+        "missing_step_nos": [],
+        "nutrition": {
+          "basis": "per_serving_unverified",
+          "serving_weight_g": null,
+          "ingredient_servings": null,
+          "energy_kcal": 277.1,
+          "carbohydrate_g": 1.79,
+          "protein_g": 5.87,
+          "fat_g": 2.73,
+          "sodium_mg": 776.6,
+          "energy_from_macros_kcal": 55.2,
+          "energy_ratio": 0.2,
+          "suspect": true
+        },
+        "sodium_tip": "멸치다시마육수를 이용해 깊은 맛을 내 소금간을 줄여\n나트륨 섭취를 적게 할 수 있고, 달걀물을 부어 자극적인 맛을 줄였다.",
+        "allergens": {
+          "basis": "ingredient_name",
+          "detected": [
+            {
+              "allergen": "알류",
+              "kind": "direct",
+              "evidence": [
+                {
+                  "ingredient": "달걀",
+                  "term": "달걀",
+                  "kind": "direct"
+                }
+              ]
+            },
+            {
+              "allergen": "대두",
+              "kind": "direct",
+              "evidence": [
+                {
+                  "ingredient": "두부",
+                  "term": "두부",
+                  "kind": "direct"
+                }
+              ]
+            },
+            {
+              "allergen": "닭고기",
+              "kind": "direct",
+              "evidence": [
+                {
+                  "ingredient": "닭가슴살",
+                  "term": "닭",
+                  "kind": "direct"
+                }
+              ]
+            }
+          ],
+          "needs_check": [],
+          "not_determinable": [
+            "아황산류"
+          ],
+          "complete": true
+        },
+        "quality": {
+          "status": "flagged",
+          "issues": [
+            {
+              "code": "nutrition_energy_mismatch",
+              "severity": "warning",
+              "label": "탄수화물·단백질·지방으로 계산한 열량이 원문 열량과 2배 이상 차이(원문 영양값 이상 의심)",
+              "detail": {
+                "energy_kcal": 277.1,
+                "energy_from_macros_kcal": 55.2,
+                "ratio": 0.2
+              }
+            }
+          ],
+          "info_codes": [
+            "serving_weight_missing"
+          ],
+          "missing_fields": [
+            "INFO_WGT"
+          ]
+        },
+        "source": {
+          "provider": "식품안전나라",
+          "service": "COOKRCP01",
+          "source_id": "271",
+          "fetched_at": "2026-10-26T07:46:53.482870+00:00",
+          "raw_sha256": "95e113dc3469b71ef9c166dd876c903060235243316cbc77e36e5db436c488d7"
+        }
+      }
+    },
+    {
+      "cases": [
+        "재료 괄호 미닫힘 → flagged, 알레르기 추정 불완전"
+      ],
+      "recipe": {
+        "recipe_id": "276",
+        "name": "맑은부대찌개",
+        "category": "국&찌개",
+        "cooking_method": "끓이기",
+        "hashtag": null,
+        "images": {
+          "small": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00276_2.png",
+          "large": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00276_1.png"
+        },
+        "ingredients_text": "재료 느타리버섯(10g), 두부(50g), 콩나물(10g)\n배추(40g), 미나리(20g), 돼지고기(50g)\n쇠고기(50g), 불린 당면(10g), 조랭이떡(30g)\n다시마육수 다시마(3g), 양파(30g), 대파(20g)\n무(30g), 마른 고추(5g)\n고기완자양념 생강즙(2g), 다진 파(10g)\n다진 마늘(5g), 후춧가루(0.1g), 소금(0.1g",
+        "ingredients": [
+          {
+            "order_no": 1,
+            "section": "재료",
+            "name": "느타리버섯",
+            "name_raw": "느타리버섯",
+            "amount_text": "(10g)",
+            "amount": 10.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 2,
+            "section": "재료",
+            "name": "두부",
+            "name_raw": "두부",
+            "amount_text": "(50g)",
+            "amount": 50.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 3,
+            "section": "재료",
+            "name": "콩나물",
+            "name_raw": "콩나물",
+            "amount_text": "(10g)",
+            "amount": 10.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 4,
+            "section": "재료",
+            "name": "배추",
+            "name_raw": "배추",
+            "amount_text": "(40g)",
+            "amount": 40.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 5,
+            "section": "재료",
+            "name": "미나리",
+            "name_raw": "미나리",
+            "amount_text": "(20g)",
+            "amount": 20.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 6,
+            "section": "재료",
+            "name": "돼지고기",
+            "name_raw": "돼지고기",
+            "amount_text": "(50g)",
+            "amount": 50.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 7,
+            "section": "재료",
+            "name": "쇠고기",
+            "name_raw": "쇠고기",
+            "amount_text": "(50g)",
+            "amount": 50.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 8,
+            "section": "재료",
+            "name": "불린 당면",
+            "name_raw": "불린 당면",
+            "amount_text": "(10g)",
+            "amount": 10.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 9,
+            "section": "재료",
+            "name": "조랭이떡",
+            "name_raw": "조랭이떡",
+            "amount_text": "(30g)",
+            "amount": 30.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 10,
+            "section": "다시마육수",
+            "name": "다시마",
+            "name_raw": "다시마",
+            "amount_text": "(3g)",
+            "amount": 3.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 11,
+            "section": "다시마육수",
+            "name": "양파",
+            "name_raw": "양파",
+            "amount_text": "(30g)",
+            "amount": 30.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 12,
+            "section": "다시마육수",
+            "name": "대파",
+            "name_raw": "대파",
+            "amount_text": "(20g)",
+            "amount": 20.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 13,
+            "section": "다시마육수",
+            "name": "무",
+            "name_raw": "무",
+            "amount_text": "(30g)",
+            "amount": 30.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 14,
+            "section": "다시마육수",
+            "name": "마른 고추",
+            "name_raw": "마른 고추",
+            "amount_text": "(5g)",
+            "amount": 5.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 15,
+            "section": "고기완자양념",
+            "name": "생강즙",
+            "name_raw": "생강즙",
+            "amount_text": "(2g)",
+            "amount": 2.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 16,
+            "section": "고기완자양념",
+            "name": "다진 파",
+            "name_raw": "다진 파",
+            "amount_text": "(10g)",
+            "amount": 10.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 17,
+            "section": "고기완자양념",
+            "name": "다진 마늘",
+            "name_raw": "다진 마늘",
+            "amount_text": "(5g)",
+            "amount": 5.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 18,
+            "section": "고기완자양념",
+            "name": "후춧가루",
+            "name_raw": "후춧가루",
+            "amount_text": "(0.1g)",
+            "amount": 0.1,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 19,
+            "section": "고기완자양념",
+            "name": "소금",
+            "name_raw": "소금",
+            "amount_text": "(0.1g",
+            "amount": 0.1,
+            "unit": "g",
+            "amount_kind": "measured"
+          }
+        ],
+        "steps": [
+          {
+            "no": 1,
+            "text": "다시마육수재료를 물에 넣고 끓여 육수를 낸다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00276_1.png",
+            "source_field": "MANUAL01"
+          },
+          {
+            "no": 2,
+            "text": "느타리버섯은 가닥가닥 떼고, 두부는 썰고, 콩나물은 머리와 꼬리를 떼 손질한다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00276_2.png",
+            "source_field": "MANUAL02"
+          },
+          {
+            "no": 3,
+            "text": "배추와 미나리를 데친다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00276_3.png",
+            "source_field": "MANUAL03"
+          },
+          {
+            "no": 4,
+            "text": "돼지고기, 쇠고기에 고기완자양념을 넣어 반죽한 뒤 빚어 완자를 만든다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00276_4.png",
+            "source_field": "MANUAL04"
+          },
+          {
+            "no": 5,
+            "text": "냄비에 모든 재료를 돌려 담은 뒤 육수를 부어 끓인다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00276_5.png",
+            "source_field": "MANUAL05"
+          }
+        ],
+        "missing_step_nos": [],
+        "nutrition": {
+          "basis": "per_serving_unverified",
+          "serving_weight_g": null,
+          "ingredient_servings": null,
+          "energy_kcal": 395.9,
+          "carbohydrate_g": 8.67,
+          "protein_g": 6.23,
+          "fat_g": 2.41,
+          "sodium_mg": 334.9,
+          "energy_from_macros_kcal": 81.3,
+          "energy_ratio": 0.21,
+          "suspect": true
+        },
+        "sodium_tip": "보통 부대찌개에 들어가는 김치와 햄 대신\n배추와 고기완자를 넣어 나트륨 함량을 줄였다.",
+        "allergens": {
+          "basis": "ingredient_name",
+          "detected": [
+            {
+              "allergen": "대두",
+              "kind": "direct",
+              "evidence": [
+                {
+                  "ingredient": "두부",
+                  "term": "두부",
+                  "kind": "direct"
+                },
+                {
+                  "ingredient": "콩나물",
+                  "term": "콩나물",
+                  "kind": "direct"
+                }
+              ]
+            },
+            {
+              "allergen": "돼지고기",
+              "kind": "direct",
+              "evidence": [
+                {
+                  "ingredient": "돼지고기",
+                  "term": "돼지",
+                  "kind": "direct"
+                }
+              ]
+            },
+            {
+              "allergen": "쇠고기",
+              "kind": "direct",
+              "evidence": [
+                {
+                  "ingredient": "쇠고기",
+                  "term": "쇠고기",
+                  "kind": "direct"
+                }
+              ]
+            }
+          ],
+          "needs_check": [],
+          "not_determinable": [
+            "아황산류"
+          ],
+          "complete": false
+        },
+        "quality": {
+          "status": "flagged",
+          "issues": [
+            {
+              "code": "nutrition_energy_mismatch",
+              "severity": "warning",
+              "label": "탄수화물·단백질·지방으로 계산한 열량이 원문 열량과 2배 이상 차이(원문 영양값 이상 의심)",
+              "detail": {
+                "energy_kcal": 395.9,
+                "energy_from_macros_kcal": 81.3,
+                "ratio": 0.21
+              }
+            },
+            {
+              "code": "ingredient_unclosed_paren",
+              "severity": "warning",
+              "label": "괄호가 닫히지 않음",
+              "detail": {
+                "order_no": 19,
+                "line_no": 7,
+                "raw_item": "소금(0.1g"
+              }
+            }
+          ],
+          "info_codes": [
+            "serving_weight_missing"
+          ],
+          "missing_fields": [
+            "INFO_WGT",
+            "HASH_TAG"
+          ]
+        },
+        "source": {
+          "provider": "식품안전나라",
+          "service": "COOKRCP01",
+          "source_id": "276",
+          "fetched_at": "2026-10-26T07:46:53.482870+00:00",
+          "raw_sha256": "352bf0bfd572790429eff0283d6955636af49b6c3a113425b91b418309d87359"
+        }
+      }
+    },
+    {
+      "cases": [
+        "정할 수 없는 재료(needs_check)"
+      ],
+      "recipe": {
+        "recipe_id": "636",
+        "name": "우렁된장소스 배추롤",
+        "category": "일품",
+        "cooking_method": "찌기",
+        "hashtag": null,
+        "images": {
+          "small": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00636_2.png",
+          "large": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00636_1.png"
+        },
+        "ingredients_text": "돼지고기(50g), 배춧잎(5장), 부추(30g), 쌀(100g), 당근(20g),\n표고버섯(2개), 양파(50g), 애호박(1/2개), 우렁이(100g),\n된장(30g)",
+        "ingredients": [
+          {
+            "order_no": 1,
+            "section": null,
+            "name": "돼지고기",
+            "name_raw": "돼지고기",
+            "amount_text": "(50g)",
+            "amount": 50.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 2,
+            "section": null,
+            "name": "배춧잎",
+            "name_raw": "배춧잎",
+            "amount_text": "(5장)",
+            "amount": 5.0,
+            "unit": "장",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 3,
+            "section": null,
+            "name": "부추",
+            "name_raw": "부추",
+            "amount_text": "(30g)",
+            "amount": 30.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 4,
+            "section": null,
+            "name": "쌀",
+            "name_raw": "쌀",
+            "amount_text": "(100g)",
+            "amount": 100.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 5,
+            "section": null,
+            "name": "당근",
+            "name_raw": "당근",
+            "amount_text": "(20g)",
+            "amount": 20.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 6,
+            "section": null,
+            "name": "표고버섯",
+            "name_raw": "표고버섯",
+            "amount_text": "(2개)",
+            "amount": 2.0,
+            "unit": "개",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 7,
+            "section": null,
+            "name": "양파",
+            "name_raw": "양파",
+            "amount_text": "(50g)",
+            "amount": 50.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 8,
+            "section": null,
+            "name": "애호박",
+            "name_raw": "애호박",
+            "amount_text": "(1/2개)",
+            "amount": 0.5,
+            "unit": "개",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 9,
+            "section": null,
+            "name": "우렁이",
+            "name_raw": "우렁이",
+            "amount_text": "(100g)",
+            "amount": 100.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 10,
+            "section": null,
+            "name": "된장",
+            "name_raw": "된장",
+            "amount_text": "(30g)",
+            "amount": 30.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          }
+        ],
+        "steps": [
+          {
+            "no": 1,
+            "text": "끓는 물에 배춧잎을 데친다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00636_1.png",
+            "source_field": "MANUAL01"
+          },
+          {
+            "no": 2,
+            "text": "당근, 호박, 표고버섯, 양파는 입자있게 다진다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00636_2.png",
+            "source_field": "MANUAL02"
+          },
+          {
+            "no": 3,
+            "text": "돼지고기를 썰어 불린 쌀, 다진 야채와 함께 밥을 짓는다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00636_3.png",
+            "source_field": "MANUAL03"
+          },
+          {
+            "no": 4,
+            "text": "데친 배춧잎에 지어놓은 밥을 올려 돌돌만다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00636_4.png",
+            "source_field": "MANUAL04"
+          },
+          {
+            "no": 5,
+            "text": "말아 놓은 배춧잎을 부추로 묶는다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00636_5.png",
+            "source_field": "MANUAL05"
+          },
+          {
+            "no": 6,
+            "text": "찜통에 김이 오르면 ?번을 넣고 약 5분 정도 찐다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00636_6.png",
+            "source_field": "MANUAL06"
+          }
+        ],
+        "missing_step_nos": [],
+        "nutrition": {
+          "basis": "per_serving_unverified",
+          "serving_weight_g": null,
+          "ingredient_servings": null,
+          "energy_kcal": 326.3,
+          "carbohydrate_g": 43.0,
+          "protein_g": 22.3,
+          "fat_g": 7.2,
+          "sodium_mg": 976.0,
+          "energy_from_macros_kcal": 326.0,
+          "energy_ratio": 1.0,
+          "suspect": false
+        },
+        "sodium_tip": "된장에 양파, 당근, 호박, 표고버섯을 많이 섞어 나트륨 함량을 감소시키고, 야채맛이 가득한 된장소스를 만들 수 있어요.",
+        "allergens": {
+          "basis": "ingredient_name",
+          "detected": [
+            {
+              "allergen": "대두",
+              "kind": "direct",
+              "evidence": [
+                {
+                  "ingredient": "된장",
+                  "term": "된장",
+                  "kind": "direct"
+                }
+              ]
+            },
+            {
+              "allergen": "돼지고기",
+              "kind": "direct",
+              "evidence": [
+                {
+                  "ingredient": "돼지고기",
+                  "term": "돼지",
+                  "kind": "direct"
+                }
+              ]
+            }
+          ],
+          "needs_check": [
+            {
+              "ingredient": "우렁이",
+              "term": "우렁",
+              "candidates": [
+                "조개류"
+              ]
+            }
+          ],
+          "not_determinable": [
+            "아황산류"
+          ],
+          "complete": true
+        },
+        "quality": {
+          "status": "ok",
+          "issues": [],
+          "info_codes": [
+            "serving_weight_missing"
+          ],
+          "missing_fields": [
+            "INFO_WGT",
+            "HASH_TAG"
+          ]
+        },
+        "source": {
+          "provider": "식품안전나라",
+          "service": "COOKRCP01",
+          "source_id": "636",
+          "fetched_at": "2026-10-26T07:46:53.482870+00:00",
+          "raw_sha256": "02493275ce94ac239f30eaee4b5250da395c0e6743561165938a342744cec5ef"
+        }
+      }
+    }
+  ],
+  "cases_not_found": []
+}

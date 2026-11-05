@@ -19,10 +19,12 @@ RECIPES_SOURCE_META = FRONTEND_DATA_DIR / "recipe_source.json"
 # 가공 결과(gitignore 대상, 명령으로 재생성)
 PROCESSED_DIR = REPO_ROOT / "data" / "processed"
 RECIPES_VALIDATED = PROCESSED_DIR / "recipes_validated.json"
+RECIPES_API = PROCESSED_DIR / "recipes_api.json"
 
 # 커밋하는 보고서
 REPORTS_DIR = REPO_ROOT / "docs" / "data"
 RECIPE_QUALITY_REPORT = REPORTS_DIR / "recipe_quality_report.md"
+RECIPE_API_SAMPLE = REPORTS_DIR / "samples" / "recipe_api_sample.json"
 
 # 식약처 식품영양성분DB (공공데이터포털 FoodNtrCpntDbInfo03) 수집 원본 — gitignore 대상
 NUTRITION_RAW_DIR = REPO_ROOT / "data" / "raw" / "nutrition"
