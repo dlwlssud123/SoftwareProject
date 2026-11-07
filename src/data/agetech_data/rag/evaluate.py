@@ -112,6 +112,29 @@ def _pct(v: float) -> str:
     return f"{v * 100:.0f}%"
 
 
+SOURCE_LABELS = {"welfare_central": "복지(중앙부처)", "welfare_local": "복지(지자체)", "recipe": "레시피"}
+
+
+def render_sources(manifest: dict) -> list[str]:
+    """manifest['sources'] → 청크 산출 근거 표 (원본 → 제외 → 색인 → 나뉜 원본 → 청크)."""
+    src = manifest.get("sources")
+    if not src:
+        return []
+    lines = ["### 청크 산출 근거", "",
+             "| 원천 | 원본 | 제외 | 색인한 원본 | 그중 나뉜 원본 | 청크 | 원본당 최대 |",
+             "|---|---:|---|---:|---:|---:|---:|"]
+    total = 0
+    for st, s in src.items():
+        ex = ", ".join(f"{k} {v}" for k, v in s["excluded"].items()) or "—"
+        lines.append(f"| {SOURCE_LABELS.get(st, st)} | {s['records']:,} | {ex} | {s['indexed_records']:,} | "
+                     f"{s['split_records']:,} | {s['chunks']:,} | {s['max_chunks_per_record']} |")
+        total += s["chunks"]
+    lines += [f"| 합계 | | | | | {total:,} | |", "",
+              "- 청크 수 = 색인한 원본 수 + 나뉜 원본이 늘린 조각 수. 1,000자를 넘는 원본만 항목 경계로 나눈다.",
+              "- 레시피 제외 `hold` = 조리 단계 누락 등 노출 보류(`recipe_contract.md` 규칙 3).", ""]
+    return lines
+
+
 def render_report(manifest: dict, result: dict, questions: dict) -> str:
     rows = result["rows"]
     m_all, m_typed = metrics(rows, "all"), metrics(rows, "typed")
@@ -129,12 +152,16 @@ def render_report(manifest: dict, result: dict, questions: dict) -> str:
         f"| 모델 | `{manifest['model_id']}` ({manifest['dim']}차원, fp32 원본) |",
         f"| 인덱스 | 청크 {manifest['count']}개 ({', '.join(f'{k} {v}' for k, v in manifest['by_source_type'].items())}), "
         f"생성 {manifest['built_at']} |",
+        f"| 인덱스 판본 | `{manifest.get('index_version', '—')}` |",
         f"| 원천 판본 | {', '.join(f'`{v}`' for v in manifest['data_versions'])} |",
         f"| 프로필 지역 | 입력 `{questions['profile']['ctpv']} {questions['profile']['sgg']}` → "
         f"`{reg.get('ctpv')} {reg.get('sgg')}` (전국 + 대구시 전체 + 남구 사업만 검색) |",
         f"| 질문 | {len(rows)}개 — 복지 {sum(r['kind'] == 'welfare' for r in rows)}, "
         f"레시피 {sum(r['kind'] == 'recipe' for r in rows)}, 정답 없음 {sum(r['kind'] == 'none' for r in rows)} |",
         "",
+    ]
+    lines += render_sources(manifest)
+    lines += [
         "## 1. 요약",
         "",
         "| 방식 | 종류 | 질문 | Hit@1 | Hit@3 | Hit@5 | MRR@10 |",
@@ -215,10 +242,8 @@ def main(argv: list[str] | None = None) -> int:
 
     manifest, chunks, vectors = load_index(args.index)
     emb = KureEmbedder()
-    if manifest["model_id"] != emb.model_id:
-        raise SystemExit(f"인덱스 모델 {manifest['model_id']} ≠ 질문 모델 {emb.model_id}")
     questions = load_questions(args.questions)
-    searcher = IndexSearcher(chunks, vectors, emb)
+    searcher = IndexSearcher(chunks, vectors, emb, model_id=manifest["model_id"])
     result = run(searcher, emb, questions)
     args.report.write_text(render_report(manifest, result, questions), encoding="utf-8", newline="\n")
     args.detail.write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")

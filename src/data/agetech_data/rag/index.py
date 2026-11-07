@@ -31,7 +31,7 @@ from agetech_data import paths
 from agetech_data.rag.chunks import MAX_CHARS, Chunk, build_chunks
 
 log = logging.getLogger(__name__)
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2          # 2: index_version·sources 추가
 SAVE_EVERY = 128            # 이만큼 임베딩할 때마다 캐시에 덧붙임
 
 
@@ -115,19 +115,51 @@ def load_index(index_dir: Path = paths.RAG_INDEX_DIR, verify: bool = True) -> tu
     return manifest, chunks, vectors
 
 
-def _previous(index_dir: Path, model_id: str) -> tuple[dict[str, str], dict[str, object]]:
-    """직전 인덱스의 {chunk_id: sha}, 같은 모델이면 {sha: 벡터}."""
+def _previous(index_dir: Path, model_id: str) -> tuple[dict, dict[str, str], dict[str, object]]:
+    """직전 인덱스의 (manifest, {chunk_id: sha}, 같은 모델이면 {sha: 벡터})."""
     try:
         manifest, chunks, vectors = load_index(index_dir)
     except (FileNotFoundError, RuntimeError, KeyError, ValueError) as e:
         if not isinstance(e, FileNotFoundError):
             log.warning("직전 인덱스를 쓸 수 없음(%s) — 변경 목록은 전부 추가로 계산", e)
-        return {}, {}
+        return {}, {}, {}
     ids = {c["chunk_id"]: c["content_sha256"] for c in chunks}
     if manifest.get("model_id") != model_id:
         log.info("직전 인덱스 모델(%s)이 달라 벡터는 다시 만듦", manifest.get("model_id"))
-        return ids, {}
-    return ids, {c["content_sha256"]: vectors[i] for i, c in enumerate(chunks)}
+        return manifest, ids, {}
+    return manifest, ids, {c["content_sha256"]: vectors[i] for i, c in enumerate(chunks)}
+
+
+def new_index_version(now: datetime | None = None) -> str:
+    """인덱스 판본 ID. 갱신 판본 스냅샷과 같은 UTC 형식(예: 20261107T013730Z)."""
+    return (now or datetime.now(timezone.utc)).strftime("%Y%m%dT%H%M%SZ")
+
+
+def source_summary(welfare_payload: dict | None, recipe_payload: dict | None, chunks: list[Chunk]) -> dict:
+    """원천별 산출 근거: 원본 건수 → 제외(레시피 hold) → 색인한 원본 → 나뉜 원본 → 청크 수."""
+    per: dict[str, Counter] = {}
+    for c in chunks:
+        per.setdefault(c.source_type, Counter())[c.source_id] += 1
+    records = Counter()
+    excluded: dict[str, dict] = {}
+    if welfare_payload:
+        records.update(f"welfare_{r['source']}" for r in welfare_payload["records"])
+    if recipe_payload:
+        records["recipe"] = len(recipe_payload["records"])
+        excluded["recipe"] = {"hold": sum(1 for r in recipe_payload["records"]
+                                          if (r.get("quality") or {}).get("status") == "hold")}
+    out = {}
+    for st in sorted(set(records) | set(per), key=["welfare_central", "welfare_local", "recipe"].index):
+        counts = per.get(st, Counter())
+        out[st] = {
+            "records": records.get(st, 0),
+            "excluded": excluded.get(st, {}),
+            "indexed_records": len(counts),
+            "split_records": sum(1 for v in counts.values() if v > 1),
+            "chunks": sum(counts.values()),
+            "max_chunks_per_record": max(counts.values(), default=0),
+        }
+    return out
 
 
 def diff_chunks(prev: dict[str, str], chunks: list[Chunk]) -> dict:
@@ -147,8 +179,12 @@ def build_index(welfare_payload: dict | None, recipe_payload: dict | None, embed
 
     t0 = time.perf_counter()
     chunks = build_chunks(welfare_payload, recipe_payload, max_chars)
-    prev_ids, prev_vecs = _previous(index_dir, embedder.model_id)
+    prev_manifest, prev_ids, prev_vecs = _previous(index_dir, embedder.model_id)
     changes = diff_chunks(prev_ids, chunks)
+    unchanged = (prev_vecs and prev_manifest.get("index_version")
+                 and not (changes["added"] or changes["changed"] or changes["removed"]))
+    # 내용이 그대로면 판본 ID도 그대로 → DB는 이미 활성인 판본이라 다시 넣지 않는다
+    index_version = prev_manifest["index_version"] if unchanged else new_index_version()
 
     cache = VectorCache(index_dir / "embed_cache" / f"{_slug(embedder.model_id)}.jsonl", embedder.dim)
     known = {**prev_vecs, **cache.vectors}
@@ -194,12 +230,14 @@ def build_index(welfare_payload: dict | None, recipe_payload: dict | None, embed
 
     manifest = {
         "schema_version": SCHEMA_VERSION,
+        "index_version": index_version,
         "built_at": _now(),
         "model_id": embedder.model_id,
         "dim": embedder.dim,
         "max_chars": max_chars,
         "count": len(chunks),
         "by_source_type": dict(Counter(c.source_type for c in chunks)),
+        "sources": source_summary(welfare_payload, recipe_payload, chunks),
         "by_section": dict(Counter(c.section for c in chunks)),
         "data_versions": sorted({c.data_version for c in chunks}),
         "inputs": inputs or {},

@@ -108,10 +108,61 @@ def test_export_csv_matches_table_columns(tmp_path):
     with (tmp_path / "rag_chunk.csv").open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
     assert n == len(rows) == 7 and list(rows[0]) == COLUMNS
+    assert {r["index_version"] for r in rows} == {manifest["index_version"]}
     nat = next(r for r in rows if r["source_id"] == "WLF00001164")
     assert nat["ctpv"] == "" and nat["region_scope"] == "national" and nat["embedding_model"] == "fake@1"
     assert len(nat["embedding"].strip("[]").split(",")) == 64
     assert next(r for r in rows if r["source_id"] == "28")["allergens"] == '{"대두","알류"}'
+
+
+def test_load_script_registers_loading_then_switches_only_when_counts_match(tmp_path):
+    from agetech_data.rag.export import load_script
+
+    build_index(*payloads(), FakeEmbedder(), index_dir=tmp_path)
+    manifest, _, _ = load_index(tmp_path)
+    sql = load_script(manifest, "a" * 64)
+    v = manifest["index_version"]
+    assert f"WHERE index_version = '{v}') AS already" in sql                     # 같은 판본이면 건너뜀
+    assert sql.index("'loading'") < sql.index("\\copy rag_chunk (index_version, chunk_id") < sql.index("AS ok")
+    assert "count(*) = 7 AND coalesce(bool_and(embedding_model = 'fake@1'), false) AS ok" in sql
+    switch = sql[sql.index("\\if :ok"):]
+    assert switch.index("SET status = 'retired' WHERE status = 'active'") < switch.index("SET status = 'active'")
+    assert "SET status = 'failed'" in switch and "RAISE EXCEPTION" in switch
+
+
+def test_index_version_kept_when_unchanged_and_new_when_changed(tmp_path, monkeypatch):
+    from datetime import datetime, timezone
+
+    welfare, recipes = payloads()
+    times = iter([datetime(2026, 11, 7, 1, 0, tzinfo=timezone.utc), datetime(2026, 11, 8, 1, 0, tzinfo=timezone.utc)])
+    monkeypatch.setattr(ix, "new_index_version", lambda now=None: next(times).strftime("%Y%m%dT%H%M%SZ"))
+    assert build_index(welfare, recipes, FakeEmbedder(), index_dir=tmp_path)["index_version"] == "20261107T010000Z"
+    assert build_index(welfare, recipes, FakeEmbedder(), index_dir=tmp_path)["index_version"] == "20261107T010000Z"
+    welfare["records"] = welfare["records"][1:]
+    assert build_index(welfare, recipes, FakeEmbedder(), index_dir=tmp_path)["index_version"] == "20261108T010000Z"
+
+
+def test_manifest_sources_explain_chunk_counts(tmp_path):
+    from rag_samples import recipe_rec
+
+    welfare, recipes = payloads(benefits="지원 내용 문장입니다. " * 120)
+    recipes["records"].append(recipe_rec("33", status="hold"))
+    m = build_index(welfare, recipes, FakeEmbedder(), index_dir=tmp_path, max_chars=600)
+    r = m["sources"]["recipe"]
+    assert (r["records"], r["excluded"], r["indexed_records"], r["chunks"]) == (3, {"hold": 1}, 2, 2)
+    local = m["sources"]["welfare_local"]
+    assert local["records"] == local["indexed_records"] == 4 and local["split_records"] == 4
+    assert local["chunks"] == m["by_source_type"]["welfare_local"] > 4
+    assert sum(s["chunks"] for s in m["sources"].values()) == m["count"]
+
+
+def test_searcher_refuses_other_model(tmp_path):
+    from agetech_data.rag.search import IndexSearcher
+
+    build_index(*payloads(), FakeEmbedder(), index_dir=tmp_path)
+    assert IndexSearcher.from_index(tmp_path, FakeEmbedder()).model_id == "fake@1"
+    with pytest.raises(ValueError):
+        IndexSearcher.from_index(tmp_path, FakeEmbedder("other@2"))
 
 
 def test_evaluate_metrics_and_threshold():

@@ -33,11 +33,26 @@ class Hit:
 
 
 class IndexSearcher:
-    def __init__(self, chunks: list[dict], vectors, embedder=None):
+    """model_id = 인덱스를 만든 모델(manifest["model_id"]). 질문 임베더 모델이 다르면 검색하지 않는다
+    (SQL의 `embedding_model = :embedding_model` 조건과 같은 역할 — 다른 모델 벡터끼리 비교하면 순위가 의미 없음)."""
+
+    def __init__(self, chunks: list[dict], vectors, embedder=None, model_id: str | None = None):
         import numpy as np
 
+        if embedder is not None and model_id is not None and embedder.model_id != model_id:
+            raise ValueError(f"인덱스 모델 {model_id} ≠ 질문 임베딩 모델 {embedder.model_id} — 섞어 쓰지 않음")
         self.chunks, self.vectors, self.embedder, self._np = chunks, np.asarray(vectors, dtype=np.float32), embedder, np
+        self.model_id = model_id
         self._regions = [SimpleNamespace(ctpv=c["ctpv"], sgg=c["sgg"]) for c in chunks if c["ctpv"]]
+
+    @classmethod
+    def from_index(cls, index_dir=None, embedder=None) -> "IndexSearcher":
+        """manifest를 검증해 읽고, 인덱스 모델과 질문 모델이 같은지 확인한다."""
+        from agetech_data import paths
+        from agetech_data.rag.index import load_index
+
+        manifest, chunks, vectors = load_index(index_dir or paths.RAG_INDEX_DIR)
+        return cls(chunks, vectors, embedder, model_id=manifest["model_id"])
 
     def resolve(self, ctpv: str | None, sgg: str | None = None) -> RegionQuery:
         return resolve_region(self._regions, ctpv, sgg)
