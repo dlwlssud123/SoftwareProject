@@ -7,13 +7,16 @@
 --   2. 인덱스 판본 표 rag_index_version 추가. 판본 단위로 통째로 적재하고, 건수를 확인한 뒤
 --      한 트랜잭션에서 활성 판본만 바꾼다. 검색은 활성 판본만 조회 → 적재 중·실패한 판본은 보이지 않음
 --   3. rag_chunk 기본 키 = (index_version, chunk_id)
+--   4. 원본 표 게시 상태 연결: 청크에 원본 레코드 해시(source_record_sha256)를 두고, 검색은 원본 표에
+--      '지금 게시 중이고 해시가 같은' 레코드의 청크만 쓴다(rag_source_active 뷰 JOIN).
+--      원본 표 판본 전환과 RAG 판본 전환은 한 트랜잭션으로 묶지 않는다 — 아래 '원본 표와 맞추기' 참고
 --
 -- 임베딩 모델: nlpai-lab/KURE-v1 (revision 8b418a58414668e75532ed045c22d9ca018ae2b2)
 --   1024차원, CLS pooling, 길이 1로 정규화한 벡터 → 코사인 거리(<=>) 사용
 -- 대상: PostgreSQL 16 + pgvector 0.8 (pgvector/pgvector:pg16 이미지)
 -- 확인(11/07): pgvector 0.8.7 컨테이너에 이 파일 적용 → 실데이터 2,880 청크를 적재 스크립트로 넣고
---   검색 예 1을 평가 질문 38개로 실행(파이썬 검색과 상위 5개·순서 같음), 다른 모델 행 섞기·판본 적재 중·
---   전환·되돌리기·건수 불일치 실패를 재현해 확인
+--   검색 예 1을 평가 질문 38개로 실행(파이썬 검색과 상위 5개·순서 같음, 1회 약 9ms), 다른 모델 행 섞기·
+--   원본 표 게시 중단·원본 해시 변경·판본 적재 중·전환·되돌리기·건수 불일치 실패를 재현해 확인
 
 CREATE EXTENSION IF NOT EXISTS vector;
 
@@ -64,6 +67,8 @@ CREATE TABLE rag_chunk (
                       CHECK (status IN ('active', 'retracted')),
                                                   -- 다음 판본을 기다리지 않고 바로 숨길 때만 retracted
     data_version      text         NOT NULL,      -- 청크를 만든 원천 판본
+    source_record_sha256 char(64)  NOT NULL,      -- 원본 레코드 해시(복지 raw_sha256, 레시피 source.raw_sha256)
+                                                  -- → rag_source_active.record_sha256 과 같을 때만 검색
     embedding_model   text         NOT NULL,      -- 'nlpai-lab/KURE-v1@<revision>'. 모델이 다르면 섞어 쓰지 않음
     embedding         vector(1024) NOT NULL,
     embedded_at       timestamptz  NOT NULL DEFAULT now(),
@@ -89,8 +94,21 @@ CREATE INDEX rag_chunk_region_idx ON rag_chunk (index_version, ctpv, sgg) WHERE 
 --                    ② 행 수·모델이 manifest와 같으면 한 트랜잭션에서 이전 active → retired, 새 판본 → active
 --                    ③ 다르면 failed 로 남기고 오류로 끝냄(종료 코드 3) — 이전 판본이 계속 검색됨
 --   임베딩이 중간에 실패하면 manifest가 만들어지지 않아 적재할 판본 자체가 없다(이전 판본 그대로).
--- 원천 게시 상태와 맞추기: 복지·레시피 원본 표도 판본을 바꾼다면, 원본 표 활성 판본 전환과 아래 활성 판본
---   전환을 같은 트랜잭션에서 하거나, rag_index_version.data_versions 가 원본 표 활성 판본과 같은 판본만 활성화한다.
+--
+-- ── 원본 표와 맞추기 (결정: 한 트랜잭션으로 묶지 않음) ────────────────────
+-- 원본 표(복지 하루 1회·레시피 주 1회)와 RAG 판본은 따로 전환한다. 묶으면 임베딩 실패가 복지 정보 갱신까지
+-- 막고, 갱신 주기도 다르다. 대신 검색이 원본 표의 '지금 게시 중인 레코드'와 레코드 해시를 대조한다.
+--   순서: ① 원본 수집·정제 → ② 원본 표 적재·전환 → ③ rag.index(바뀐 청크만 임베딩) → ④ load_index.sql
+--   ②~④ 사이: 원본에서 내려간 사업·내용이 바뀐 사업은 해시가 달라 검색에서 바로 빠진다(틀린 근거 대신 '없음').
+--             새로 생긴 사업은 ④ 뒤부터 검색된다. RAG가 실패해도 원본 표 갱신은 그대로 진행된다.
+-- rag_source_active 는 원본 표에 맞춰 이진녕이 정의하는 뷰(이름·칸만 지키면 됨). 예:
+-- CREATE VIEW rag_source_active (source_type, source_id, record_sha256) AS
+--   SELECT 'welfare_' || w.source, w.serv_id, w.raw_sha256 FROM welfare_service w WHERE <활성 판본·게시 조건>
+--   UNION ALL
+--   SELECT 'recipe', r.recipe_id, r.raw_sha256 FROM recipe r WHERE <게시 조건 — hold 제외>;
+-- 원본 표가 생기기 전 시험용(청크에서 채움):
+-- CREATE TABLE rag_source_active (source_type text, source_id text, record_sha256 char(64),
+--                                 PRIMARY KEY (source_type, source_id));
 --
 -- 되돌리기 (:previous = 되돌릴 판본):
 -- BEGIN;
@@ -108,7 +126,7 @@ CREATE INDEX rag_chunk_region_idx ON rag_chunk (index_version, ctpv, sgg) WHERE 
 -- ── 검색 예 1: 복지 (대구광역시 남구 사용자) ─────────────────────────────
 -- :q = 질문 임베딩(vector(1024)), :embedding_model = 질문을 임베딩한 모델 ID(인덱스와 같아야 함)
 -- :ctpv·:sgg = welfare.query.resolve_region() 결과 (앱 입력 '대구'·'남구' → '대구광역시'·'남구', 옛 광주·전남 → 통합특별시)
--- 활성 판본만 보고, 같은 사업의 청크가 여러 개면 가장 가까운 하나만 남긴다(DISTINCT ON).
+-- 활성 판본·원본 표 게시 레코드만 보고, 같은 사업의 청크가 여러 개면 가장 가까운 하나만 남긴다(DISTINCT ON).
 -- SELECT chunk_id, source_type, source_id, title, content, source_url, source_checked_at,
 --        1 - distance AS similarity
 -- FROM (
@@ -117,6 +135,8 @@ CREATE INDEX rag_chunk_region_idx ON rag_chunk (index_version, ctpv, sgg) WHERE 
 --          c.embedding <=> :q AS distance
 --   FROM rag_chunk c
 --   JOIN rag_index_version v ON v.index_version = c.index_version AND v.status = 'active'
+--   JOIN rag_source_active s ON s.source_type = c.source_type AND s.source_id = c.source_id
+--                           AND s.record_sha256 = c.source_record_sha256
 --   WHERE c.status = 'active'
 --     AND c.embedding_model = :embedding_model
 --     AND c.source_type IN ('welfare_central', 'welfare_local')
@@ -133,6 +153,8 @@ CREATE INDEX rag_chunk_region_idx ON rag_chunk (index_version, ctpv, sgg) WHERE 
 -- SELECT c.chunk_id, c.source_id, c.title, c.content, c.quality_status, 1 - (c.embedding <=> :q) AS similarity
 -- FROM rag_chunk c
 -- JOIN rag_index_version v ON v.index_version = c.index_version AND v.status = 'active'
+-- JOIN rag_source_active s ON s.source_type = c.source_type AND s.source_id = c.source_id
+--                         AND s.record_sha256 = c.source_record_sha256
 -- WHERE c.status = 'active' AND c.embedding_model = :embedding_model
 --   AND c.source_type = 'recipe' AND NOT (c.allergens && :allergies)
 -- ORDER BY c.embedding <=> :q
