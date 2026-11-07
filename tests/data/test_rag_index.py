@@ -182,6 +182,38 @@ def test_search_uses_only_chunks_matching_active_source_records(tmp_path):
     assert "WLF00004828" not in {h.source_id for h in s.search_vector(q, region=region, active_sources=stale)}
 
 
+def test_evidence_status_thresholds():
+    from agetech_data.rag.search import NO_EVIDENCE_BELOW, WEAK_BELOW, Hit, evidence_status
+
+    def hits(sim):
+        return [Hit(1, sim, {})]
+    assert evidence_status([]) == "none"
+    assert evidence_status(hits(NO_EVIDENCE_BELOW - 0.001)) == "none"
+    assert evidence_status(hits(NO_EVIDENCE_BELOW)) == "weak"
+    assert evidence_status(hits(WEAK_BELOW - 0.001)) == "weak"
+    assert evidence_status(hits(WEAK_BELOW)) == "ok"
+
+
+def test_context_samples_structure_region_and_allergy(tmp_path):
+    from agetech_data.rag.samples import build_samples
+
+    s = _searcher(tmp_path)
+    manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    cases = [("d", "남구", "이미용 할인", ("대구", "남구"), "welfare", None),
+             ("other", "다른 지역", "이미용 할인", ("서울", "노원구"), "welfare", None),
+             ("allergy", "알레르기", "두부 계란찜", None, "recipe", ["대두"]),
+             ("none", "정답 없음", "zzzz", ("대구", "남구"), None, None)]
+    out = build_samples(s, manifest, cases)
+    by = {x["id"]: x for x in out["samples"]}
+    assert out["index"]["index_version"] == manifest["index_version"] and out["prompt_rules"]
+    assert by["d"]["profile"]["ctpv"] == "대구광역시" and by["d"]["hits"][0]["source_id"] == "WLF00004828"
+    assert by["d"]["hits"][0]["content"].startswith("[복지] 경로우대사업")
+    assert by["d"]["context"].startswith("[1] [복지]") or by["d"]["evidence_status"] == "none"
+    assert "WLF00004828" not in {h["source_id"] for h in by["other"]["hits"]}      # 다른 지역 사용자
+    assert [h["source_id"] for h in by["allergy"]["hits"]] == ["397"]               # 대두 든 레시피 제외
+    assert by["none"]["evidence_status"] == "none" and by["none"]["context"] == ""
+
+
 def test_searcher_refuses_other_model(tmp_path):
     from agetech_data.rag.search import IndexSearcher
 

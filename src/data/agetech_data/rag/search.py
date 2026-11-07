@@ -16,6 +16,17 @@ from agetech_data.welfare.query import RegionQuery, resolve_region
 WELFARE_TYPES = ("welfare_central", "welfare_local")
 RECIPE_TYPES = ("recipe",)
 
+# '근거 없음' 판단 (docs/data/rag_search_report.md 2절, 11/07 평가 — 보고서를 다시 만들면 값도 다시 확인)
+NO_EVIDENCE_BELOW = 0.40    # 1위 유사도가 이보다 낮으면 근거 없음 (정답이 1위인 질문의 최소 0.413보다 조금 낮게)
+WEAK_BELOW = 0.53           # 이보다 낮으면 근거 약함 (정답 없는 질문의 최대 0.520 위)
+
+
+def evidence_status(hits: list["Hit"]) -> str:
+    """'ok' = 근거로 답함 / 'weak' = 근거를 주되 대화 AI가 질문과 맞는지 확인 / 'none' = 근거 주지 않고 문의처 안내."""
+    if not hits or hits[0].similarity < NO_EVIDENCE_BELOW:
+        return "none"
+    return "weak" if hits[0].similarity < WEAK_BELOW else "ok"
+
 
 @dataclass
 class Hit:
