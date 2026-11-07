@@ -1,7 +1,10 @@
 # ValueFlow - 3-2 소프트웨어 프로젝트 (Software Project)
 
 > **팀명**: ValueFlow  
-> **주제**: 기업 연계 현장 실습 신청 예정
+> **서비스명**: 오늘동행\
+> **주제**: 기업 연계 AgeTech 과제 — 독거 어르신의 식단 관리와 복지 서비스 이용을 돕는 올인원 앱
+
+오늘동행은 어르신이 큰 글씨·큰 버튼·음성 안내로 식단 추천과 조리 안내를 받고, 자신에게 관련 있는 복지 서비스를 확인할 수 있도록 돕는 Android 앱이다. 공공데이터(식품안전나라 레시피, 식품영양성분DB, 복지로 중앙부처·지자체 복지서비스)를 수집·검증해 사용한다.
 
 ---
 
@@ -19,33 +22,40 @@
 
 ## 🛠️ 기술 스택 (Tech Stack)
 
-### Frontend
+`현재`는 main에 반영된 구성, `예정`은 구현 계획에 따라 개발 중인 구성이다.
 
-### Backend & AI
-
-### DevOps & Tools
+| 영역 | 기술 | 상태 |
+| --- | --- | --- |
+| 앱 | Flutter (Dart SDK 3.12 이상) · Android, 기기 TTS, image_picker, shared_preferences | 현재 |
+| 데이터 수집·검증 | Python 3.12 이상 · uv · pytest (표준 라이브러리 중심) | 현재 |
+| 백엔드 API | Python · FastAPI, 별도 작업 프로세스(worker) | 예정 |
+| DB·검색 | PostgreSQL + pgvector, 임베딩 KURE-v1 | 예정 |
+| 관리자 웹 | React | 예정 |
+| 협업 | GitHub(PR·Squash merge), Asana | 현재 |
 
 ---
 
 ## 프로젝트 구조 (Directory Structure)
 
 ```text
-3-2SWProject/
-├── data/                       # 데이터 관리 디렉토리 (.gitignore 적용)
-│   ├── raw/                    # 원천 원본 데이터셋
-│   └── processed/              # 전처리 및 가공된 데이터셋
-├── docs/                       # 프로젝트 관련 문서
-│   ├── images/                 # README 및 문서용 이미지/다이어그램
-│   ├── 주간보고서(양식).hwp
-│   └── 프로젝트 수행계획서(양식).hwp
-├── src/                        # 애플리케이션 소스 코드
-│   ├── frontend/               # 프론트엔드 코드베이스
-│   ├── backend/                # 백엔드 API & 서버 코드베이스
-│   ├── ai/                     # AI / 머신러닝 모델 및 파이프라인
-│   └── utils/                  # 공통 유틸리티 및 헬퍼 함수
-├── tests/                      # 단위 테스트 및 통합 테스트
-├── .gitignore                  # Git 추적 제외 설정
-└── README.md                   # 프로젝트 안내 및 협업 가이드
+SoftwareProject/
+├── data/                       # 원천·가공 데이터 (.gitignore 적용)
+│   ├── raw/
+│   └── processed/
+├── docs/
+│   ├── data/                   # 데이터 필드 정의·품질 보고서·갱신 안내·RAG 결정
+│   ├── 기업방문_문의사항.md     # 기업 방문 질의서
+│   ├── 주간보고서(양식).hwp, 프로젝트 수행계획서(양식).hwp
+│   └── images/                 # 문서용 이미지
+├── src/
+│   ├── frontend/               # Flutter Android 앱 (오늘동행) — 실행 방법은 src/frontend/README.md
+│   ├── data/agetech_data/      # 공공데이터 수집·검증·영양 매핑·자동 갱신
+│   ├── backend/                # 백엔드 API (예정)
+│   └── ai/                     # AI·RAG (예정)
+├── tests/                      # Python 테스트
+├── pyproject.toml              # Python 프로젝트 설정 (uv)
+├── .env.example                # 환경변수 예시 (실제 키는 .env에만)
+└── README.md
 ```
 
 ---
@@ -53,6 +63,9 @@
 ##  시작 가이드 (Getting Started)
 
 ### 1. 사전 요구사항 (Prerequisites)
+
+- Python 3.12 이상, [uv](https://docs.astral.sh/uv/)
+- 앱 개발 시 Flutter SDK(Dart 3.12 이상 지원 버전)와 Android SDK·에뮬레이터
 
 ### 2. 저장소 클론 (Clone Repository)
 ```bash
@@ -66,6 +79,19 @@ cd SoftwareProject
 # 예시: .env.example을 복사하여 .env 생성
 cp .env.example .env
 ```
+- 식품안전나라·공공데이터포털 인증키는 `.env`에만 넣고 커밋하지 않는다.
+
+### 4. 실행
+
+```bash
+# 데이터: 의존성 설치 → 테스트 → 공공데이터 갱신
+uv sync
+uv run pytest
+uv run python -m agetech_data.refresh   # .env 인증키 필요
+```
+
+- 앱 실행·시연·검증 명령은 [`src/frontend/README.md`](src/frontend/README.md)를 따른다.
+- 데이터 필드·갱신 규칙은 [`docs/data/`](docs/data/)의 문서를 참고한다.
 
 ---
 
