@@ -1,10 +1,12 @@
-"""서버 실측: KURE-v1 모델 로드 시간·메모리, 질문 임베딩 지연(p50/p95), 문서 임베딩 속도 → 서버 옮김 판정.
+"""서버 실측: KURE-v1 모델 로드 시간·메모리, 질문 임베딩 지연(혼자·동시), 문서 임베딩 속도 → 서버 옮김 판정.
 
-    uv run python -m agetech_data.rag.bench                 # 결과 요약 + JSON
-    uv run python -m agetech_data.rag.bench --json-out bench.json
+    uv run python -m agetech_data.rag.bench                                  # 1단계: 혼자
+    uv run python -m agetech_data.rag.bench --label with-backend --concurrency 4 --threads 4 --passages 0
+                                                                             # 2단계: 백엔드를 띄운 채로
 
-옮기는 기준(docs/data/rag_embedding_decision.md 3절): 질문 임베딩 p95 > 0.5초, 또는 모델을 올린 뒤
-남은 메모리 < 1GB, 또는 측정 중 스왑 사용이 100MB 넘게 늘면 ARM 서버로.
+절차·기준은 docs/data/rag_server_check.md. 옮기는 기준: 질문 임베딩 p95 > 0.5초(동시 요청이면 > 1.0초),
+또는 남은 메모리 < 1GB, 또는 측정 중 스왑 사용이 100MB 넘게 늘면 ARM 서버로.
+메모리는 서버 전체 남은 양으로 재므로, 백엔드가 떠 있을 때 돌리면 그만큼 줄어든 상태에서 판정한다.
 인덱스·정제 데이터가 없어도 돈다(질문은 평가 질문, 문서는 커밋된 레시피 표본으로 측정).
 """
 
@@ -22,6 +24,7 @@ from pathlib import Path
 from agetech_data import paths
 
 P95_LIMIT_SEC = 0.5
+P95_CONCURRENT_LIMIT_SEC = 1.0      # 동시 요청일 때 (대화 AI 응답 수 초 안에서 1초는 견딜 만함)
 MIN_AVAILABLE_MB = 1024
 SWAP_GROWTH_MB = 100
 FULL_INDEX_CHUNKS = 2880     # 2026-11-07 인덱스 기준 청크 수 (전체 임베딩 시간 추정용)
@@ -96,8 +99,46 @@ def _pct(xs: list[float], p: float) -> float:
     return xs[min(len(xs) - 1, max(0, round(p * (len(xs) - 1))))]
 
 
+def _stats(lat: list[float]) -> dict:
+    return {"n": len(lat), "p50_ms": round(statistics.median(lat) * 1000), "p95_ms": round(_pct(lat, 0.95) * 1000),
+            "max_ms": round(max(lat) * 1000)}
+
+
+def top_processes(n: int = 8) -> dict:
+    """리눅스: 메모리 많이 쓰는 프로세스와 이름별 합계(MB). 서버에서 무엇이 메모리를 쓰는지 같이 남긴다."""
+    proc = Path("/proc")
+    if not proc.exists():
+        return {"processes": [], "by_name": []}
+    rows = []
+    for d in proc.iterdir():
+        if not d.name.isdigit():
+            continue
+        try:
+            text = (d / "status").read_text()
+        except OSError:
+            continue
+        name, rss = "?", None
+        for line in text.splitlines():
+            key, _, value = line.partition(":")
+            if key == "Name":
+                name = value.strip() or "?"
+            elif key == "VmRSS" and value.split():
+                rss = int(value.split()[0]) // 1024
+        if rss:
+            rows.append({"pid": int(d.name), "name": name, "rss_mb": rss})
+    by_name: dict[str, dict] = {}
+    for r in rows:
+        b = by_name.setdefault(r["name"], {"name": r["name"], "processes": 0, "rss_mb": 0})
+        b["processes"] += 1
+        b["rss_mb"] += r["rss_mb"]
+    return {"processes": sorted(rows, key=lambda r: -r["rss_mb"])[:n],
+            "by_name": sorted(by_name.values(), key=lambda b: -b["rss_mb"])[:n]}
+
+
 def sample_passages(n: int) -> list[str]:
     """인덱스 청크가 있으면 실제 청크, 없으면 커밋된 레시피 표본을 청크로 만들어 n개까지 반복."""
+    if n <= 0:
+        return []
     texts: list[str] = []
     chunks_file = paths.RAG_INDEX_DIR / "chunks.jsonl"
     if chunks_file.exists():
@@ -114,7 +155,35 @@ def sample_passages(n: int) -> list[str]:
     return (texts * (n // max(1, len(texts)) + 1))[:n]
 
 
-def run_bench(repeat: int = 3, passages: int = 64, threads: int | None = None, batch_size: int = 16) -> dict:
+def concurrent_latency(embed, questions: list[str], concurrency: int, rounds: int) -> tuple[list[float], float]:
+    """질문을 concurrency 개씩 동시에 임베딩(FastAPI 스레드풀에서 요청이 겹치는 상황). (요청별 지연, 전체 걸린 시간)."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    def one(q: str) -> float:
+        t = time.perf_counter()
+        embed(q)
+        return time.perf_counter() - t
+
+    jobs = questions * rounds
+    t0 = time.perf_counter()
+    with ThreadPoolExecutor(max_workers=concurrency) as ex:
+        lat = list(ex.map(one, jobs))
+    return lat, time.perf_counter() - t0
+
+
+def judge(query: dict, conc: dict | None, sys_before: dict, sys_loaded: dict, sys_after: dict) -> dict:
+    checks = {"p95_ok": query["p95_ms"] <= P95_LIMIT_SEC * 1000}
+    if conc:
+        checks["concurrent_p95_ok"] = conc["p95_ms"] <= P95_CONCURRENT_LIMIT_SEC * 1000
+    if sys_loaded.get("available") is not None and sys_after.get("available") is not None:
+        checks["memory_ok"] = min(sys_loaded["available"], sys_after["available"]) >= MIN_AVAILABLE_MB
+    if sys_before.get("swap_used") is not None and sys_after.get("swap_used") is not None:
+        checks["swap_ok"] = sys_after["swap_used"] - sys_before["swap_used"] <= SWAP_GROWTH_MB
+    return checks
+
+
+def run_bench(repeat: int = 3, passages: int = 64, threads: int | None = None, batch_size: int = 16,
+              concurrency: int = 1, label: str = "solo") -> dict:
     import torch
 
     from agetech_data.rag.embedder import KureEmbedder
@@ -124,7 +193,7 @@ def run_bench(repeat: int = 3, passages: int = 64, threads: int | None = None, b
         torch.set_num_threads(threads)
     questions = [q["q"] for q in load_questions()["questions"]]
     texts = sample_passages(passages)
-    sys_before, proc_before = system_memory_mb(), process_memory_mb()
+    sys_before, proc_before, top_before = system_memory_mb(), process_memory_mb(), top_processes()
 
     emb = KureEmbedder(batch_size=batch_size, threads=threads)
     t = time.perf_counter()
@@ -141,31 +210,35 @@ def run_bench(repeat: int = 3, passages: int = 64, threads: int | None = None, b
             emb.embed_query(q)
             lat.append(time.perf_counter() - t)
 
-    t = time.perf_counter()
-    emb.embed_passages(texts)
-    passage_sec = time.perf_counter() - t
-    per_sec = len(texts) / passage_sec if passage_sec else 0.0
+    conc = None
+    if concurrency > 1:
+        clat, wall = concurrent_latency(emb.embed_query, questions, concurrency, repeat)
+        conc = {"concurrency": concurrency, **_stats(clat), "wall_sec": round(wall, 1),
+                "throughput_qps": round(len(clat) / wall, 1) if wall else None}
+
+    pz = None
+    if texts:
+        t = time.perf_counter()
+        emb.embed_passages(texts)
+        sec = time.perf_counter() - t
+        per_sec = len(texts) / sec if sec else 0.0
+        pz = {"n": len(texts), "avg_chars": round(sum(map(len, texts)) / len(texts)), "sec": round(sec, 1),
+              "per_sec": round(per_sec, 2),
+              "full_index_min_estimate": round(FULL_INDEX_CHUNKS / per_sec / 60, 1) if per_sec else None}
     sys_after, proc_after = system_memory_mb(), process_memory_mb()
 
-    p95 = _pct(lat, 0.95)
-    checks = {"p95_ok": p95 <= P95_LIMIT_SEC}
-    if sys_loaded["available"] is not None:
-        checks["memory_ok"] = min(sys_loaded["available"], sys_after["available"]) >= MIN_AVAILABLE_MB
-    if sys_before["swap_used"] is not None and sys_after["swap_used"] is not None:
-        checks["swap_ok"] = sys_after["swap_used"] - sys_before["swap_used"] <= SWAP_GROWTH_MB
+    query = _stats(lat)
+    checks = judge(query, conc, sys_before, sys_loaded, sys_after)
     return {
-        "host": platform.node(), "platform": platform.platform(), "machine": platform.machine(),
+        "label": label, "host": platform.node(), "platform": platform.platform(), "machine": platform.machine(),
         "python": platform.python_version(), "torch": torch.__version__, "cpu_count": os.cpu_count(),
         "torch_threads": torch.get_num_threads(), "model_id": emb.model_id,
-        "load_sec": round(load_sec, 1),
-        "query": {"n": len(lat), "p50_ms": round(statistics.median(lat) * 1000), "p95_ms": round(p95 * 1000),
-                  "max_ms": round(max(lat) * 1000)},
-        "passages": {"n": len(texts), "avg_chars": round(sum(map(len, texts)) / len(texts)),
-                     "sec": round(passage_sec, 1), "per_sec": round(per_sec, 2),
-                     "full_index_min_estimate": round(FULL_INDEX_CHUNKS / per_sec / 60, 1) if per_sec else None},
+        "load_sec": round(load_sec, 1), "query": query, "concurrent": conc, "passages": pz,
         "memory_mb": {"system_before": sys_before, "system_after_load": sys_loaded, "system_after": sys_after,
                       "process_before": proc_before, "process_after_load": proc_loaded, "process_after": proc_after},
-        "limits": {"p95_sec": P95_LIMIT_SEC, "min_available_mb": MIN_AVAILABLE_MB, "swap_growth_mb": SWAP_GROWTH_MB},
+        "top_memory_before": top_before,
+        "limits": {"p95_sec": P95_LIMIT_SEC, "concurrent_p95_sec": P95_CONCURRENT_LIMIT_SEC,
+                   "min_available_mb": MIN_AVAILABLE_MB, "swap_growth_mb": SWAP_GROWTH_MB},
         "checks": checks,
         "verdict": "stay" if all(checks.values()) else "move",
     }
@@ -174,31 +247,44 @@ def run_bench(repeat: int = 3, passages: int = 64, threads: int | None = None, b
 def summary(r: dict) -> str:
     m = r["memory_mb"]
     lines = [
-        f"서버 {r['host']} ({r['machine']}, CPU {r['cpu_count']}개, torch 스레드 {r['torch_threads']}, "
+        f"[{r['label']}] 서버 {r['host']} ({r['machine']}, CPU {r['cpu_count']}개, torch 스레드 {r['torch_threads']}, "
         f"Python {r['python']}, torch {r['torch']})",
         f"모델 로드 {r['load_sec']}초 / 프로세스 메모리 {m['process_after_load']['rss']}MB (최대 {m['process_after']['peak']}MB)",
-        f"질문 임베딩 {r['query']['n']}회: p50 {r['query']['p50_ms']}ms · p95 {r['query']['p95_ms']}ms · "
+        f"질문 임베딩 혼자 {r['query']['n']}회: p50 {r['query']['p50_ms']}ms · p95 {r['query']['p95_ms']}ms · "
         f"최대 {r['query']['max_ms']}ms (기준 p95 ≤ {int(P95_LIMIT_SEC * 1000)}ms)",
-        f"문서 임베딩 {r['passages']['n']}개(평균 {r['passages']['avg_chars']}자): {r['passages']['sec']}초, "
-        f"초당 {r['passages']['per_sec']}개 → 전체 {FULL_INDEX_CHUNKS}개 약 {r['passages']['full_index_min_estimate']}분",
-        f"시스템 남은 메모리 {m['system_before']['available']} → 모델 올린 뒤 {m['system_after_load']['available']} → "
-        f"끝 {m['system_after']['available']}MB / 스왑 사용 {m['system_before']['swap_used']} → "
-        f"{m['system_after']['swap_used']}MB",
-        "판정: " + ("이 서버 유지 (기준 모두 통과)" if r["verdict"] == "stay"
-                   else "ARM 서버로 옮김 — " + ", ".join(k for k, ok in r["checks"].items() if not ok)),
     ]
+    if r["concurrent"]:
+        c = r["concurrent"]
+        lines.append(f"질문 임베딩 동시 {c['concurrency']}개씩 {c['n']}회: p50 {c['p50_ms']}ms · p95 {c['p95_ms']}ms · "
+                     f"최대 {c['max_ms']}ms, 초당 {c['throughput_qps']}건 "
+                     f"(기준 p95 ≤ {int(P95_CONCURRENT_LIMIT_SEC * 1000)}ms)")
+    if r["passages"]:
+        pz = r["passages"]
+        lines.append(f"문서 임베딩 {pz['n']}개(평균 {pz['avg_chars']}자): {pz['sec']}초, 초당 {pz['per_sec']}개 → "
+                     f"전체 {FULL_INDEX_CHUNKS}개 약 {pz['full_index_min_estimate']}분")
+    lines.append(f"시스템 남은 메모리 {m['system_before']['available']} → 모델 올린 뒤 "
+                 f"{m['system_after_load']['available']} → 끝 {m['system_after']['available']}MB / 스왑 사용 "
+                 f"{m['system_before']['swap_used']} → {m['system_after']['swap_used']}MB")
+    top = r["top_memory_before"]["by_name"]
+    if top:
+        lines.append("측정 전 메모리 많이 쓰던 것: " + ", ".join(f"{b['name']} {b['rss_mb']}MB" for b in top[:5]))
+    lines.append("판정: " + ("이 서버 유지 (기준 모두 통과)" if r["verdict"] == "stay"
+                            else "ARM 서버로 옮김 — " + ", ".join(k for k, ok in r["checks"].items() if not ok)))
     return "\n".join(lines)
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="KURE-v1 서버 실측")
+    ap = argparse.ArgumentParser(description="KURE-v1 서버 실측 (절차: docs/data/rag_server_check.md)")
+    ap.add_argument("--label", default="solo", help="결과 이름 (solo / with-backend 등)")
     ap.add_argument("--repeat", type=int, default=3, help="평가 질문 전체를 몇 번 반복할지")
-    ap.add_argument("--passages", type=int, default=64, help="문서 임베딩 속도를 잴 청크 수")
-    ap.add_argument("--threads", type=int, default=None)
+    ap.add_argument("--concurrency", type=int, default=1, help="동시에 넣을 질문 수 (1이면 동시 측정 생략)")
+    ap.add_argument("--passages", type=int, default=64,
+                    help="문서 임베딩 속도를 잴 청크 수 (0이면 생략 — 백엔드와 같이 잴 때 CPU를 오래 잡지 않게)")
+    ap.add_argument("--threads", type=int, default=None, help="torch 스레드 수 (백엔드와 같이 쓸 때 코어 절반 권장)")
     ap.add_argument("--batch-size", type=int, default=16)
     ap.add_argument("--json-out", type=Path, default=None)
     args = ap.parse_args(argv)
-    r = run_bench(args.repeat, args.passages, args.threads, args.batch_size)
+    r = run_bench(args.repeat, args.passages, args.threads, args.batch_size, args.concurrency, args.label)
     print(summary(r))
     text = json.dumps(r, ensure_ascii=False, indent=1)
     if args.json_out:
