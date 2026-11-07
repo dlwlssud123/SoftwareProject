@@ -164,7 +164,9 @@ LIMIT 5;
 
 ## 6. 서버 실측 (`rag.bench`)
 
-기업 서버(Python 3.10) — Docker의 Python 3.12에서:
+**절차는 `rag_server_check.md`.** 임베딩 혼자 재는 1단계는 최소 조건이고, 백엔드와 같이 띄운 2단계(`--label with-backend --concurrency 4 --threads 4 --passages 0`)가 실제 판정이다. 백엔드가 이미 모델을 올렸으면 `bench`를 돌리지 말고(모델이 두 개가 됨) API를 동시에 호출해 잰다.
+
+기업 서버(Python 3.10) — Docker의 Python 3.12에서(1단계):
 
 ```bash
 git clone -b feature/rag-index-pipeline https://github.com/silversky621/AgeTech.git && cd AgeTech
@@ -182,7 +184,7 @@ uv sync --extra embed && uv run python -m agetech_data.rag.bench --json-out benc
 ```
 
 - 처음 한 번 모델 약 2.3GB, torch CPU판 약 200MB를 받는다(캐시 볼륨에 남음). 두 번째부터는 `-e HF_HUB_OFFLINE=1`을 붙인다.
-- 판정 기준: 질문 임베딩 p95 ≤ 0.5초, 모델을 올린 뒤 남은 메모리 ≥ 1GB, 측정 중 스왑 증가 ≤ 100MB. 하나라도 넘으면 `move`.
+- 판정 기준: 질문 임베딩 p95 ≤ 0.5초(동시 요청 `--concurrency`면 ≤ 1.0초), 모델을 올린 뒤 남은 메모리 ≥ 1GB, 측정 중 스왑 증가 ≤ 100MB. 하나라도 넘으면 `move`. 측정 직전 메모리를 많이 쓰던 프로그램(이름별 합계)도 결과에 남는다(리눅스).
 - 인덱스·정제 데이터 없이 돈다(질문은 평가 질문, 문서는 커밋된 레시피 표본).
 
 **참고 실측 (11/07, 최재영 노트북 — 서버 아님)**: Intel Core Ultra 7 256V 8코어(GPU 안 씀), Windows 11, torch 2.15.0+cpu
