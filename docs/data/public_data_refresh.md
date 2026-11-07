@@ -16,6 +16,7 @@
 | `welfare_central` | 중앙부처 복지서비스 | 노년층(`lifeArray=006`) 130건 + 상세 | `data/raw/welfare/central_elderly.json` | `DATA_GO_KR_SERVICE_KEY` 또는 `WELFARE_API_KEY` |
 | `welfare_local` | 지자체 복지서비스 | 노년층 1,338건 + 상세 | `data/raw/welfare/local_elderly.json` | 〃 |
 | `meal_facilities` | 전국무료급식소표준데이터(지자체 제공) | 전국 1,282행 (2026-11-07) | `data/raw/facilities/free_meal.json` | `DATA_GO_KR_SERVICE_KEY` (활용신청 필요) |
+| `seasonal_foods` | 농식품 이달의 식재료(국립식량과학원) | 1~12월 123개 + 상세 (2026-11-07) | `data/raw/seasonal/food_month.json` | 〃 (초당 10회 한도 — 호출 간격 0.5초) |
 
 - 앱 번들 자료(`src/frontend/assets/data/*.json`)는 갱신하지 않는다. 앱은 서버 API 연동 후 서버 판본을 쓴다.
 - 하루 1회 실행을 권장한다.
@@ -90,7 +91,7 @@ uv run python -m agetech_data.refresh --rollback welfare_local 20261101T030000Z
 | `serving` | **지금 쓰고 있는 판본** `{snapshot_id, file, sha256, item_count, fetched_at, published_at, rollback?}` — 실제 포인터(`current.json`)와 같음. 실패하면 이전 판본 그대로 |
 | `item_count`, `previous_count` | 마지막 성공 판본 건수, 그 이전 건수 |
 | `changes` | `{first_snapshot, added, removed, changed, unchanged, samples:{added, removed, changed}}` (예시 ID 최대 20개) |
-| `quality` | 소스별 품질 요약. 레시피는 레시피 품질 검증 판정 건수 `{ok, flagged, hold}`, 복지는 `{detail_status: {fresh, cached, stale, pending}}`, 무료급식소는 `{rows, coords_missing, phone_missing, reference_years}` |
+| `quality` | 소스별 품질 요약. 레시피는 레시피 품질 검증 판정 건수 `{ok, flagged, hold}`, 복지는 `{detail_status: {fresh, cached, stale, pending}}`, 무료급식소는 `{rows, coords_missing, phone_missing, reference_years}`, 이달의 식재료는 `{by_month, detail_status}` |
 | `details` | 복지만: `{counts, fetched_this_run, remaining, stopped_by_quota, daily_limit, max_age_days}` — `remaining > 0`이면 다음 실행에서 이어 받음 |
 | `rolled_back_at` | 되돌리기를 했으면 그 시각 |
 | `last_warnings` | 마지막 실행의 경고(게시는 됐지만 오래된 판본 정리·백업 삭제 실패 등). 없으면 `[]` |
