@@ -62,15 +62,24 @@ CREATE INDEX rag_chunk_region_idx ON rag_chunk (ctpv, sgg) WHERE status = 'activ
 -- ── 검색 예 1: 복지 (대구광역시 남구 사용자) ─────────────────────────────
 -- :q = 질문 임베딩(vector(1024)), :ctpv·:sgg = welfare.query.resolve_region() 결과
 --      (앱 입력 '대구'·'남구' → '대구광역시'·'남구', 옛 광주·전남 → 통합특별시)
+-- 같은 사업의 청크가 여러 개면 가장 가까운 하나만 남긴다(DISTINCT ON).
+-- 확인(11/07): 실데이터 2,880 청크를 \copy로 넣고 평가 질문 38개를 이 형태로 검색 →
+--   파이썬 검색(agetech_data.rag.search)과 상위 5개·순서·유사도가 모두 같음. 색인 없이 1회 약 11ms
 -- SELECT chunk_id, source_type, source_id, title, content, source_url, source_checked_at,
---        1 - (embedding <=> :q) AS similarity
--- FROM rag_chunk
--- WHERE status = 'active'
---   AND source_type IN ('welfare_central', 'welfare_local')
---   AND (region_scope = 'national'
---        OR (ctpv = :ctpv AND (region_scope = 'province' OR sgg = :sgg)))
---   AND (period_end IS NULL OR period_end >= current_date)
--- ORDER BY embedding <=> :q
+--        1 - distance AS similarity
+-- FROM (
+--   SELECT DISTINCT ON (source_type, source_id)
+--          chunk_id, source_type, source_id, title, content, source_url, source_checked_at,
+--          embedding <=> :q AS distance
+--   FROM rag_chunk
+--   WHERE status = 'active'
+--     AND source_type IN ('welfare_central', 'welfare_local')
+--     AND (region_scope = 'national'
+--          OR (ctpv = :ctpv AND (region_scope = 'province' OR sgg = :sgg)))
+--     AND (period_end IS NULL OR period_end >= current_date)
+--   ORDER BY source_type, source_id, embedding <=> :q
+-- ) best
+-- ORDER BY distance
 -- LIMIT 5;
 
 -- ── 검색 예 2: 레시피 (사용자 알레르기 거르기) ──────────────────────────
