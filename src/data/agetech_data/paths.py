@@ -20,6 +20,8 @@ RECIPES_SOURCE_META = FRONTEND_DATA_DIR / "recipe_source.json"
 PROCESSED_DIR = REPO_ROOT / "data" / "processed"
 RECIPES_VALIDATED = PROCESSED_DIR / "recipes_validated.json"
 RECIPES_API = PROCESSED_DIR / "recipes_api.json"
+# 레시피 계약 형식 전체(COOKRCP01 1,156건) — contract --input data/raw/recipes/cookrcp01_all.json 결과
+RECIPES_API_ALL = PROCESSED_DIR / "recipes_api_all.json"
 
 # 커밋하는 보고서
 REPORTS_DIR = REPO_ROOT / "docs" / "data"
@@ -43,6 +45,11 @@ REFRESH_LOG = PROCESSED_DIR / "refresh_log.jsonl"
 # 복지 정제 결과(gitignore)와 지역별 보고서(커밋)
 WELFARE_PROCESSED = PROCESSED_DIR / "welfare_elderly.json"
 WELFARE_REGIONAL_REPORT = REPORTS_DIR / "welfare_regional_report.md"
+
+# RAG 검색 인덱스(청크·벡터·목록, gitignore)와 검색 평가 보고서·평가 질문(커밋)
+RAG_INDEX_DIR = PROCESSED_DIR / "rag"
+RAG_SEARCH_REPORT = REPORTS_DIR / "rag_search_report.md"
+RAG_EVAL_QUESTIONS = Path(__file__).resolve().parent / "resources" / "rag_eval_questions.json"
 
 # 영양 매핑 가공 결과(gitignore)와 보고서(커밋)
 FOODS_PROCESSED = PROCESSED_DIR / "foods_v03.json"
