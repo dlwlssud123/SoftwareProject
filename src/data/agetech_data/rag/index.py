@@ -240,7 +240,8 @@ def main(argv: list[str] | None = None) -> int:
     if not welfare and not recipes:
         log.error("입력이 하나도 없음")
         return 1
-    inputs = {name: {"path": str(p.relative_to(paths.REPO_ROOT)) if p.is_relative_to(paths.REPO_ROOT) else str(p),
+    inputs = {name: {"path": p.resolve().relative_to(paths.REPO_ROOT).as_posix()
+                     if p.resolve().is_relative_to(paths.REPO_ROOT) else p.as_posix(),
                      "sha256": _sha256_file(p)}
               for name, p in (("welfare", args.welfare), ("recipes", args.recipes)) if p.exists()}
     emb = KureEmbedder(batch_size=args.batch_size, threads=args.threads)
