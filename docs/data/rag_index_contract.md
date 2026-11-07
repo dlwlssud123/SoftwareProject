@@ -24,10 +24,10 @@
 
 | 파일 | 내용 |
 |---|---|
-| `manifest.json` | `index_version`(인덱스 판본, UTC 예 `20261107T070716Z` — 내용이 그대로면 직전 값 유지), `model_id`(revision 포함), `dim`(1024), `count`, `by_source_type`, `sources`(원천별 산출 근거, 아래), `data_versions`, 입력 sha256, 파일 sha256, 변경 건수, `embedded_this_run`, `built_at`. **마지막에 쓰므로 이 파일이 기준** |
+| `manifest.json` | `index_version`(인덱스 판본, UTC 예 `20261107T072117Z` — 내용이 그대로면 직전 값 유지), `model_id`(revision 포함), `dim`(1024), `count`, `by_source_type`, `sources`(원천별 산출 근거, 아래), `data_versions`, 입력 sha256, 파일 sha256, 변경 건수, `embedded_this_run`, `built_at`. **마지막에 쓰므로 이 파일이 기준** |
 | `chunks.jsonl` | 청크 한 줄에 하나. 칸은 `rag_chunk` 표와 같음(아래 3절, `embedding`·`embedding_model`·`embedded_at` 제외) |
 | `embeddings.npy` | float32 `(count, 1024)`. i번째 행 = `chunks.jsonl` i번째 줄. 길이 1로 정규화됨 |
-| `changes.json` | 직전 인덱스 대비 `added`·`changed`·`removed` chunk_id **전체 목록**, `unchanged` 건수, `first_index` |
+| `changes.json` | 직전 인덱스 대비 `added`·`changed`·`removed` chunk_id **전체 목록**, `unchanged` 건수, `first_index`. 변경은 **행 전체** 기준(본문 밖 칸 — 종료일·확인 시각·품질·원본 해시 — 만 바뀌어도 `changed`, 새 판본). 임베딩은 본문이 바뀐 청크만 다시 함 |
 | `rag_chunk.csv` | `rag.export` 결과. 표 칸 순서 그대로(첫 칸 `index_version`), 벡터는 `[...]` 문자열 |
 | `load_index.sql` | `rag.export` 결과. 판본 등록(`loading`) → `\copy` → 행 수·모델 확인 → 활성 전환 (4절) |
 | `embed_cache/` | `content_sha256` → 벡터 캐시. 중간에 멈춰도 다음 실행이 이어서 함. 지금 청크에 없는 것은 끝에 정리 |
@@ -36,7 +36,7 @@
 - 파일은 임시 이름으로 쓴 뒤 바꿔 넣는다(벡터 → 청크 → 변경 목록 → manifest 순).
 - 임베딩이 중간에 실패하면 manifest가 바뀌지 않아 새 판본이 생기지 않는다(DB는 이전 판본 그대로).
 
-**청크 산출 근거** (`manifest.sources`, 보고서 첫 표와 같음 — 11/07 판본 `20261107T070716Z`)
+**청크 산출 근거** (`manifest.sources`, 보고서 첫 표와 같음 — 11/07 판본 `20261107T072117Z`)
 
 | 원천 | 원본 | 제외 | 색인한 원본 | 그중 나뉜 원본 | 청크 |
 |---|---:|---|---:|---:|---:|
@@ -52,7 +52,7 @@
 
 | 칸 | 예 | 설명 |
 |---|---|---|
-| `index_version` | `20261107T070716Z` | 인덱스 판본. 기본 키는 (`index_version`, `chunk_id`) |
+| `index_version` | `20261107T072117Z` | 인덱스 판본. 기본 키는 (`index_version`, `chunk_id`) |
 | `chunk_id` | `welfare_local:WLF00004828:all:1` | `<source_type>:<source_id>:<section>:<번호>`. 다시 만들어도 같은 값 |
 | `source_type` | `welfare_central` / `welfare_local` / `recipe` | |
 | `source_id` | `WLF00004828` / `28` | 복지 `serv_id` / 레시피 `recipe_id` |
@@ -69,6 +69,7 @@
 | `allergens` | `["대두", "알류"]` | 레시피 재료명 추정(법정 19종 이름), 확인 필요 종류 포함 |
 | `status` | `active` | 다음 판본을 기다리지 않고 바로 숨길 때만 `retracted`(사라진 원본은 새 판본에 없음) |
 | `data_version` | `welfare_local:3f761c00cacb` | 원천 원문 sha256 앞 12자리 |
+| `source_record_sha256` | 64자리 | 원본 레코드 해시(복지 `raw_sha256`, 레시피 `source.raw_sha256`). 검색 때 원본 표의 게시 레코드 해시와 같아야 씀(4절) |
 
 청크 본문 규칙:
 - 복지: 머리말 `[복지] 사업명 (전국 | 시도 전체 | 시도 시군구)` 다음에 요약·지원 대상·선정 기준·지원 내용·지원 주기·제공 방식·신청 방법·신청 안내(중앙)·문의처(최대 5개)·담당을 원문 그대로 넣음. 1,000자를 넘으면 개요 / 지원 내용 / 신청 항목 경계로 나누고, 조각마다 같은 머리말을 붙인다.
@@ -81,11 +82,14 @@
 1. `rag.export` → `cd data/processed/rag && psql -v ON_ERROR_STOP=1 -f load_index.sql`
 2. 스크립트가 하는 일: 같은 판본이 이미 있으면 아무것도 안 함 → 새 판본을 `loading`으로 등록하고 `\copy`(이때는 검색 안 됨) → 행 수가 `manifest.count`와 같고 모든 행 모델이 `manifest.model_id`이면 **한 트랜잭션에서** 이전 `active` → `retired`, 새 판본 → `active` → 아니면 `failed`로 남기고 종료 코드 3(이전 판본이 계속 검색됨)
 3. 되돌리기: 이전 판본을 다시 `active`로(한 트랜잭션, SQL은 초안 파일). 정리: 활성 + 바로 전 판본 하나만 남기고 삭제(청크는 함께 지워짐)
-4. 원천 게시 상태와 맞추기: 복지·레시피 원본 표도 판본을 바꾼다면 원본 표 전환과 RAG 활성 전환을 같은 트랜잭션에서 하거나, `rag_index_version.data_versions`가 원본 표 활성 판본과 같은 판본만 활성화한다.
+4. **원본 표와 맞추기 — 한 트랜잭션으로 묶지 않는다(11/07 결정).** 원본 표(복지 하루 1회·레시피 주 1회)와 RAG 판본은 따로 전환한다. 묶으면 임베딩 실패가 복지 정보 갱신까지 막고, 주기도 다르다. 대신 검색이 원본 표의 지금 게시 레코드와 레코드 해시를 대조한다(`rag_source_active` 뷰 JOIN).
+   - 순서: ① 원본 수집·정제 → ② 원본 표 적재·전환 → ③ `rag.index`(바뀐 청크만 임베딩) → ④ `load_index.sql`
+   - ②~④ 사이: 원본에서 내려간 사업·내용이 바뀐 사업은 해시가 달라 검색에서 바로 빠진다(틀린 근거 대신 '없음'). 새 사업은 ④ 뒤부터 검색된다. RAG가 실패해도 원본 표 갱신은 그대로 진행된다.
+   - `rag_source_active (source_type, source_id, record_sha256)`는 원본 표에 맞춰 이진녕이 정의하는 뷰다(예시는 SQL 초안). 원본 표에 정제 레코드의 `raw_sha256`(복지)·`source.raw_sha256`(레시피)을 함께 넣어야 한다.
 
 - 판본마다 청크 전부(약 2,880행, CSV 39MB)를 넣는다. 임베딩은 바뀐 청크만 하므로 DB 적재만 통째로 하는 셈이고, 적재는 수 초다.
 - `changes.json`은 DB 적재에는 쓰지 않고 관리자 화면·기록용(추가·변경·삭제 건수)으로 남긴다.
-- 11/07 실데이터 확인(pgvector 0.8.7): 판본 적재·같은 판본 재실행 건너뜀·적재 중에는 이전 판본만 검색·전환·되돌리기·건수 불일치 `failed`(종료 코드 3)·활성 두 개 거부·정리를 모두 재현했다.
+- 11/07 실데이터 확인(pgvector 0.8.7): 판본 적재·같은 판본 재실행 건너뜀·적재 중에는 이전 판본만 검색·전환·되돌리기·건수 불일치 `failed`(종료 코드 3)·활성 두 개 거부·정리, 그리고 원본 표에서 사업을 내리거나 원본 해시가 바뀌면 RAG 판본이 그대로여도 그 사업이 바로 검색에서 빠지는 것을 모두 재현했다.
 
 ## 5. 검색 (AI 도우미 API)
 
@@ -100,6 +104,7 @@ searcher = IndexSearcher.from_index(embedder=emb)      # 인덱스 모델 ≠ �
 hits = searcher.search("혼자 사는데 안부 확인해 주는 거 있어요?", ctpv="대구", sgg="남구",
                        source_types=WELFARE_TYPES, k=5)
 context = format_context(hits)      # [1] 청크 본문 (출처: 링크, 확인 날짜) …
+# 원본 표 대조(SQL의 rag_source_active와 같음): search(..., active_sources={(source_type, source_id): 레코드 해시})
 ```
 
 SQL(같은 조건 — **활성 판본만, 질문과 같은 모델만**, 같은 원본은 가장 가까운 청크 하나만):
@@ -111,6 +116,8 @@ SELECT * FROM (
          c.embedding <=> :q AS distance
   FROM rag_chunk c
   JOIN rag_index_version v ON v.index_version = c.index_version AND v.status = 'active'
+  JOIN rag_source_active s ON s.source_type = c.source_type AND s.source_id = c.source_id
+                          AND s.record_sha256 = c.source_record_sha256   -- 원본 표에 지금 게시 중인 그 내용만
   WHERE c.status = 'active'
     AND c.embedding_model = :embedding_model          -- KureEmbedder.model_id (= manifest.model_id)
     AND (c.region_scope IN ('national', 'none')
@@ -124,7 +131,7 @@ LIMIT 5;
 ```
 
 - `embedding_model` 조건이 없으면 다른 모델로 만든 벡터가 섞였을 때 순위가 무의미해진다. 11/07 재현: 다른 모델 행 하나를 섞자 조건 없이는 그 행이 유사도 1.0으로 1위, 조건을 넣으면 정상 결과(경로우대사업 0.458).
-- 11/07 확인: 평가 질문 38개 모두 이 SQL 상위 5개가 파이썬 검색과 순서·유사도까지 같음. 1회 약 6ms(색인 없음).
+- 11/07 확인: 평가 질문 38개 모두 이 SQL 상위 5개가 파이썬 검색과 순서·유사도까지 같음. 1회 약 9ms(색인 없음, 원본 대조 JOIN 포함).
 
 - 지역은 `welfare.query.resolve_region()`으로 먼저 정규화한다(앱 입력 `대구`·`남구` → `대구광역시`·`남구`).
 - 같은 사업이 긴 문서라 청크가 여러 개면 근거가 한 사업으로 채워질 수 있어, 원본 단위로 하나만 남긴다.
