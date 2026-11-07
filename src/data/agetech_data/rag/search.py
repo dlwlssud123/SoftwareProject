@@ -58,9 +58,12 @@ class IndexSearcher:
         return resolve_region(self._regions, ctpv, sgg)
 
     def _allowed(self, c: dict, source_types, region: RegionQuery | None, allergies: set[str],
-                 today: str, include_ended: bool) -> bool:
+                 today: str, include_ended: bool, active_sources) -> bool:
         if c["status"] != "active" or (source_types and c["source_type"] not in source_types):
             return False
+        if active_sources is not None and \
+                active_sources.get((c["source_type"], c["source_id"])) != c.get("source_record_sha256"):
+            return False          # 원본 표에서 내려갔거나 내용이 바뀌었는데 인덱스가 아직 못 따라옴
         scope = c["region_scope"]
         if scope in ("province", "district"):
             if region is None or not region.ctpv or c["ctpv"] != region.ctpv:
@@ -73,11 +76,13 @@ class IndexSearcher:
 
     def search_vector(self, qvec, *, k: int = 5, source_types=None, region: RegionQuery | None = None,
                       allergies=None, include_ended: bool = False, as_of: date | None = None,
-                      dedupe: bool = True) -> list[Hit]:
+                      dedupe: bool = True, active_sources=None) -> list[Hit]:
+        """active_sources = {(source_type, source_id): 원본 레코드 해시} — 원본 표의 지금 게시 레코드.
+        주면 해시가 같은 청크만 쓴다(SQL의 rag_source_active JOIN과 같은 역할). None이면 대조하지 않음."""
         np = self._np
         today = (as_of or date.today()).isoformat()
         allergy_set = set(allergies or [])
-        mask = np.array([self._allowed(c, source_types, region, allergy_set, today, include_ended)
+        mask = np.array([self._allowed(c, source_types, region, allergy_set, today, include_ended, active_sources)
                          for c in self.chunks], dtype=bool)
         if not mask.any():
             return []

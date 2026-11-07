@@ -22,8 +22,8 @@ from agetech_data import paths
 COLUMNS = [
     "index_version", "chunk_id", "source_type", "source_id", "section", "chunk_no", "title", "content",
     "content_sha256", "region_scope", "ctpv", "sgg", "source_url", "source_checked_at", "source_modified",
-    "period_end", "quality_status", "quality_flags", "allergens", "status", "data_version", "embedding_model",
-    "embedding", "embedded_at",
+    "period_end", "quality_status", "quality_flags", "allergens", "status", "data_version",
+    "source_record_sha256", "embedding_model", "embedding", "embedded_at",
 ]
 
 

@@ -23,6 +23,7 @@ def test_welfare_short_record_is_one_chunk_with_header_and_original_text():
     assert "문의처: 남구청 복지지원과: 053-664-2538" in c.content
     assert (c.region_scope, c.ctpv, c.sgg, c.period_end) == ("district", "대구광역시", "남구", "9999-12-31")
     assert c.source_checked_at == "2026-11-05T00:00:00+00:00"       # 상세 확인 시각 우선
+    assert c.source_record_sha256 == welfare_rec()["raw_sha256"]     # 원본 표와 대조할 레코드 해시
     assert welfare_chunks(welfare_rec(), "welfare_local:abc")[0].content_sha256 == c.content_sha256
 
 
@@ -66,6 +67,7 @@ def test_recipe_chunk_hold_flagged_allergens_and_suspect_nutrition():
     assert c.chunk_id == "recipe:28:all:1" and c.region_scope == "none"
     assert c.quality_status == "flagged" and c.quality_flags == ["ingredient_amount_missing"]
     assert c.allergens == ["대두", "알류"]
+    assert c.source_record_sha256 == recipe_rec()["source"]["raw_sha256"]
     assert "재료: 연두부 75g(3/4모), 달걀 30g(1/2개) / 고명 / 시금치 10g" in c.content
     assert "1. 새우를 데친다." in c.content and "열량 220kcal" in c.content
     [s] = recipe_chunks(recipe_rec(suspect=True), "v")
@@ -94,6 +96,7 @@ def test_real_data_chunks():
         {str(r["recipe_id"]) for r in recipes["records"] if r["quality"]["status"] != "hold"}
     assert {c.source_id for c in cs if c.source_type != "recipe"} == {r["serv_id"] for r in welfare["records"]}
     assert all(len(c.content) <= MAX_CHARS for c in cs)
+    assert all(c.source_record_sha256 and len(c.source_record_sha256) == 64 for c in cs)
     assert all(c.ctpv and c.sgg for c in cs if c.region_scope == "district")
     nam = {c.source_id for c in cs if c.ctpv == "대구광역시" and c.sgg == "남구"}
     assert {"WLF00004828", "WLF00006010"} <= nam

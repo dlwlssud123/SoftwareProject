@@ -15,6 +15,7 @@ def welfare_rec(serv_id="WLF00004828", source="local", scope="district", ctpv="�
         "detail_url": "https://www.bokjiro.go.kr/x", "detail_fetched_at": "2026-11-05T00:00:00+00:00",
         "source_fetched_at": "2026-11-05T15:20:26+00:00", "last_modified": "2026-03-01",
         "period_end": "9999-12-31", "unverified_fields": [], "quality_flags": [],
+        "raw_sha256": hashlib.sha256(f"welfare:{serv_id}".encode()).hexdigest(),
     }
     rec.update(kw)
     return rec
@@ -31,7 +32,8 @@ def recipe_rec(recipe_id="28", status="ok", allergens=("대두", "알류"), susp
         "allergens": {"detected": [{"allergen": a, "kind": "direct"} for a in allergens]},
         "quality": {"status": status,
                     "issues": [{"code": "ingredient_amount_missing"}] if status == "flagged" else []},
-        "source": {"fetched_at": "2026-10-31T16:29:00+00:00"},
+        "source": {"fetched_at": "2026-10-31T16:29:00+00:00",
+                   "raw_sha256": hashlib.sha256(f"recipe:{recipe_id}".encode()).hexdigest()},
     }
     rec.update(kw)
     return rec

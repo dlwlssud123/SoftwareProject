@@ -156,6 +156,32 @@ def test_manifest_sources_explain_chunk_counts(tmp_path):
     assert sum(s["chunks"] for s in m["sources"].values()) == m["count"]
 
 
+def test_metadata_only_change_makes_new_version_without_reembedding(tmp_path, monkeypatch):
+    welfare, recipes = payloads()
+    times = iter(["V1", "V2"])
+    monkeypatch.setattr(ix, "new_index_version", lambda now=None: next(times))
+    emb = FakeEmbedder()
+    build_index(welfare, recipes, emb, index_dir=tmp_path)
+    welfare["records"][0]["period_end"] = "2026-12-31"          # 본문 밖 칸만 바뀜
+    m = build_index(welfare, recipes, emb, index_dir=tmp_path)
+    assert m["index_version"] == "V2" and m["changes"]["changed"] == 1 and m["embedded_this_run"] == 0
+    _, chunks, _ = load_index(tmp_path)
+    assert next(c for c in chunks if c["source_id"] == "WLF00004828")["period_end"] == "2026-12-31"
+
+
+def test_search_uses_only_chunks_matching_active_source_records(tmp_path):
+    s = _searcher(tmp_path)
+    region = s.resolve("대구", "남구")
+    q = FakeEmbedder().embed_query("이미용 할인")
+    active = {(c["source_type"], c["source_id"]): c["source_record_sha256"] for c in s.chunks}
+    assert all(active.values())                                      # 모든 청크에 원본 해시가 있음
+    assert s.search_vector(q, region=region, active_sources=active)[0].source_id == "WLF00004828"
+    gone = {k: v for k, v in active.items() if k[1] != "WLF00004828"}            # 원본 표에서 내려감
+    assert "WLF00004828" not in {h.source_id for h in s.search_vector(q, region=region, active_sources=gone)}
+    stale = {**active, ("welfare_local", "WLF00004828"): "0" * 64}           # 원본이 바뀌었는데 인덱스는 옛것
+    assert "WLF00004828" not in {h.source_id for h in s.search_vector(q, region=region, active_sources=stale)}
+
+
 def test_searcher_refuses_other_model(tmp_path):
     from agetech_data.rag.search import IndexSearcher
 

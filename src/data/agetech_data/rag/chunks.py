@@ -39,6 +39,7 @@ class Chunk:
     period_end: str | None
     quality_status: str              # ok / flagged
     data_version: str
+    source_record_sha256: str | None = None   # 원본 레코드 해시 — 검색 때 원본 표 게시 레코드와 대조
     quality_flags: list[str] = field(default_factory=list)
     allergens: list[str] = field(default_factory=list)
     status: str = "active"
@@ -168,7 +169,8 @@ def welfare_chunks(rec: dict, data_version: str, max_chars: int = MAX_CHARS) -> 
             source_url=rec.get("detail_url"),
             source_checked_at=rec.get("detail_fetched_at") or rec.get("source_fetched_at"),
             source_modified=rec.get("last_modified"), period_end=rec.get("period_end"),
-            quality_status="ok", data_version=data_version, quality_flags=flags,
+            quality_status="ok", data_version=data_version, source_record_sha256=rec.get("raw_sha256"),
+            quality_flags=flags,
         ))
     return out
 
@@ -222,7 +224,8 @@ def recipe_chunks(rec: dict, data_version: str, max_chars: int = MAX_CHARS) -> l
             region_scope="none", ctpv=None, sgg=None, source_url=None,
             source_checked_at=src.get("fetched_at"), source_modified=None, period_end=None,
             quality_status="flagged" if q.get("status") == "flagged" else "ok",
-            data_version=data_version, quality_flags=sorted(set(flags)), allergens=allergens,
+            data_version=data_version, source_record_sha256=src.get("raw_sha256"),
+            quality_flags=sorted(set(flags)), allergens=allergens,
         ))
     return out
 

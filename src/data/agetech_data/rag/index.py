@@ -123,7 +123,7 @@ def _previous(index_dir: Path, model_id: str) -> tuple[dict, dict[str, str], dic
         if not isinstance(e, FileNotFoundError):
             log.warning("직전 인덱스를 쓸 수 없음(%s) — 변경 목록은 전부 추가로 계산", e)
         return {}, {}, {}
-    ids = {c["chunk_id"]: c["content_sha256"] for c in chunks}
+    ids = {c["chunk_id"]: row_sha256(c) for c in chunks}
     if manifest.get("model_id") != model_id:
         log.info("직전 인덱스 모델(%s)이 달라 벡터는 다시 만듦", manifest.get("model_id"))
         return manifest, ids, {}
@@ -162,8 +162,15 @@ def source_summary(welfare_payload: dict | None, recipe_payload: dict | None, ch
     return out
 
 
+def row_sha256(row: dict) -> str:
+    """청크 한 행 전체(본문 + 지역·종료일·확인 시각·품질·원본 해시 등) 해시. 판본 변경 판단용."""
+    data = json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()
+
+
 def diff_chunks(prev: dict[str, str], chunks: list[Chunk]) -> dict:
-    now = {c.chunk_id: c.content_sha256 for c in chunks}
+    """행 전체 기준 변경 목록. 본문이 같아도 다른 칸이 바뀌면 changed(임베딩은 본문이 바뀐 것만 다시 함)."""
+    now = {c.chunk_id: row_sha256(c.to_dict()) for c in chunks}
     added = [i for i in now if i not in prev]
     changed = [i for i in now if i in prev and prev[i] != now[i]]
     removed = sorted(i for i in prev if i not in now)
