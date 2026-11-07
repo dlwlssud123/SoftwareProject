@@ -17,6 +17,7 @@
 | `uv run python -m agetech_data.rag.evaluate` | 평가 질문으로 Hit@k·문턱값 → `docs/data/rag_search_report.md` |
 | `uv run python -m agetech_data.rag.export` | 인덱스 → `rag_chunk.csv` + 판본 적재·전환 스크립트 `load_index.sql` |
 | `uv run python -m agetech_data.rag.bench` | 서버 실측(모델 로드·메모리·질문 지연·문서 속도) → 서버를 옮길지 판정. 종료 코드 0 = 유지, 2 = 옮김 |
+| `uv run python -m agetech_data.rag.samples` | AI 도우미 API 인계용 근거 표본 → `docs/data/samples/rag_context_sample.json` (5.1절) |
 
 갱신 순서(복지 하루 1회): `refresh` → `welfare.build` → `rag.index` → `rag.export` → `psql -f load_index.sql` — 복지 상세가 바뀐 사업의 청크만 다시 임베딩되고, DB에는 판본 단위로 통째로 넣은 뒤 활성 판본만 바꾼다(4절).
 
@@ -139,7 +140,27 @@ LIMIT 5;
   - 1위 유사도 < 0.40 → 근거 없음(정답 질문 최소값 0.413보다 조금 낮게 잡음). 대화 AI에 근거를 주지 않고 "확인되지 않는다 + 공식 문의처(보건복지상담센터 129, 주민센터)" 안내
   - 0.40 이상 → 상위 5개를 근거로 주되, 프롬프트에 "근거가 질문과 맞지 않으면 모른다고 하고 문의처를 안내하라, 근거에 없는 사업·금액·전화번호를 만들지 말라"를 넣는다
   - 보고서의 제안 문턱값(0.534)은 정답 없는 질문을 모두 거르지만 정답 질문 4개도 거르므로 참고값으로만 쓴다
+  - 코드: `search.evidence_status(hits)` → `none`(< 0.40) / `weak`(0.40~0.53, 근거를 주되 AI가 질문과 맞는지 확인) / `ok`(≥ 0.53)
 - 모델은 처음 받은 뒤 `HF_HUB_OFFLINE=1`로 실행한다. 이 값이 없으면 모델을 올릴 때마다 Hugging Face에 접속해 확인하므로, 시연장 인터넷이 불안하면 시작이 늦거나 실패할 수 있다.
+
+### 5.1 AI 도우미 API 인계 표본 — `docs/data/samples/rag_context_sample.json`
+
+실제 인덱스로 검색한 결과다(생성물, 직접 고치지 않음). 최상위 `index`(판본·모델), `evidence_rules`, `prompt_rules`(대화 AI 지시 제안 5줄), `samples[]`.
+표본마다 `question`, `profile`(앱 입력 → 해석한 시도·시군구·메모), `filters`, `evidence_status`, `top1_similarity`, `hits[]`(순위·유사도·청크 칸·**본문 전체**), `context`(프롬프트에 그대로 넣을 글, `none`이면 빈 글).
+
+| 표본 | 보여 주는 것 | 판정 |
+|---|---|---|
+| `welfare_district` | 대구 남구 사업(경로우대사업)이 1위 — **정답인데 `weak`** | weak 0.458 |
+| `welfare_district_2`, `welfare_province` | 남구 사업(장수축하물품), 대구시 전체 사업(식사배달)이 1위 | ok |
+| `welfare_mixed` | 남구 스마트빌리지·전국 안부살핌 등 함께 | weak |
+| `welfare_national_rank2` | 정답(기초연금)이 2위 — 상위 5개를 다 넘겨야 하는 이유 | ok |
+| `welfare_other_region` | 서울 노원구 사용자에게 대구 남구 사업이 나오지 않음 | weak |
+| `welfare_merged_region` | `광주광역시 광산구` 입력 → 전남광주통합특별시로 검색 | ok |
+| `recipe`, `recipe_allergy` | 죽 / 대두·알류 알레르기면 두부·달걀 레시피가 모두 빠짐 → AI가 "두부 요리는 뺐다"고 말해야 함 | ok |
+| `none_low` | 정답 없음, 유사도 낮음 → 근거 없음 | none |
+| `none_weak`, `none_word_overlap` | 정답 없음인데 0.50 안팎(강아지 사료, 날씨의 '대구' ↔ 생선 대구 요리) → **AI가 걸러야 함** | weak |
+
+- `weak`에는 정답 질문(경로우대사업)과 정답 없는 질문(강아지 사료)이 함께 들어 있다. 그래서 `weak`도 근거를 넘기되 `prompt_rules`의 "근거가 질문과 맞지 않으면 확인되지 않는다고 말하기"가 꼭 필요하다.
 
 ## 6. 서버 실측 (`rag.bench`)
 
