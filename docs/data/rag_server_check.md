@@ -31,10 +31,14 @@ nproc; df -h .; docker ps       # 코어 수, 디스크, 이미 떠 있는 컨�
 | 메모리 많이 쓰는 것 | **ollama 약 6GB**(프로세스 3개, 로컬 LLM이 올라가 있음), java(gwcc 컨테이너) 0.7GB, 데스크톱(gnome-shell), claude·codex 세션, Next.js |
 | Docker | `gwcc`(Tomcat, 8107), `gwcc-db`(MariaDB), `drone-db`(PostGIS 16, **5433**), `pdf-img-server`(9839) — 기업 다른 프로젝트와 같이 쓰는 서버 |
 
-- 어림: 5.9GB − 임베딩 모델 최대 3.4GB − PostgreSQL·FastAPI 약 0.6GB ≈ **1.9GB 남음** → 숫자로는 기준(1GB) 안.
-- 위험: Ollama가 다른 모델을 올리면 수 GB가 갑자기 늘고(스왑도 없음 → OOM), LLM이 답을 만드는 동안 CPU를 다 써서(GTX 660은 최신 Ollama가 못 써 CPU로 돎) 우리 검색도 느려진다. 둘 다 우리가 조절할 수 없다.
-- 확인할 것: 이 Ollama가 우리 대화 AI용인지(이진녕), `vmstat`·`ollama ps` 결과.
-- 우리 PostgreSQL은 5432가 비어 있는지 확인하고, 아니면 다른 포트로.
+| `vmstat 1 5` | `si`·`so` 5초 내내 0, CPU 쉼 100% → **지금 메모리 압박 없음**. 꽉 찬 스왑 2GB는 오래된 잔여 |
+| `ollama ps` | `llama3:latest` 5.3GB, `bge-m3:latest` 1.2GB — 둘 다 **100% CPU, UNTIL Forever**(계속 상주) |
+
+- 어림: 5.9GB − 임베딩 모델 최대 3.4GB − PostgreSQL·FastAPI 약 0.6GB ≈ **1.9GB 남음** → 숫자로는 기준(1GB) 안. Ollama 모델이 Forever로 고정돼 있어, 누가 새 모델을 부르지 않는 한 메모리가 갑자기 늘지 않는다.
+- 남는 위험: **CPU 경합.** llama3가 답을 만드는 동안(CPU로 수 초~수십 초) 코어를 다 써서 우리 질문 임베딩도 느려진다. 우리가 조절할 수 없다.
+- llama3 + bge-m3 조합은 기업의 RAG 시연(기획서 3장 "대학 공개정보 RAG 시연")용일 가능성이 높다 — **우리 대화 AI용인지 이진녕 확인 필요.** 우리 것이라면 CPU만으로 8B 모델 답 하나에 수십 초가 걸릴 수 있어 시연에 별도 문제.
+- 대안(쓰지 않음, 메모리가 실제로 모자랄 때만): 이미 떠 있는 Ollama `bge-m3`로 임베딩하면 추가 메모리 0. 다만 기업 서비스에 기대게 되고 모델이 KURE-v1 → BGE-M3로 바뀌어 인덱스를 다시 만들어야 한다.
+- 우리 PostgreSQL은 5432가 비어 있는지 확인하고, 아니면 다른 포트로(5433은 `drone-db`가 씀).
 
 ### 권장: ARM 서버를 대기로 같이 준비
 
