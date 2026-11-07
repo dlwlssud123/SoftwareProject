@@ -20,6 +20,12 @@ def test_judge_thresholds():
     assert set(bench.judge(q_ok, None, unknown, unknown, unknown)) == {"p95_ok"}   # 모르는 값은 판정하지 않음
 
 
+def test_swap_full_warning():
+    assert bench.warnings_for({"swap_free": 0}, {}) and "OOM" in bench.warnings_for({"swap_free": 0}, {})[0]
+    assert bench.warnings_for({"swap_free": 1500}, {}) == []
+    assert bench.warnings_for({"swap_free": None}, {}) == []          # 스왑 없음·모름
+
+
 def test_concurrent_latency_runs_jobs_in_parallel():
     def slow(q):
         time.sleep(0.05)

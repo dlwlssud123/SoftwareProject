@@ -33,7 +33,7 @@ FULL_INDEX_CHUNKS = 2880     # 2026-11-07 인덱스 기준 청크 수 (전체 �
 # ── 메모리 ──────────────────────────────────────────────────────────────
 
 def system_memory_mb() -> dict:
-    """{'available', 'total', 'swap_used'} MB. 모르면 None."""
+    """{'available', 'total', 'swap_used', 'swap_free'} MB. 모르면 None."""
     meminfo = Path("/proc/meminfo")
     if meminfo.exists():
         kv = {}
@@ -41,7 +41,8 @@ def system_memory_mb() -> dict:
             k, _, v = line.partition(":")
             kv[k] = int(v.split()[0]) // 1024 if v.split() else 0
         return {"available": kv.get("MemAvailable"), "total": kv.get("MemTotal"),
-                "swap_used": (kv.get("SwapTotal", 0) - kv.get("SwapFree", 0))}
+                "swap_used": (kv.get("SwapTotal", 0) - kv.get("SwapFree", 0)),
+                "swap_free": kv.get("SwapFree") if kv.get("SwapTotal") else None}
     if sys.platform == "win32":
         import ctypes
         import ctypes.wintypes as wt
@@ -182,6 +183,20 @@ def judge(query: dict, conc: dict | None, sys_before: dict, sys_loaded: dict, sy
     return checks
 
 
+SWAP_FULL_MB = 50       # 스왑 남은 양이 이보다 적으면 '꽉 참'
+
+
+def warnings_for(sys_before: dict, sys_after: dict) -> list[str]:
+    """판정과 별도로 꼭 알아야 할 것. 스왑이 이미 꽉 차 있으면 '스왑 증가' 기준은 늘 통과처럼 보이고,
+    메모리가 모자라는 순간 느려지는 대신 OOM으로 프로세스가 강제 종료될 수 있다."""
+    out = []
+    free = sys_before.get("swap_free")
+    if free is not None and free < SWAP_FULL_MB:
+        out.append("스왑이 측정 전부터 꽉 차 있음 — '스왑 증가' 기준이 의미 없고, 메모리가 모자라면 OOM으로 "
+                   "큰 프로세스(이 모델 포함)가 강제 종료될 수 있음. `vmstat 1 5`의 si·so로 실제 압박 여부 확인")
+    return out
+
+
 def run_bench(repeat: int = 3, passages: int = 64, threads: int | None = None, batch_size: int = 16,
               concurrency: int = 1, label: str = "solo") -> dict:
     import torch
@@ -240,6 +255,7 @@ def run_bench(repeat: int = 3, passages: int = 64, threads: int | None = None, b
         "limits": {"p95_sec": P95_LIMIT_SEC, "concurrent_p95_sec": P95_CONCURRENT_LIMIT_SEC,
                    "min_available_mb": MIN_AVAILABLE_MB, "swap_growth_mb": SWAP_GROWTH_MB},
         "checks": checks,
+        "warnings": warnings_for(sys_before, sys_after),
         "verdict": "stay" if all(checks.values()) else "move",
     }
 
@@ -268,6 +284,7 @@ def summary(r: dict) -> str:
     top = r["top_memory_before"]["by_name"]
     if top:
         lines.append("측정 전 메모리 많이 쓰던 것: " + ", ".join(f"{b['name']} {b['rss_mb']}MB" for b in top[:5]))
+    lines += [f"주의: {w}" for w in r.get("warnings", [])]
     lines.append("판정: " + ("이 서버 유지 (기준 모두 통과)" if r["verdict"] == "stay"
                             else "ARM 서버로 옮김 — " + ", ".join(k for k, ok in r["checks"].items() if not ok)))
     return "\n".join(lines)
