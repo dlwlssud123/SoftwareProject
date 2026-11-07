@@ -46,17 +46,21 @@ nproc; df -h .; docker ps       # 코어 수, 디스크, 이미 떠 있는 컨�
 
 ## 1단계 — 임베딩 혼자 (최소 조건)
 
+두 서버 모두 같은 명령(이름표·결과 파일만 다르게). 서버 Python이 3.10이어도 **uv가 Python 3.12를 따로 받아** 쓰므로(서버의 기존 Python은 건드리지 않음) Docker가 필요 없다.
+
 ```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source $HOME/.local/bin/env            # 방금 설치한 uv를 이 터미널에서 찾게
 git clone -b feature/rag-index-pipeline https://github.com/silversky621/AgeTech.git && cd AgeTech
-docker run --rm -v "$PWD":/app -w /app -e UV_PROJECT_ENVIRONMENT=/opt/venv \
-  -v agetech-uv-cache:/root/.cache/uv -v agetech-hf-cache:/root/.cache/huggingface \
-  python:3.12-slim bash -c "pip install -q uv && uv sync --extra embed && \
-  uv run python -m agetech_data.rag.bench --label solo --json-out bench_solo.json"
+uv sync --extra embed && uv run python -m agetech_data.rag.bench --label company-solo --json-out bench_company.json
+#                                         ARM 서버는 --label arm-solo --json-out bench_arm.json
 ```
 
+- 처음 한 번은 모델 2.3GB·torch 약 200MB·Python 3.12를 받느라 몇 분 걸린다. 측정은 1~2분(끝의 문서 임베딩 약 40초 동안 CPU를 꽉 씀).
+- 다시 돌릴 때는 `git pull` 후 마지막 줄만, 앞에 `HF_HUB_OFFLINE=1 `을 붙인다(모델을 다시 확인하러 인터넷에 나가지 않게).
 - 결과가 `move`이면 **여기서 끝 — ARM 서버로 옮긴다.** 혼자서도 안 되면 백엔드와 같이는 당연히 안 된다.
 - `stay`여도 아직 합격이 아니다 → 2단계.
-- 두 번째 실행부터는 `-e HF_HUB_OFFLINE=1`을 붙인다(모델을 다시 확인하러 인터넷에 나가지 않게).
+- Docker로 하고 싶으면 `rag_index_contract.md` 6절의 `docker run … python:3.12-slim` 명령도 같은 결과를 낸다.
 
 ## 2단계 — 백엔드와 같이 (실제 판정)
 
