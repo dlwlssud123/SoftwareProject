@@ -14,7 +14,7 @@
 2. **함량은 기준량(`basis_amount` `basis_unit`)당 값이다.** 기준량은 `100g` 또는 `100mL`다. 품목대표 8,807건 중 음식 3,142건이 100mL 기준이다. g 분량으로 계산하려면 단위를 반드시 확인한다.
 3. **결측은 `null`이고 0이 아니다.** 합계를 낼 때 결측 성분은 "자료 없음"으로 표시하고 0으로 채우지 않는다.
 4. **g ↔ mL는 데이터에서 환산하지 않는다.** 밀도 근거가 없다. 레시피 계산에서 mL 기준 식품에 g 분량을 쓴 경우는 `basis_ml_approx=true`로 표시하고 1mL≈1g으로 근사했다.
-5. **원문을 고치지 않는다.** 이상값은 `quality_flags`로만 표시한다.
+5. **원문은 보존하고, 근거가 있는 원천 오류만 보정표로 고친다.** 수집 원본 파일은 바꾸지 않는다. 정제 단계에서 `src/data/agetech_data/resources/food_corrections.json`을 적용하고, 고친 레코드에는 원래 값(`corrections`)과 `corrected` 표시를 남긴다(2.1절). 근거가 없는 의심값은 고치지 않고 `quality_flags`로만 표시한다.
 6. **AMT_NUM 번호는 판본마다 바뀐다.** 03 판본 기준은 `src/data/agetech_data/resources/foodntr_v03_fields.json`(공식 명세 추출본)이다. 예: 23=콜레스테롤, 24=포화지방산.
 
 ## 2. 정제 식품 — `data/processed/foods_v03.json`
@@ -37,11 +37,31 @@
 | `research_date`, `update_date` | 문자열·null | `RESEARCH_YMD`, `UPDATE_DATE` | 데이터생성일자, 수정일자 (갱신 감지에 사용) |
 | `nutrients` | 객체 | `AMT_NUM*` | 아래 성분 키 → 기준량당 값 또는 null |
 | `raw_sha256` | 문자열 | 원본 행 | 원본 행 해시 (변경 감지·추적) |
+| `corrections` | 객체 배열 | | 보정 기록 `{field, from, to, reason, evidence, by, at}`. 보정이 없으면 `[]`. `from`이 원래(원천) 값이다 (2.1절) |
 | `quality_flags` | 문자열 배열 | | 아래 품질 표시 |
 
 **성분 키** (단위는 키 이름 끝): `energy_kcal`, `water_g`, `protein_g`, `fat_g`, `ash_g`, `carbohydrate_g`, `sugars_g`, `fiber_g`, `calcium_mg`, `iron_mg`, `phosphorus_mg`, `potassium_mg`, `sodium_mg`, `vitamin_a_ug_rae`, `vitamin_b1_mg`, `vitamin_b2_mg`, `niacin_mg`, `vitamin_c_mg`, `vitamin_d_ug`, `cholesterol_mg`, `sat_fat_g`, `trans_fat_g`, `salt_equiv_g`, `refuse_pct`
 
-**품질 표시** (`quality_flags`): `invalid_basis`, `suspicious_name`(예: `test` 행), `unparsed_value`, `missing_energy`, `missing_sodium`, `proximate_exceeds_basis`, `sat_fat_exceeds_fat`, `sugars_exceeds_carbohydrate`, `energy_macro_mismatch`(참고), `same_name_multiple_rows`. 앱 노출에서 `invalid_basis`·`suspicious_name` 행은 제외를 권장한다.
+**품질 표시** (`quality_flags`): `invalid_basis`, `suspicious_name`(예: `test` 행), `unparsed_value`, `missing_energy`, `missing_sodium`, `proximate_exceeds_basis`, `sat_fat_exceeds_fat`, `sugars_exceeds_carbohydrate`, `energy_macro_mismatch`(참고), `same_name_multiple_rows`, `corrected`(보정표로 고침), `correction_stale`(보정표 항목이 지금 원천과 맞지 않아 적용 안 함 — 다시 확인). 앱 노출에서 `invalid_basis`·`suspicious_name` 행은 제외를 권장한다.
+
+### 2.1 원천 오류 보정 — `src/data/agetech_data/resources/food_corrections.json`
+
+| 항목 | 내용 |
+|---|---|
+| 형식 | `corrections[]` = `{food_code, food_name, field, from, to, reason, evidence, raw_sha256, by, at}`. `field`는 `basis_text`(기준량 — `basis_amount`·`basis_unit`도 다시 읽음) 또는 `nutrients.<성분 키>` |
+| 적용 조건 | 원본 행 해시(`raw_sha256`)와 원래 값(`from`)이 **둘 다** 지금 수집본과 같을 때만 적용한다 |
+| 원천이 바뀌면 | 식약처가 행을 고치거나 다시 수집해 해시·값이 달라지면 적용하지 않고 `correction_stale`을 붙인다. 보고서 6절에 "다시 확인 필요"로 나온다 |
+| 품질 표시 | 보정한 값으로 다시 계산한다(예: 기준량을 고치면 `invalid_basis`·`proximate_exceeds_basis` 다시 판정) |
+| 넣는 기준 | 데이터 자체로 오류가 확실하거나(물리적으로 불가능한 값, 같은 값의 다른 공식 행) 외부 공식 근거가 있을 때만 넣는다. `evidence`에 근거를 적는다 |
+
+**현재 보정 (10/31 수집본)**: 분말 9건(커피믹스·커피가루 2종·디카페인커피·녹차라떼·쌍화차·율무차·인삼차·홍차복숭아분말)의 기준량 `100mL` → `100g`. 기준량이 100mL인데 수분 1~4g·열량 350~470kcal로 액체에서는 나올 수 없는 값이고, 고친 뒤 수분·단백질·지방·회분·탄수화물의 합이 9건 모두 100.0g으로 맞는다. 커피믹스는 같은 값의 원재료성 행(100g 기준)도 있다.
+
+**고치지 않고 표시만 하는 것** (원인을 확인했지만 일괄 보정 근거가 없음):
+- `sat_fat_exceeds_fat` 144건: 142건이 제품 표시에서 옮긴 수집값(대부분 빵·과자)이고 포화지방/지방 배율이 제각각(1.2배 이하 9건, 1.2~10배 111건, 10배 초과 20건, 지방 0 4건)이라 단위 실수 하나로 설명되지 않는다. 화면에서 이 행의 포화지방은 "자료 확인 필요"로 보여 주기를 권장한다.
+- `sugars_exceeds_carbohydrate` 22건: 대부분 측정 오차 수준(예: 탄수화물 3.37g, 당류 3.42g)이다.
+- `proximate_exceeds_basis` 42건: 수집 빵류가 대부분이며 108~154%로 제각각이다.
+- 레시피 계산에 쓰는 식품 중 위에 걸리는 것은 가공식품 `통조림햄` 1건이었고, 매핑을 원재료성 분석 행으로 바꿨다(PR #16).
+- 값 자체가 의심되는 것(예: 가공식품 `간장/저염`의 나트륨이 일반 양조간장보다 5%만 낮음)은 외부 공식 근거(제품 영양표시, 같은 DB의 상용제품 값 등)를 찾으면 보정한다.
 
 ## 3. 레시피 재료 영양 — `data/processed/recipe_ingredient_nutrition.json`
 
