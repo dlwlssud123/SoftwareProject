@@ -1,0 +1,2156 @@
+{
+  "schema_version": 1,
+  "description": "복지 API 표본 — 시범 지역(대구광역시 남구) 조회 결과와 지역 입력 해석 사례. 필드 정의는 contract 문서.",
+  "contract": "docs/data/welfare_contract.md",
+  "input": {
+    "central": {
+      "path": "data/raw/welfare/central_elderly.json",
+      "sha256": "630c2a9468dd15c5a92e23be6e0326597999b757fc545a34a4acaee21da3a4df",
+      "fetched_at": "2026-11-05T15:20:06+00:00",
+      "item_count": 130
+    },
+    "local": {
+      "path": "data/raw/welfare/local_elderly.json",
+      "sha256": "3f761c00cacb90e754ac86f7067a840c672e0c2220051babaa301c9f7c8008fe",
+      "fetched_at": "2026-11-05T15:20:26+00:00",
+      "item_count": 1338
+    }
+  },
+  "region_key": {
+    "fields": [
+      "ctpv",
+      "sgg"
+    ],
+    "rule": "지역은 정규화한 (시도, 시군구) 이름 쌍으로 맞춘다. 원천(복지로 중앙·지자체)에는 지역 코드가 없다(정의서 5.2절)."
+  },
+  "regions": [
+    {
+      "cases": [
+        "시범 지역 — 정식 이름"
+      ],
+      "input": {
+        "ctpv": "대구광역시",
+        "sgg": "남구"
+      },
+      "resolved": {
+        "ctpv": "대구광역시",
+        "sgg": "남구",
+        "notes": []
+      },
+      "counts": {
+        "district": 4,
+        "province": 10,
+        "national": 130
+      },
+      "local_examples": [
+        "대구광역시 남구 · 경로우대사업",
+        "대구광역시 남구 · 대구 남구 스마트빌리지 보급 및 확산 사업",
+        "대구광역시 남구 · 대구 남구 주거지원형 일자리 인큐베이팅 하우스 사업"
+      ]
+    },
+    {
+      "cases": [
+        "줄임말 시도"
+      ],
+      "input": {
+        "ctpv": "대구",
+        "sgg": "남구"
+      },
+      "resolved": {
+        "ctpv": "대구광역시",
+        "sgg": "남구",
+        "notes": [
+          "'대구' → '대구광역시'로 찾음"
+        ]
+      },
+      "counts": {
+        "district": 4,
+        "province": 10,
+        "national": 130
+      },
+      "local_examples": [
+        "대구광역시 남구 · 경로우대사업",
+        "대구광역시 남구 · 대구 남구 스마트빌리지 보급 및 확산 사업",
+        "대구광역시 남구 · 대구 남구 주거지원형 일자리 인큐베이팅 하우스 사업"
+      ]
+    },
+    {
+      "cases": [
+        "공백·'구' 생략"
+      ],
+      "input": {
+        "ctpv": "대구 광역시",
+        "sgg": "남"
+      },
+      "resolved": {
+        "ctpv": "대구광역시",
+        "sgg": "남구",
+        "notes": []
+      },
+      "counts": {
+        "district": 4,
+        "province": 10,
+        "national": 130
+      },
+      "local_examples": [
+        "대구광역시 남구 · 경로우대사업",
+        "대구광역시 남구 · 대구 남구 스마트빌리지 보급 및 확산 사업",
+        "대구광역시 남구 · 대구 남구 주거지원형 일자리 인큐베이팅 하우스 사업"
+      ]
+    },
+    {
+      "cases": [
+        "같은 이름 시군구가 다른 시도에도 있음(부산 남구)"
+      ],
+      "input": {
+        "ctpv": "부산광역시",
+        "sgg": "남구"
+      },
+      "resolved": {
+        "ctpv": "부산광역시",
+        "sgg": "남구",
+        "notes": []
+      },
+      "counts": {
+        "district": 4,
+        "province": 10,
+        "national": 130
+      },
+      "local_examples": [
+        "부산광역시 남구 · 남구 의로운 구민 등에 대한 예우 및 지원",
+        "부산광역시 남구 · 저소득 노인세대 등 국민건강보험료 지원",
+        "부산광역시 남구 · 추석절 경로당 위문"
+      ]
+    },
+    {
+      "cases": [
+        "데이터에 없는 시군구 → 시도 전체·전국만"
+      ],
+      "input": {
+        "ctpv": "대구광역시",
+        "sgg": "해운대구"
+      },
+      "resolved": {
+        "ctpv": "대구광역시",
+        "sgg": null,
+        "notes": [
+          "'대구광역시 해운대구' 시군구 사업이 데이터에 없거나 이름을 확인할 수 없음 — 시도 전체·전국 사업만 안내"
+        ]
+      },
+      "counts": {
+        "district": 0,
+        "province": 10,
+        "national": 130
+      },
+      "local_examples": [
+        "대구광역시 (시도 전체) · 거리노숙인 상담지원",
+        "대구광역시 (시도 전체) · 노인지역봉사지도원 활동지원사업",
+        "대구광역시 (시도 전체) · 일본군위안부 피해자 생활안정지원"
+      ]
+    },
+    {
+      "cases": [
+        "2026-07-01 통합 전 옛 이름"
+      ],
+      "input": {
+        "ctpv": "광주광역시",
+        "sgg": "광산"
+      },
+      "resolved": {
+        "ctpv": "전남광주통합특별시",
+        "sgg": "광산구",
+        "notes": [
+          "'광주광역시' → '전남광주통합특별시'로 찾음 (2026-07-01 통합)"
+        ]
+      },
+      "counts": {
+        "district": 3,
+        "province": 15,
+        "national": 130
+      },
+      "local_examples": [
+        "전남광주통합특별시 광산구 · 무연고(노숙인)복지지원",
+        "전남광주통합특별시 광산구 · 장수어르신 지원사업",
+        "전남광주통합특별시 광산구 · 치매감별검사비 지원"
+      ]
+    },
+    {
+      "cases": [
+        "시군구 없이 시도만"
+      ],
+      "input": {
+        "ctpv": "서울특별시",
+        "sgg": null
+      },
+      "resolved": {
+        "ctpv": "서울특별시",
+        "sgg": null,
+        "notes": []
+      },
+      "counts": {
+        "district": 0,
+        "province": 9,
+        "national": 130
+      },
+      "local_examples": [
+        "서울특별시 (시도 전체) · 국가유공자 보훈예우수당",
+        "서울특별시 (시도 전체) · 뇌병변장애인 신변처리용품 구입비 지원",
+        "서울특별시 (시도 전체) · 모바일 뇌건강 프로그램, 브레인핏45"
+      ]
+    },
+    {
+      "cases": [
+        "알 수 없는 시도 → 전국만"
+      ],
+      "input": {
+        "ctpv": "아무도",
+        "sgg": "어디"
+      },
+      "resolved": {
+        "ctpv": null,
+        "sgg": null,
+        "notes": [
+          "알 수 없는 시도명 '아무도' — 전국 사업만 안내"
+        ]
+      },
+      "counts": {
+        "district": 0,
+        "province": 0,
+        "national": 130
+      },
+      "local_examples": []
+    },
+    {
+      "cases": [
+        "지역 미입력 → 전국만"
+      ],
+      "input": {
+        "ctpv": null,
+        "sgg": null
+      },
+      "resolved": {
+        "ctpv": null,
+        "sgg": null,
+        "notes": []
+      },
+      "counts": {
+        "district": 0,
+        "province": 0,
+        "national": 130
+      },
+      "local_examples": []
+    }
+  ],
+  "pilot": {
+    "input": {
+      "ctpv": "대구광역시",
+      "sgg": "남구"
+    },
+    "resolved": {
+      "ctpv": "대구광역시",
+      "sgg": "남구",
+      "notes": []
+    },
+    "counts": {
+      "district": 4,
+      "province": 10,
+      "national": 130
+    },
+    "order": "내 시군구(district) → 내 시도 전체(province) → 전국(national). 같은 범위 안에서는 상세가 있는 것 먼저, 이름순",
+    "items": [
+      {
+        "match": "district",
+        "reason": "대구광역시 남구 사업",
+        "record": {
+          "serv_id": "WLF00004828",
+          "source": "local",
+          "scope": "district",
+          "ctpv": "대구광역시",
+          "sgg": "남구",
+          "ctpv_raw": "대구광역시",
+          "sgg_raw": "남구",
+          "name": "경로우대사업",
+          "summary": "50% 할인된 가격으로 이미용 서비스를 제공함으로써 65세 이상 어르신들의 경제적 부담을 경감하기 위한 사업입니다.",
+          "target_detail": "65세 이상 노인",
+          "selection_criteria": "65세 이상 노인",
+          "benefits": "어르신들에게 50% 할인된 가격으로 서비스를 제공한 경로우대업소 영업자에게 월 보상금 11만원 지급",
+          "apply_detail": "경로우대업소로 지정된 이용소 및 미용실에 방문하여 50% 할인된 가격으로 이용",
+          "support_cycle": "분기",
+          "department": "대구광역시 남구 주민행복국 복지지원과",
+          "ministry": null,
+          "ministry_office": null,
+          "main_contact": null,
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00004828&wlfareInfoReldBztpCd=02",
+          "criteria_year": null,
+          "life_stages": [
+            "노년"
+          ],
+          "target_groups": [],
+          "themes": [
+            "서민금융"
+          ],
+          "provision_types": [
+            "현금지급"
+          ],
+          "apply_methods": [
+            "방문"
+          ],
+          "online_apply": null,
+          "last_modified": "2026-07-23",
+          "first_registered": null,
+          "period_start": "2013-01-01",
+          "period_end": "9999-12-31",
+          "contacts": [
+            {
+              "name": "대구광역시 남구청 복지지원과",
+              "value": "053-664-2538",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-664-2538",
+                "wlfareInfoReldNm": "대구광역시 남구청 복지지원과"
+              }
+            }
+          ],
+          "homepages": [],
+          "apply_guides": [],
+          "laws": [
+            {
+              "name": "노인복지법 제26조(경로우대)",
+              "value": null,
+              "raw": {
+                "wlfareInfoDtlCd": "030",
+                "wlfareInfoReldNm": "노인복지법 제26조(경로우대)"
+              }
+            }
+          ],
+          "forms": [],
+          "detail_status": "cached",
+          "detail_fetched_at": "2026-11-04T16:21:27+00:00",
+          "source_fetched_at": "2026-11-05T15:20:26+00:00",
+          "raw_sha256": "7d9f8b2eb05f8acaccafe7ff2990e4237bd042ae0501d32f88c063c5198c3c11",
+          "unverified_fields": [],
+          "quality_flags": [
+            "placeholder_form"
+          ]
+        }
+      },
+      {
+        "match": "district",
+        "reason": "대구광역시 남구 사업",
+        "record": {
+          "serv_id": "WLF00006673",
+          "source": "local",
+          "scope": "district",
+          "ctpv": "대구광역시",
+          "sgg": "남구",
+          "ctpv_raw": "대구광역시",
+          "sgg_raw": "남구",
+          "name": "대구 남구 스마트빌리지 보급 및 확산 사업",
+          "summary": "IOT․ICT 등 첨단기술을 활용한 24시간 생활밀착 서비스를 제공으로 고독사 위험군 관리 및 고독사 예방",
+          "target_detail": "1인 위기 가구 1,000세대",
+          "selection_criteria": "대구광역시 남구에 거주하는 1인 위기 가구",
+          "benefits": "댁내 ICT 기기 설치를 통한 고독사 예방 및 일상생활 지원",
+          "apply_detail": "1인 위기가구 댁내 ICT기기 설치 24시간 스마트 케어",
+          "support_cycle": "1회성",
+          "department": "대구광역시 남구 복지환경국 복지지원과",
+          "ministry": null,
+          "ministry_office": null,
+          "main_contact": null,
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00006673&wlfareInfoReldBztpCd=02",
+          "criteria_year": null,
+          "life_stages": [
+            "청년",
+            "중장년",
+            "노년"
+          ],
+          "target_groups": [],
+          "themes": [
+            "서민금융"
+          ],
+          "provision_types": [
+            "현물대여"
+          ],
+          "apply_methods": [
+            "방문"
+          ],
+          "online_apply": null,
+          "last_modified": "2026-07-23",
+          "first_registered": null,
+          "period_start": "2026-02-23",
+          "period_end": "2029-12-31",
+          "contacts": [
+            {
+              "name": "대구광역시 남구청 복지지원과",
+              "value": "053-664-2739",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-664-2739",
+                "wlfareInfoReldNm": "대구광역시 남구청 복지지원과"
+              }
+            }
+          ],
+          "homepages": [],
+          "apply_guides": [],
+          "laws": [
+            {
+              "name": "2026년 과학기술정보통신부 스마트빌리지 보급 및 확산 사업 공모 선정",
+              "value": null,
+              "raw": {
+                "wlfareInfoDtlCd": "030",
+                "wlfareInfoReldNm": "2026년 과학기술정보통신부 스마트빌리지 보급 및 확산 사업 공모 선정"
+              }
+            }
+          ],
+          "forms": [],
+          "detail_status": "cached",
+          "detail_fetched_at": "2026-11-04T16:21:23+00:00",
+          "source_fetched_at": "2026-11-05T15:20:26+00:00",
+          "raw_sha256": "978efa731a957e86b0f940f3488d963daaa6675a26c4a5b966b0ecbfaf8f323f",
+          "unverified_fields": [],
+          "quality_flags": []
+        }
+      },
+      {
+        "match": "district",
+        "reason": "대구광역시 남구 사업",
+        "record": {
+          "serv_id": "WLF00006672",
+          "source": "local",
+          "scope": "district",
+          "ctpv": "대구광역시",
+          "sgg": "남구",
+          "ctpv_raw": "대구광역시",
+          "sgg_raw": "남구",
+          "name": "대구 남구 주거지원형 일자리 인큐베이팅 하우스 사업",
+          "summary": "- 급속한 초고령화 사회 진입에 따라 직무훈련형 일자리 제공과 공유주택을 결합한 주거지원형 일자리 지원사업을 통해, 60세이상 액티브 시니어의 경제적 자립과 주거안정, 상호돌봄 공동체를 형성하고자 함",
+          "target_detail": "- 60세 이상 70세 이하 무주택 1인 가구로 샐러드류 제조·판매 노인일자리 공동체사업단 참여가능한 자",
+          "selection_criteria": "- 만60세~70세 중위소득 100% 이하 시니어 일자리 사업단 참여자로서 무주택 1인 가구 중 4세대 입주자 선발- 일자리 사업단 퇴사 및 일참여 중단 시 퇴거(계약 잔여기간까지는 거주)- 입주자의 경우 1차 서류심사, 2차 입주자 선정심의회를 통해 대상자 최종 선발함- 1차 서류 심사를 통해 중위소득 기준, 무주택자, 1인 가구 여부 등을 기반으로 입주 요건을 갖춘 지원자들 중 소득인정액, 나이 등을 고려하여 서류심사 배점표 중 점수가 높은 순으로 1.5배 수 선별하여 선정심의위원회 면접을 통해 점수 배점표에 따라 가장 높은 점수를 받은 4명을 최종적으로 선발함",
+          "benefits": "- 시니어일자리 인큐베이팅 센터 '이룸채' 입주 대상자 선정 시 최대 4년까지 주거공간 제공 및 이룸채 1층 공동체사업단 노인일자리 제공 - 이룸채 입주자 대상으로 월 임대료에 해당하는 금액 별도 적립 후 퇴거 시 자립축하금으로 지원- 주민 누구에게나 이용할 수 있는 2층 주민커뮤니티 공간 제공",
+          "apply_detail": "- 모집기한 내 남구청 복지지원과 직접 방문 신청",
+          "support_cycle": "기타",
+          "department": "대구광역시 남구 복지환경국 복지지원과",
+          "ministry": null,
+          "ministry_office": null,
+          "main_contact": null,
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00006672&wlfareInfoReldBztpCd=02",
+          "criteria_year": null,
+          "life_stages": [
+            "노년"
+          ],
+          "target_groups": [],
+          "themes": [
+            "서민금융"
+          ],
+          "provision_types": [
+            "현금지급",
+            "기타"
+          ],
+          "apply_methods": [
+            "방문"
+          ],
+          "online_apply": null,
+          "last_modified": "2026-07-23",
+          "first_registered": null,
+          "period_start": "2026-04-01",
+          "period_end": "9999-12-31",
+          "contacts": [
+            {
+              "name": "대구광역시 남구청 복지지원과",
+              "value": "053-664-2525",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-664-2525",
+                "wlfareInfoReldNm": "대구광역시 남구청 복지지원과"
+              }
+            }
+          ],
+          "homepages": [],
+          "apply_guides": [],
+          "laws": [
+            {
+              "name": "대구광역시 남구 주거지원형 노인일자리 육성을 위한 센터 운영에 관한 조례(2025.12.30.)",
+              "value": null,
+              "raw": {
+                "wlfareInfoDtlCd": "030",
+                "wlfareInfoReldNm": "대구광역시 남구 주거지원형 노인일자리 육성을 위한 센터 운영에 관한 조례(2025.12.30.)"
+              }
+            }
+          ],
+          "forms": [],
+          "detail_status": "cached",
+          "detail_fetched_at": "2026-11-04T16:21:23+00:00",
+          "source_fetched_at": "2026-11-05T15:20:26+00:00",
+          "raw_sha256": "f37d0a783c6c46cffc6f945d032666f62e47fca1d62268d924ead450f8721c6f",
+          "unverified_fields": [],
+          "quality_flags": []
+        }
+      },
+      {
+        "match": "district",
+        "reason": "대구광역시 남구 사업",
+        "record": {
+          "serv_id": "WLF00006010",
+          "source": "local",
+          "scope": "district",
+          "ctpv": "대구광역시",
+          "sgg": "남구",
+          "ctpv_raw": "대구광역시",
+          "sgg_raw": "남구",
+          "name": "장수축하물품 지급",
+          "summary": "남구 100세이상 어르신에게 장수축하물품 지급을 통해 건강한 노후생활을 장려하고 경로효친의 사회적 분위기를 조성하고자 함",
+          "target_detail": "남구에 1년 이상 연속하여 주민등록을 거주하는 100세 어르신",
+          "selection_criteria": "남구에 1년 이상 연속하여 주민등록을 거주하는 100세 어르신(2025년 신규사업 추진에 따라 100세 초과 어르신 소급 지원)",
+          "benefits": "구청에서 선정한 물품 중 본인이 택한 50만원 상당의 장수축하물품 지원",
+          "apply_detail": "100세가 되는 해의 생일이 포함된달부터 1년이내 주소지 행정복지센터에서 신청(본인 또는 대리인 가능)",
+          "support_cycle": "1회성",
+          "department": "대구광역시 남구 복지환경국 복지지원과",
+          "ministry": null,
+          "ministry_office": null,
+          "main_contact": null,
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00006010&wlfareInfoReldBztpCd=02",
+          "criteria_year": null,
+          "life_stages": [
+            "노년"
+          ],
+          "target_groups": [],
+          "themes": [],
+          "provision_types": [
+            "현물지급"
+          ],
+          "apply_methods": [
+            "방문"
+          ],
+          "online_apply": null,
+          "last_modified": "2026-07-23",
+          "first_registered": null,
+          "period_start": "2025-01-01",
+          "period_end": "9999-12-31",
+          "contacts": [
+            {
+              "name": "대구광역시 남구청 복지지원과",
+              "value": "053-664-2538",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-664-2538",
+                "wlfareInfoReldNm": "대구광역시 남구청 복지지원과"
+              }
+            }
+          ],
+          "homepages": [],
+          "apply_guides": [],
+          "laws": [
+            {
+              "name": "장수축하물품 지급에 관한 조례(2024.9.30.)",
+              "value": null,
+              "raw": {
+                "wlfareInfoDtlCd": "030",
+                "wlfareInfoReldNm": "장수축하물품 지급에 관한 조례(2024.9.30.)"
+              }
+            }
+          ],
+          "forms": [],
+          "detail_status": "cached",
+          "detail_fetched_at": "2026-11-04T16:21:24+00:00",
+          "source_fetched_at": "2026-11-05T15:20:26+00:00",
+          "raw_sha256": "6f7da55057df2fe0a5bb5f3cdfe9ec52fdf0939e0d3eebc5e54a6788d92a66b2",
+          "unverified_fields": [],
+          "quality_flags": []
+        }
+      },
+      {
+        "match": "province",
+        "reason": "대구광역시 전체 사업",
+        "record": {
+          "serv_id": "WLF00002190",
+          "source": "local",
+          "scope": "province",
+          "ctpv": "대구광역시",
+          "sgg": null,
+          "ctpv_raw": "대구광역시",
+          "sgg_raw": null,
+          "name": "거리노숙인 상담지원",
+          "summary": "거리노숙인을 대상으로 필요 복지서비스(잠자리, 의료 등)를 제공함으로써 각종 사고예방과 최소한의 인간다운 삶을 제공하는데 중심적 역할을 수행하고자 함",
+          "target_detail": "1) 거리노숙인 상담보호사업 -사업대상 : 대구지역 거리노숙인 -사업내용 : 상담 후 개별 노숙인에게 필요한 각종 서비스 제공 ※ 제공서비스 : 시설입소 안내, 알콜·성폭력·가정폭력 등의 각종 심층상담 의료서비스 및 일자리 안내 등 2) 거리노숙인 심야상담 -사업대상 : 대구지역 거리노숙인 -사업내용 : 동절기 잠자리가 없는 노숙인에게 응급잠자리 및 조식 제공",
+          "selection_criteria": "거리노숙인",
+          "benefits": "1) 거리노숙인 상담보호사업 -사업대상 : 대구지역 거리노숙인 -사업내용 : 상담 후 개별 노숙인에게 필요한 각종 서비스 제공 ※ 제공서비스 : 시설입소 안내, 알콜·성폭력·가정폭력 등의 각종 심층상담 의료서비스 및 일자리 안내 등 2) 거리노숙인 심야상담 -사업대상 : 대구지역 거리노숙인 -사업내용 : 동(하)절기 잠자리가 없는 노숙인에게 응급잠자리 및 조식 제공",
+          "apply_detail": null,
+          "support_cycle": "수시",
+          "department": "대구광역시 복지국 복지정책과",
+          "ministry": null,
+          "ministry_office": null,
+          "main_contact": null,
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00002190&wlfareInfoReldBztpCd=02",
+          "criteria_year": null,
+          "life_stages": [
+            "청년",
+            "중장년",
+            "노년"
+          ],
+          "target_groups": [],
+          "themes": [
+            "안전·위기"
+          ],
+          "provision_types": [
+            "시설입소"
+          ],
+          "apply_methods": [],
+          "online_apply": null,
+          "last_modified": "2026-07-16",
+          "first_registered": null,
+          "period_start": "2013-01-01",
+          "period_end": "9999-12-31",
+          "contacts": [
+            {
+              "name": "대구광역시 보건복지국 복지정책과",
+              "value": "053-803-3973",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-803-3973",
+                "wlfareInfoReldNm": "대구광역시 보건복지국 복지정책과"
+              }
+            }
+          ],
+          "homepages": [
+            {
+              "name": "대구광역시 보건복지국 복지정책과",
+              "value": "www.daegu.go.kr",
+              "url": "https://www.daegu.go.kr",
+              "link_status": "scheme_added",
+              "raw": {
+                "wlfareInfoDtlCd": "020",
+                "wlfareInfoReldCn": "www.daegu.go.kr",
+                "wlfareInfoReldNm": "대구광역시 보건복지국 복지정책과"
+              }
+            }
+          ],
+          "apply_guides": [],
+          "laws": [
+            {
+              "name": "노숙인 등의 복지 및 자립지원에 관한 법률",
+              "value": null,
+              "raw": {
+                "wlfareInfoDtlCd": "030",
+                "wlfareInfoReldNm": "노숙인 등의 복지 및 자립지원에 관한 법률"
+              }
+            }
+          ],
+          "forms": [
+            {
+              "name": "대구광역시 노숙인 등의 복지 및 자립지원에 관한 조례.hwp",
+              "value": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=8721GOWF14GOWF148721&atcflSn=1",
+              "url": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=8721GOWF14GOWF148721&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "wlfareInfoDtlCd": "040",
+                "wlfareInfoReldCn": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=8721GOWF14GOWF148721&atcflSn=1",
+                "wlfareInfoReldNm": "대구광역시 노숙인 등의 복지 및 자립지원에 관한 조례.hwp"
+              }
+            }
+          ],
+          "detail_status": "cached",
+          "detail_fetched_at": "2026-11-04T16:21:50+00:00",
+          "source_fetched_at": "2026-11-05T15:20:26+00:00",
+          "raw_sha256": "f5fa9238873ec1ca0143f45b9a97142260b39fa0593f5bce56aca65c3b5fd513",
+          "unverified_fields": [
+            "apply_detail"
+          ],
+          "quality_flags": []
+        }
+      },
+      {
+        "match": "province",
+        "reason": "대구광역시 전체 사업",
+        "record": {
+          "serv_id": "WLF00000699",
+          "source": "local",
+          "scope": "province",
+          "ctpv": "대구광역시",
+          "sgg": null,
+          "ctpv_raw": "대구광역시",
+          "sgg_raw": null,
+          "name": "노인지역봉사지도원 활동지원사업",
+          "summary": "노인들의 경륜을 사회에 재투자할 수 있도록 노인자원봉사를 활성화하여 노인의 적극적 사회참여 및 노인의 인적자원 활용 극대화 추진",
+          "target_detail": "사회적 신망과 경험을 갖춘 65세이상 노인중 읍면동 또는 구군 노인회 지회장의 추천을 받아 구청장·군수가 위촉한 자",
+          "selection_criteria": "자원봉사 활동에 적극적인 자",
+          "benefits": "주요활동내용\n- 민원인에 대한 상담 및 조언\n- 도로의 교통정리, 주정차 단속의 보조, 자연보호 및 환경침해행위 단속 보조, 청소년 선도\n- 충효사상, 전통의례 등 전통문화의 전수교육\n- 문화재의 보호 및 안내\n- 기타 대통령이 정하는 업무",
+          "apply_detail": "구군 신청",
+          "support_cycle": "월",
+          "department": "대구광역시 보건복지국 어르신복지과",
+          "ministry": null,
+          "ministry_office": null,
+          "main_contact": null,
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00000699&wlfareInfoReldBztpCd=02",
+          "criteria_year": null,
+          "life_stages": [
+            "노년"
+          ],
+          "target_groups": [],
+          "themes": [
+            "서민금융"
+          ],
+          "provision_types": [
+            "현금지급"
+          ],
+          "apply_methods": [
+            "방문"
+          ],
+          "online_apply": null,
+          "last_modified": "2026-07-16",
+          "first_registered": null,
+          "period_start": "2000-01-01",
+          "period_end": "9999-12-31",
+          "contacts": [
+            {
+              "name": "구군청 어르신복지부서",
+              "value": "어르신복지담당",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "어르신복지담당",
+                "wlfareInfoReldNm": "구군청 어르신복지부서"
+              }
+            }
+          ],
+          "homepages": [],
+          "apply_guides": [],
+          "laws": [
+            {
+              "name": "노인복지법",
+              "value": null,
+              "raw": {
+                "wlfareInfoDtlCd": "030",
+                "wlfareInfoReldNm": "노인복지법"
+              }
+            }
+          ],
+          "forms": [
+            {
+              "name": "★2026년 노인지역봉사지도원 활동지원 계획.hwpx",
+              "value": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20260604UUWBM1409050195187409&atcflSn=1",
+              "url": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20260604UUWBM1409050195187409&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "wlfareInfoDtlCd": "040",
+                "wlfareInfoReldCn": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20260604UUWBM1409050195187409&atcflSn=1",
+                "wlfareInfoReldNm": "★2026년 노인지역봉사지도원 활동지원 계획.hwpx"
+              }
+            }
+          ],
+          "detail_status": "cached",
+          "detail_fetched_at": "2026-11-04T16:21:50+00:00",
+          "source_fetched_at": "2026-11-05T15:20:26+00:00",
+          "raw_sha256": "2591630900a6c4753420072999133f9028cdf288f155f16cecb8a689bc15dc50",
+          "unverified_fields": [],
+          "quality_flags": []
+        }
+      },
+      {
+        "match": "province",
+        "reason": "대구광역시 전체 사업",
+        "record": {
+          "serv_id": "WLF00002673",
+          "source": "local",
+          "scope": "province",
+          "ctpv": "대구광역시",
+          "sgg": null,
+          "ctpv_raw": "대구광역시",
+          "sgg_raw": null,
+          "name": "일본군위안부 피해자 생활안정지원",
+          "summary": "일제에 의해 강제 동원되어 일본군위안부로서의 생활을 강요당한 피해자에 대하여 인도주의 정신에 입각하여 보호 및 지원",
+          "target_detail": "대구 거주 일본군위안부 피해자",
+          "selection_criteria": "「일제하 일본군위안부 피해자에 대한 보호·지원 및 기념사업 등에 관한 법률」에 따라 생활안정지원대상자로 등록,결정된 사람",
+          "benefits": "생활보조비 : 월 100만원설추석 위문금 : 각 50만원사망조의금(발생시) : 100만원",
+          "apply_detail": null,
+          "support_cycle": "월",
+          "department": "대구광역시 청년여성교육국 성평등가족과",
+          "ministry": null,
+          "ministry_office": null,
+          "main_contact": null,
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00002673&wlfareInfoReldBztpCd=02",
+          "criteria_year": null,
+          "life_stages": [
+            "노년"
+          ],
+          "target_groups": [],
+          "themes": [
+            "서민금융"
+          ],
+          "provision_types": [
+            "현금지급"
+          ],
+          "apply_methods": [],
+          "online_apply": null,
+          "last_modified": "2026-07-17",
+          "first_registered": null,
+          "period_start": "2016-01-01",
+          "period_end": "9999-12-31",
+          "contacts": [
+            {
+              "name": "대구광역시 성평등가족과",
+              "value": "053-803-6682",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-803-6682",
+                "wlfareInfoReldNm": "대구광역시 성평등가족과"
+              }
+            }
+          ],
+          "homepages": [],
+          "apply_guides": [],
+          "laws": [
+            {
+              "name": "대구광역시 일제하 일본군위안부 피해자 지원 및 기념사업에 관한 조례",
+              "value": null,
+              "raw": {
+                "wlfareInfoDtlCd": "030",
+                "wlfareInfoReldNm": "대구광역시 일제하 일본군위안부 피해자 지원 및 기념사업에 관한 조례"
+              }
+            }
+          ],
+          "forms": [
+            {
+              "name": "대구광역시 일제하 일본군위안부 피해자 지원 및 기념사업에 관한 조례.hwp",
+              "value": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=8349GOWF14GOWF148349&atcflSn=1",
+              "url": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=8349GOWF14GOWF148349&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "wlfareInfoDtlCd": "040",
+                "wlfareInfoReldCn": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=8349GOWF14GOWF148349&atcflSn=1",
+                "wlfareInfoReldNm": "대구광역시 일제하 일본군위안부 피해자 지원 및 기념사업에 관한 조례.hwp"
+              }
+            }
+          ],
+          "detail_status": "cached",
+          "detail_fetched_at": "2026-11-04T16:21:45+00:00",
+          "source_fetched_at": "2026-11-05T15:20:26+00:00",
+          "raw_sha256": "9ce3c10d1c8b6afabf00bed7b497b0d7064a83ef9d49f380af4ac0b8a909a33e",
+          "unverified_fields": [
+            "apply_detail"
+          ],
+          "quality_flags": []
+        }
+      },
+      {
+        "match": "province",
+        "reason": "대구광역시 전체 사업",
+        "record": {
+          "serv_id": "WLF00004024",
+          "source": "local",
+          "scope": "province",
+          "ctpv": "대구광역시",
+          "sgg": null,
+          "ctpv_raw": "대구광역시",
+          "sgg_raw": null,
+          "name": "장애수당 시비 특별지원",
+          "summary": "저소득 장애인에게 장애로 인하여 발생하는 추가비용을 일부 보전하기 위해 매월 일정액을 지급하여 저소득 장애인 가구의 생활안정 도모",
+          "target_detail": "중증장애인(종전 1,2급 및 3급 중복)",
+          "selection_criteria": "18세 이상 1,2급 및 3급 중복장애인으로 기초수급자",
+          "benefits": "- 18세 이상 중증 장애인(종전 1,2급 및 3급 중복장애인)으로 기초수급자(생계, 의료) : 월 3만원",
+          "apply_detail": "주민센터 신청",
+          "support_cycle": "월",
+          "department": "대구광역시 복지국 장애인복지과",
+          "ministry": null,
+          "ministry_office": null,
+          "main_contact": null,
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00004024&wlfareInfoReldBztpCd=02",
+          "criteria_year": null,
+          "life_stages": [
+            "청년",
+            "중장년",
+            "노년"
+          ],
+          "target_groups": [
+            "장애인",
+            "저소득"
+          ],
+          "themes": [
+            "서민금융"
+          ],
+          "provision_types": [
+            "현금지급"
+          ],
+          "apply_methods": [
+            "방문"
+          ],
+          "online_apply": null,
+          "last_modified": "2026-08-15",
+          "first_registered": null,
+          "period_start": "2007-01-01",
+          "period_end": "9999-12-31",
+          "contacts": [
+            {
+              "name": "구군 장애인복지부서",
+              "value": "구군 장애인복지부서",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "구군 장애인복지부서",
+                "wlfareInfoReldNm": "구군 장애인복지부서"
+              }
+            }
+          ],
+          "homepages": [],
+          "apply_guides": [],
+          "laws": [
+            {
+              "name": "장애인복지법 제49조",
+              "value": null,
+              "raw": {
+                "wlfareInfoDtlCd": "030",
+                "wlfareInfoReldNm": "장애인복지법 제49조"
+              }
+            }
+          ],
+          "forms": [
+            {
+              "name": "2026년 장애수당 시비 특별지원 계획.pdf",
+              "value": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20260807UUWBM1452000204053995&atcflSn=1",
+              "url": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20260807UUWBM1452000204053995&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "wlfareInfoDtlCd": "040",
+                "wlfareInfoReldCn": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20260807UUWBM1452000204053995&atcflSn=1",
+                "wlfareInfoReldNm": "2026년 장애수당 시비 특별지원 계획.pdf"
+              }
+            }
+          ],
+          "detail_status": "cached",
+          "detail_fetched_at": "2026-11-04T16:20:56+00:00",
+          "source_fetched_at": "2026-11-05T15:20:26+00:00",
+          "raw_sha256": "a7a2829249ce1d01045a9fc5616b9c728c20dc46ed2ad099846fafec6b89d764",
+          "unverified_fields": [],
+          "quality_flags": []
+        }
+      },
+      {
+        "match": "province",
+        "reason": "대구광역시 전체 사업",
+        "record": {
+          "serv_id": "WLF00001717",
+          "source": "local",
+          "scope": "province",
+          "ctpv": "대구광역시",
+          "sgg": null,
+          "ctpv_raw": "대구광역시",
+          "sgg_raw": null,
+          "name": "저소득 어르신 무료틀니 지원 사업",
+          "summary": "의료사각지대에 놓인 저소득층 어르신의 틀니 비용 지원으로 구강기능회복 및 불평등 해소 도모",
+          "target_detail": "- 만 65세 이상 의료급여수급권자(1종, 2종)- 만 65세 이상 차상위 본인부담 경감대상자- 보건소 틀니 지원사업 수혜 후 7년 경과자(단, 편악만 시술한 경우, 반대 편악 의치 시술 기회 제공되며 수혜기준은 각 시술일자 기준으로 적용)",
+          "selection_criteria": "지원대상:만65세 이상 저소득 어르신-의료급여 수급권자(1,2종) 및 차상위 본인부담 경감 대상자 * 보건소 틀니 지원사업 수혜 후, 7년 경과자 재신청 가능지원범위: 완전틀니 및 부분틀니 본인부담금, 지대치(비급여) 최대 6개까지",
+          "benefits": "틀니 본인 부담비용 시술 의료기관 지급",
+          "apply_detail": "직접 지원(별도 신청사항 없음)",
+          "support_cycle": "월",
+          "department": "대구광역시 시민안전실 건강증진과",
+          "ministry": null,
+          "ministry_office": null,
+          "main_contact": null,
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00001717&wlfareInfoReldBztpCd=02",
+          "criteria_year": null,
+          "life_stages": [
+            "노년"
+          ],
+          "target_groups": [
+            "저소득"
+          ],
+          "themes": [
+            "서민금융"
+          ],
+          "provision_types": [
+            "감면",
+            "기타"
+          ],
+          "apply_methods": [],
+          "online_apply": null,
+          "last_modified": "2026-07-23",
+          "first_registered": null,
+          "period_start": "2019-01-01",
+          "period_end": "9999-12-31",
+          "contacts": [
+            {
+              "name": "대구 군위군보건소 구강보건실",
+              "value": "054-308-7450",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "054-308-7450",
+                "wlfareInfoReldNm": "대구 군위군보건소 구강보건실"
+              }
+            },
+            {
+              "name": "대구 달성군보건소 구강보건실",
+              "value": "053-668-3825",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-668-3825",
+                "wlfareInfoReldNm": "대구 달성군보건소 구강보건실"
+              }
+            },
+            {
+              "name": "대구 달서구보건소 구강보건실",
+              "value": "053-667-5637",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-667-5637",
+                "wlfareInfoReldNm": "대구 달서구보건소 구강보건실"
+              }
+            },
+            {
+              "name": "대구 수성구보건소 구강보건실",
+              "value": "053-666-4868",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-666-4868",
+                "wlfareInfoReldNm": "대구 수성구보건소 구강보건실"
+              }
+            },
+            {
+              "name": "대구 북구보건소 구강보건실",
+              "value": "053-665-3288",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-665-3288",
+                "wlfareInfoReldNm": "대구 북구보건소 구강보건실"
+              }
+            },
+            {
+              "name": "대구 남구보건소 구강보건실",
+              "value": "053-664-3613",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-664-3613",
+                "wlfareInfoReldNm": "대구 남구보건소 구강보건실"
+              }
+            },
+            {
+              "name": "대구 서구보건소 구강보건실",
+              "value": "053-663-3183",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-663-3183",
+                "wlfareInfoReldNm": "대구 서구보건소 구강보건실"
+              }
+            },
+            {
+              "name": "대구 동구보건소 구강보건실",
+              "value": "053-662-3126",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-662-3126",
+                "wlfareInfoReldNm": "대구 동구보건소 구강보건실"
+              }
+            },
+            {
+              "name": "대구 중구보건소 구강보건실",
+              "value": "053-661-3908",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-661-3908",
+                "wlfareInfoReldNm": "대구 중구보건소 구강보건실"
+              }
+            }
+          ],
+          "homepages": [],
+          "apply_guides": [],
+          "laws": [
+            {
+              "name": "보건복지부 사회보장제도 승인",
+              "value": null,
+              "raw": {
+                "wlfareInfoDtlCd": "030",
+                "wlfareInfoReldNm": "보건복지부 사회보장제도 승인"
+              }
+            }
+          ],
+          "forms": [
+            {
+              "name": "2026년 저소득 어르신 무료 틀니 지원사업 계획.hwp",
+              "value": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20260720UUWBM1545450201720954&atcflSn=1",
+              "url": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20260720UUWBM1545450201720954&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "wlfareInfoDtlCd": "040",
+                "wlfareInfoReldCn": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20260720UUWBM1545450201720954&atcflSn=1",
+                "wlfareInfoReldNm": "2026년 저소득 어르신 무료 틀니 지원사업 계획.hwp"
+              }
+            }
+          ],
+          "detail_status": "cached",
+          "detail_fetched_at": "2026-11-04T16:21:27+00:00",
+          "source_fetched_at": "2026-11-05T15:20:26+00:00",
+          "raw_sha256": "a6c5885f817c11c96433b65523f81d2f47f559cebfffffd55d996763ab3ebbdd",
+          "unverified_fields": [],
+          "quality_flags": []
+        }
+      },
+      {
+        "match": "province",
+        "reason": "대구광역시 전체 사업",
+        "record": {
+          "serv_id": "WLF00004083",
+          "source": "local",
+          "scope": "province",
+          "ctpv": "대구광역시",
+          "sgg": null,
+          "ctpv_raw": "대구광역시",
+          "sgg_raw": null,
+          "name": "저소득노인 성인용보행기 지원 사업",
+          "summary": "거동이 불편한 저소득노인에게 성인용보행기를 지원함으로써 보행편의를 제공하고 삶의 질을 향상시키고자 함",
+          "target_detail": "주민등록상 1년 이상 대구시에 거주중인 거동이 불편한1) 만65세 이상2) 저소득 노인3) 1)증빙서류(의사소견서, 진단서, 장기요양등급외 판정서 등)로 보행이 불편하다고 인정된 자 2)주민등록상 65세 생일이 속한 달의 1개월 전부터 신청 가능(1961년생) 3)저소득 노인 ① 「국민기초생활보장법」에 따른 기초생활수급자 및 차상위계층 ② 「의료급여법」에 따른 의료급여수급자 ③ 중위소득 75% 이하의 자 ④ 중위소득 75% 초과 100% 이하의 통합돌봄 판정자",
+          "selection_criteria": "대상자중 예산소진시 까지 선착순 지원",
+          "benefits": "소득수준에 따라 1인 최대 20만원 이내 차등 지원 - 5년주기로 1회 지원(기간 내 수리 및 교체 비용은 본인 부담) - 기초생활수급자 100% 의료수급자 94%, 차상위계층 91%, 저소득노인(중위소득75%이하) 85%,중위소득100%이하통합돌봄판정자(50%)",
+          "apply_detail": "증빙서류(의사소견서, 진단서, 장기요양등급외 판정서 등)를 통해 보행이 불편하다고 인정 및저소득 기준 충족 시 예산소진시 까지 동주민센터 또는 구청(지자체별 상이)를 통해서 신청",
+          "support_cycle": "수시",
+          "department": "대구광역시 보건복지국 어르신복지과",
+          "ministry": null,
+          "ministry_office": null,
+          "main_contact": null,
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00004083&wlfareInfoReldBztpCd=02",
+          "criteria_year": null,
+          "life_stages": [
+            "노년"
+          ],
+          "target_groups": [
+            "저소득"
+          ],
+          "themes": [
+            "신체건강"
+          ],
+          "provision_types": [
+            "현물지급"
+          ],
+          "apply_methods": [
+            "방문"
+          ],
+          "online_apply": null,
+          "last_modified": "2026-07-03",
+          "first_registered": null,
+          "period_start": "2021-02-01",
+          "period_end": "9999-12-31",
+          "contacts": [
+            {
+              "name": "대구광역시 보건복지국 어르신복지과",
+              "value": "053-803-4143",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-803-4143",
+                "wlfareInfoReldNm": "대구광역시 보건복지국 어르신복지과"
+              }
+            }
+          ],
+          "homepages": [],
+          "apply_guides": [],
+          "laws": [
+            {
+              "name": "대구광역시 노인 성인용 보행기 지원 조례",
+              "value": null,
+              "raw": {
+                "wlfareInfoDtlCd": "030",
+                "wlfareInfoReldNm": "대구광역시 노인 성인용 보행기 지원 조례"
+              }
+            }
+          ],
+          "forms": [
+            {
+              "name": "★2025년 저소득노인 성인용 보행기 지원계획(배포용).hwpx",
+              "value": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20250605UUWBM1656570140895938&atcflSn=1",
+              "url": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20250605UUWBM1656570140895938&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "wlfareInfoDtlCd": "040",
+                "wlfareInfoReldCn": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20250605UUWBM1656570140895938&atcflSn=1",
+                "wlfareInfoReldNm": "★2025년 저소득노인 성인용 보행기 지원계획(배포용).hwpx"
+              }
+            }
+          ],
+          "detail_status": "fresh",
+          "detail_fetched_at": "2026-11-05T15:20:34+00:00",
+          "source_fetched_at": "2026-11-05T15:20:26+00:00",
+          "raw_sha256": "733bd4272c8cb78d13dad5f608e2380227a8552edf8c4f34e3bb7e925abc5cd8",
+          "unverified_fields": [],
+          "quality_flags": []
+        }
+      },
+      {
+        "match": "province",
+        "reason": "대구광역시 전체 사업",
+        "record": {
+          "serv_id": "WLF00000758",
+          "source": "local",
+          "scope": "province",
+          "ctpv": "대구광역시",
+          "sgg": null,
+          "ctpv_raw": "대구광역시",
+          "sgg_raw": null,
+          "name": "저소득재가노인 식사배달",
+          "summary": "ㅇ결식 우려가 있는 거동불편 재가노인에게 도시락 및 밑반찬을 제공하여 노인복지증진 및 사회안전망 구축",
+          "target_detail": "결식우려 취약계층 재가노인",
+          "selection_criteria": "거동불편등으로 결식이 우려되는 60세 이상 저소득 노인",
+          "benefits": "도시락 및 밑반찬 배달",
+          "apply_detail": null,
+          "support_cycle": "주",
+          "department": "대구광역시 보건복지국 어르신복지과",
+          "ministry": null,
+          "ministry_office": null,
+          "main_contact": null,
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00000758&wlfareInfoReldBztpCd=02",
+          "criteria_year": null,
+          "life_stages": [
+            "노년"
+          ],
+          "target_groups": [
+            "한부모·조손"
+          ],
+          "themes": [
+            "주거",
+            "안전·위기",
+            "입양·위탁",
+            "보호·돌봄"
+          ],
+          "provision_types": [
+            "현물지급"
+          ],
+          "apply_methods": [],
+          "online_apply": null,
+          "last_modified": "2026-07-03",
+          "first_registered": null,
+          "period_start": "2010-01-01",
+          "period_end": "9999-12-31",
+          "contacts": [
+            {
+              "name": "대구광역시 보건복지국 어르신복지과 어르신복지팀",
+              "value": "053-803-4141",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-803-4141",
+                "wlfareInfoReldNm": "대구광역시 보건복지국 어르신복지과 어르신복지팀"
+              }
+            }
+          ],
+          "homepages": [],
+          "apply_guides": [],
+          "laws": [
+            {
+              "name": "노인복지법 제4조(보건복지증진의 책임)",
+              "value": null,
+              "raw": {
+                "wlfareInfoDtlCd": "030",
+                "wlfareInfoReldNm": "노인복지법 제4조(보건복지증진의 책임)"
+              }
+            }
+          ],
+          "forms": [
+            {
+              "name": "2025년 저소득 재가노인 식사배달사업 지원계획.hwp",
+              "value": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20250605UUWBM1730130140906550&atcflSn=1",
+              "url": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20250605UUWBM1730130140906550&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "wlfareInfoDtlCd": "040",
+                "wlfareInfoReldCn": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20250605UUWBM1730130140906550&atcflSn=1",
+                "wlfareInfoReldNm": "2025년 저소득 재가노인 식사배달사업 지원계획.hwp"
+              }
+            }
+          ],
+          "detail_status": "fresh",
+          "detail_fetched_at": "2026-11-05T15:20:37+00:00",
+          "source_fetched_at": "2026-11-05T15:20:26+00:00",
+          "raw_sha256": "203bfaeae9d773383594ea0abc7eedc644665e8d3daa8b69bee6d4371078a2c8",
+          "unverified_fields": [
+            "apply_detail"
+          ],
+          "quality_flags": []
+        }
+      },
+      {
+        "match": "province",
+        "reason": "대구광역시 전체 사업",
+        "record": {
+          "serv_id": "WLF00004534",
+          "source": "local",
+          "scope": "province",
+          "ctpv": "대구광역시",
+          "sgg": null,
+          "ctpv_raw": "대구광역시",
+          "sgg_raw": "-",
+          "name": "저소득층 및 다자녀가정 학생 현장체험학습비 지원",
+          "summary": "저소득층 학생에게 교육활동 기회를 균등하게 제공하여 교육격차를 완화하고 다자녀가정에 대한 교육비 지원으로 출산장려정책에 부응",
+          "target_detail": "대구광역시교육청 산하 초등학교, 중학교, 고등학교, 특수학교, 각종학교, 학교 형태의 학력인정 평생교육시설에 재학 중인 저소득층 학생 및 다자녀가정 학생",
+          "selection_criteria": "- 저소득층 학생 : 기초생활수급자, 한부모가정, 차상위계층- 다자녀가정 학생 : 다자녀가정의 셋째 이상 자녀",
+          "benefits": "지원대상자에 대한 현장체험학습비 수익자부담경비 징수 감면을 통한 현장체험학습비 지원",
+          "apply_detail": "- 저소득층 지원 신청 : 행정복지센터 방문 신청 또는 온라인 신청(원클릭 신청 시스템 또는 복지로)\n- 다자녀가정 지원 신청 : 지원 대상 학생이 재학하는 학교로 신청",
+          "support_cycle": "수시",
+          "department": "대구광역시교육청 교육복지과",
+          "ministry": null,
+          "ministry_office": null,
+          "main_contact": null,
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00004534&wlfareInfoReldBztpCd=02",
+          "criteria_year": null,
+          "life_stages": [
+            "영유아",
+            "아동",
+            "청소년",
+            "청년",
+            "중장년",
+            "노년"
+          ],
+          "target_groups": [
+            "저소득",
+            "한부모·조손"
+          ],
+          "themes": [
+            "보육",
+            "교육",
+            "서민금융"
+          ],
+          "provision_types": [
+            "감면"
+          ],
+          "apply_methods": [
+            "방문",
+            "인터넷"
+          ],
+          "online_apply": null,
+          "last_modified": "2022-06-29",
+          "first_registered": null,
+          "period_start": "2018-03-01",
+          "period_end": "9999-12-31",
+          "contacts": [
+            {
+              "name": "대구광역시교육청 교육복지과",
+              "value": "053-231-0756",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-231-0756",
+                "wlfareInfoReldNm": "대구광역시교육청 교육복지과"
+              }
+            }
+          ],
+          "homepages": [],
+          "apply_guides": [],
+          "laws": [
+            {
+              "name": "초중등교육법 시행령 제104조의 2, 대구광역시교육청 다자녀가정 교육비 지원에 관한 조례",
+              "value": null,
+              "raw": {
+                "wlfareInfoDtlCd": "030",
+                "wlfareInfoReldNm": "초중등교육법 시행령 제104조의 2, 대구광역시교육청 다자녀가정 교육비 지원에 관한 조례"
+              }
+            }
+          ],
+          "forms": [
+            {
+              "name": "다자녀가정 자녀 현장체험학습비 신청서 양식.hwp",
+              "value": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20220629TTWAT0506060000713135&atcflSn=1",
+              "url": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20220629TTWAT0506060000713135&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "wlfareInfoDtlCd": "040",
+                "wlfareInfoReldCn": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20220629TTWAT0506060000713135&atcflSn=1",
+                "wlfareInfoReldNm": "다자녀가정 자녀 현장체험학습비 신청서 양식.hwp"
+              }
+            },
+            {
+              "name": "★2022학년도 저소득층 및 다자녀가정 자녀 현장체험학습비 지원 계획(최종).hwp",
+              "value": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20220629TTWAT0506060000713136&atcflSn=1",
+              "url": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20220629TTWAT0506060000713136&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "wlfareInfoDtlCd": "040",
+                "wlfareInfoReldCn": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20220629TTWAT0506060000713136&atcflSn=1",
+                "wlfareInfoReldNm": "★2022학년도 저소득층 및 다자녀가정 자녀 현장체험학습비 지원 계획(최종).hwp"
+              }
+            }
+          ],
+          "detail_status": "fresh",
+          "detail_fetched_at": "2026-11-05T15:20:59+00:00",
+          "source_fetched_at": "2026-11-05T15:20:26+00:00",
+          "raw_sha256": "5b80fd5f53c5ce74558762becbd5b31dc06f39890f1c9dfbe654576d888d1c60",
+          "unverified_fields": [],
+          "quality_flags": []
+        }
+      },
+      {
+        "match": "province",
+        "reason": "대구광역시 전체 사업",
+        "record": {
+          "serv_id": "WLF00002769",
+          "source": "local",
+          "scope": "province",
+          "ctpv": "대구광역시",
+          "sgg": null,
+          "ctpv_raw": "대구광역시",
+          "sgg_raw": null,
+          "name": "저소득층 보험료 지원",
+          "summary": "저소득, 고령 등의 이유로 생활에 어려움을 겪고 있는 사람으로서 건강보험료 납부에 곤란을 겪고 있는 저소득 시민에게 보험료를 지원하여 시민의 건강을 보호하고 복지증진을 도모",
+          "target_detail": "보험료 부과금액 최저보험료 이하 세대로서 차상위계층에 해당하는 만65세이상의 노인만 거주하는 세대",
+          "selection_criteria": "보험료 부과금액 최저보험료 이하 세대로서 차상위계층에 해당하는 만65세이상의 노인만 거주하는 세대",
+          "benefits": "건강보험공단에서 각 대상자에게 부과한 월 납부보험료 전액",
+          "apply_detail": null,
+          "support_cycle": "월",
+          "department": "대구광역시 보건복지국 복지정책과",
+          "ministry": null,
+          "ministry_office": null,
+          "main_contact": null,
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00002769&wlfareInfoReldBztpCd=02",
+          "criteria_year": null,
+          "life_stages": [
+            "노년"
+          ],
+          "target_groups": [
+            "저소득"
+          ],
+          "themes": [],
+          "provision_types": [
+            "기타"
+          ],
+          "apply_methods": [],
+          "online_apply": null,
+          "last_modified": "2026-07-11",
+          "first_registered": null,
+          "period_start": "2016-01-01",
+          "period_end": "9999-12-31",
+          "contacts": [
+            {
+              "name": "대구광역시 보건복지국 복지정책과",
+              "value": "053-803-3973",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-803-3973",
+                "wlfareInfoReldNm": "대구광역시 보건복지국 복지정책과"
+              }
+            }
+          ],
+          "homepages": [
+            {
+              "name": "대구광역시 보건복지국 복지정책과",
+              "value": "www.daegu.go.kr",
+              "url": "https://www.daegu.go.kr",
+              "link_status": "scheme_added",
+              "raw": {
+                "wlfareInfoDtlCd": "020",
+                "wlfareInfoReldCn": "www.daegu.go.kr",
+                "wlfareInfoReldNm": "대구광역시 보건복지국 복지정책과"
+              }
+            }
+          ],
+          "apply_guides": [],
+          "laws": [
+            {
+              "name": "대구광역시 저소득시민 국민건강보험료 지원에 관한 조례",
+              "value": null,
+              "raw": {
+                "wlfareInfoDtlCd": "030",
+                "wlfareInfoReldNm": "대구광역시 저소득시민 국민건강보험료 지원에 관한 조례"
+              }
+            }
+          ],
+          "forms": [
+            {
+              "name": "대구광역시 저소득시민 국민건강보험료 지원에 관한 조례.hwp",
+              "value": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=8710GOWF14GOWF148710&atcflSn=1",
+              "url": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=8710GOWF14GOWF148710&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "wlfareInfoDtlCd": "040",
+                "wlfareInfoReldCn": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=8710GOWF14GOWF148710&atcflSn=1",
+                "wlfareInfoReldNm": "대구광역시 저소득시민 국민건강보험료 지원에 관한 조례.hwp"
+              }
+            }
+          ],
+          "detail_status": "cached",
+          "detail_fetched_at": "2026-11-04T16:21:58+00:00",
+          "source_fetched_at": "2026-11-05T15:20:26+00:00",
+          "raw_sha256": "f30f761be203a8dd1c8e1f42c1f7010fa4cfb1e333a5ac9869db0bcb51077487",
+          "unverified_fields": [
+            "apply_detail"
+          ],
+          "quality_flags": []
+        }
+      },
+      {
+        "match": "province",
+        "reason": "대구광역시 전체 사업",
+        "record": {
+          "serv_id": "WLF00003809",
+          "source": "local",
+          "scope": "province",
+          "ctpv": "대구광역시",
+          "sgg": null,
+          "ctpv_raw": "대구광역시",
+          "sgg_raw": null,
+          "name": "참전유공자 명예수당 지원",
+          "summary": "국가에 헌신한 참전유공자에게 참전명예수당을 지급하여 예우 및 자긍심 고취",
+          "target_detail": "8,354명 정도(대구시 거주 65세 이상 참전유공자, 전상군경, 무공수훈자)",
+          "selection_criteria": "대구시 거주 65세 이상 참전유공자, 전상군경, 무공수훈자",
+          "benefits": "월 20만원 참전명예수당 지급",
+          "apply_detail": "직접 지원(별도 신청사항 없음)",
+          "support_cycle": "월",
+          "department": "대구광역시 보건복지국 복지정책과",
+          "ministry": null,
+          "ministry_office": null,
+          "main_contact": null,
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00003809&wlfareInfoReldBztpCd=02",
+          "criteria_year": null,
+          "life_stages": [
+            "중장년",
+            "노년"
+          ],
+          "target_groups": [
+            "보훈대상자"
+          ],
+          "themes": [
+            "서민금융"
+          ],
+          "provision_types": [
+            "현금지급"
+          ],
+          "apply_methods": [],
+          "online_apply": null,
+          "last_modified": "2026-07-17",
+          "first_registered": null,
+          "period_start": "2011-10-01",
+          "period_end": "9999-12-31",
+          "contacts": [
+            {
+              "name": "대구광역시 보건복지국 복지정책과",
+              "value": "053-803-6343",
+              "raw": {
+                "wlfareInfoDtlCd": "010",
+                "wlfareInfoReldCn": "053-803-6343",
+                "wlfareInfoReldNm": "대구광역시 보건복지국 복지정책과"
+              }
+            }
+          ],
+          "homepages": [],
+          "apply_guides": [],
+          "laws": [
+            {
+              "name": "국가보훈 기본법 제5조, 대구광역시 참전유공자 예우 및 지원에 관련 조례 제5조 등",
+              "value": null,
+              "raw": {
+                "wlfareInfoDtlCd": "030",
+                "wlfareInfoReldNm": "국가보훈 기본법 제5조, 대구광역시 참전유공자 예우 및 지원에 관련 조례 제5조 등"
+              }
+            }
+          ],
+          "forms": [
+            {
+              "name": "대구광역시 참전유공자 예우 및 지원에 관한 조례 시행규칙.pdf",
+              "value": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20240527UUWBM1757280086855274&atcflSn=1",
+              "url": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20240527UUWBM1757280086855274&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "wlfareInfoDtlCd": "040",
+                "wlfareInfoReldCn": "https://www.bokjiro.go.kr/ssis-tbu/CmmFileUtil/siteQnaInfoDownload.do?atcflId=20240527UUWBM1757280086855274&atcflSn=1",
+                "wlfareInfoReldNm": "대구광역시 참전유공자 예우 및 지원에 관한 조례 시행규칙.pdf"
+              }
+            }
+          ],
+          "detail_status": "cached",
+          "detail_fetched_at": "2026-11-04T16:21:45+00:00",
+          "source_fetched_at": "2026-11-05T15:20:26+00:00",
+          "raw_sha256": "2b012432e3d752a85ce76ebc6ba95dee84804c584421094c1c129d4b9d2b098d",
+          "unverified_fields": [],
+          "quality_flags": []
+        }
+      }
+    ],
+    "national_examples": [
+      {
+        "cases": [
+          "상세 있음 · 신청 단계별 기관 안내(apply_guides)"
+        ],
+        "match": "national",
+        "reason": "전국 사업",
+        "record": {
+          "serv_id": "WLF00000815",
+          "source": "central",
+          "scope": "national",
+          "ctpv": null,
+          "sgg": null,
+          "ctpv_raw": null,
+          "sgg_raw": null,
+          "name": "(북한이탈주민)주택알선 지원",
+          "summary": "탈북민의 안정적 정착과 자립능력 제고를 위하여 하나원 교육기간 중 주택알선을 통해 주택을 배정합니다.",
+          "target_detail": "「북한이탈주민법」 제8조(보호결정 등)에 의해 탈북민으로 보호결정된 자 및 제9조(보호결정의 기준) 제3항 제1호에 의거 보호대상자로 결정되지 아니한 사람 중,\n「북한이탈주민법」 제9조 제1항 제4호 및 제5호에 해당하는 자",
+          "selection_criteria": "하나원 교육기간 중 다음 단계에 따라 주택알선을 통해 주택을 배정합니다.\n(1단계) 하나원 입소후 1개월을 전후하여 보호여부 결정\n(2단계) SH 등 임대주택 사업자와 협의를 통해 지역별 입주가능 공가세대 확정\n(3단계) 개인별 희망지역을 접수받아 배정(경합지역의 경우 추첨)",
+          "benefits": "보호결정에 의거 단독세대 및 가족세대(동반입국)로 결정된 자 중 북한이탈주민정착지원 사무소(하나원)에서 교육(3개월)중인 북한이탈주민으로부터 희망지역을 접수하여 하나원 수료 후 거주할 임대주택(LH,SH 등) 알선합니다.",
+          "apply_detail": null,
+          "support_cycle": "1회성",
+          "department": null,
+          "ministry": "통일부 교육기획과",
+          "ministry_office": "교육기획과",
+          "main_contact": "031-670-9327",
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00000815&wlfareInfoReldBztpCd=01",
+          "criteria_year": "2026",
+          "life_stages": [
+            "중장년",
+            "노년",
+            "청년",
+            "청소년"
+          ],
+          "target_groups": [
+            "다문화·탈북민"
+          ],
+          "themes": [
+            "주거"
+          ],
+          "provision_types": [
+            "현물지급"
+          ],
+          "apply_methods": [],
+          "online_apply": false,
+          "last_modified": null,
+          "first_registered": "2021-09-03",
+          "period_start": null,
+          "period_end": null,
+          "contacts": [
+            {
+              "name": "북한이탈주민정착지원사무소",
+              "value": "031-670-9323, 9327",
+              "raw": {
+                "servSeCode": "010",
+                "servSeDetailLink": "031-670-9323, 9327",
+                "servSeDetailNm": "북한이탈주민정착지원사무소"
+              }
+            },
+            {
+              "name": "북한이탈주민 종합상담 콜센터",
+              "value": "1577-6635",
+              "raw": {
+                "servSeCode": "010",
+                "servSeDetailLink": "1577-6635",
+                "servSeDetailNm": "북한이탈주민 종합상담 콜센터"
+              }
+            }
+          ],
+          "homepages": [
+            {
+              "name": "북한이탈주민 포털",
+              "value": "https://hanaportal.unikorea.go.kr",
+              "url": "https://hanaportal.unikorea.go.kr",
+              "link_status": "ok",
+              "raw": {
+                "servSeCode": "020",
+                "servSeDetailLink": "https://hanaportal.unikorea.go.kr",
+                "servSeDetailNm": "북한이탈주민 포털"
+              }
+            },
+            {
+              "name": "남북하나재단",
+              "value": "https://www.koreahana.or.kr",
+              "url": "https://www.koreahana.or.kr",
+              "link_status": "ok",
+              "raw": {
+                "servSeCode": "020",
+                "servSeDetailLink": "https://www.koreahana.or.kr",
+                "servSeDetailNm": "남북하나재단"
+              }
+            }
+          ],
+          "apply_guides": [
+            {
+              "name": "신청기관연락처목록",
+              "value": "거주지 읍/면/동 주민센터, 북한이탈주민정착지원사무소(하나원)에서 ‘서비스 신청’",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "거주지 읍/면/동 주민센터, 북한이탈주민정착지원사무소(하나원)에서 ‘서비스 신청’",
+                "servSeDetailNm": "신청기관연락처목록"
+              }
+            },
+            {
+              "name": "조사기관연락처목록",
+              "value": "담당 시/군/구청 또는 북한이탈주민정착지원사무소(하나원)에서 조사 및 심사",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "담당 시/군/구청 또는 북한이탈주민정착지원사무소(하나원)에서 조사 및 심사",
+                "servSeDetailNm": "조사기관연락처목록"
+              }
+            },
+            {
+              "name": "결정기관연락처목록",
+              "value": "담당 시/군/구청 또는 북한이탈주민정착지원사무소(하나원)에서 보장 결정",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "담당 시/군/구청 또는 북한이탈주민정착지원사무소(하나원)에서 보장 결정",
+                "servSeDetailNm": "결정기관연락처목록"
+              }
+            },
+            {
+              "name": "이의신청접수기관연락처목록",
+              "value": "이의가 있을 경우, 담당 시/군/구청 또는 북한이탈주민정착지원사무소(하나원)에 이의 신청 접수",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "이의가 있을 경우, 담당 시/군/구청 또는 북한이탈주민정착지원사무소(하나원)에 이의 신청 접수",
+                "servSeDetailNm": "이의신청접수기관연락처목록"
+              }
+            },
+            {
+              "name": "지급기관연락처목록",
+              "value": "담당 시/군/구청 또는 LH, SH, 도시공사에서 대상자에게 서비스 제공",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "담당 시/군/구청 또는 LH, SH, 도시공사에서 대상자에게 서비스 제공",
+                "servSeDetailNm": "지급기관연락처목록"
+              }
+            },
+            {
+              "name": "사후관리기관목록",
+              "value": "담당 시/군/구청 또는 통일부 북한이탈주민지원사무소에서 서비스 제공 이후 대상자의 상황 관리",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "담당 시/군/구청 또는 통일부 북한이탈주민지원사무소에서 서비스 제공 이후 대상자의 상황 관리",
+                "servSeDetailNm": "사후관리기관목록"
+              }
+            }
+          ],
+          "laws": [
+            {
+              "name": "북한이탈주민의 보호 및 정착지원에 관한 법률",
+              "value": null,
+              "raw": {
+                "servSeCode": "030",
+                "servSeDetailNm": "북한이탈주민의 보호 및 정착지원에 관한 법률"
+              }
+            },
+            {
+              "name": "북한이탈주민의 보호 및 정착지원에 관한 법률 시행령",
+              "value": null,
+              "raw": {
+                "servSeCode": "030",
+                "servSeDetailNm": "북한이탈주민의 보호 및 정착지원에 관한 법률 시행령"
+              }
+            }
+          ],
+          "forms": [
+            {
+              "name": "[별지 제1호 서식] 주거 희망지역 신청서.hwp",
+              "value": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=5670GOWF15GOWF155670&atcflSn=1",
+              "url": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=5670GOWF15GOWF155670&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "servSeCode": "040",
+                "servSeDetailLink": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=5670GOWF15GOWF155670&atcflSn=1",
+                "servSeDetailNm": "[별지 제1호 서식] 주거 희망지역 신청서.hwp"
+              }
+            }
+          ],
+          "detail_status": "cached",
+          "detail_fetched_at": "2026-11-04T16:19:39+00:00",
+          "source_fetched_at": "2026-11-05T15:20:06+00:00",
+          "raw_sha256": "2080730c8594ea48bbaa43f2bd8696c427f36187d8c6a1eafff6d8a0bcefd22b",
+          "unverified_fields": [],
+          "quality_flags": []
+        }
+      },
+      {
+        "cases": [
+          "온라인 신청 가능(online_apply=true)"
+        ],
+        "match": "national",
+        "reason": "전국 사업",
+        "record": {
+          "serv_id": "WLF00001164",
+          "source": "central",
+          "scope": "national",
+          "ctpv": null,
+          "sgg": null,
+          "ctpv_raw": null,
+          "sgg_raw": null,
+          "name": "기초연금",
+          "summary": "노인에게 기초연금을 지급하여 안정적인 소득기반을 제공함으로써 노인의 생활안정을 지원합니다.",
+          "target_detail": "만 65세 이상인 어르신으로서 소득인정액이 매년 보건복지부장관이 정하여 고시하는 금액 이하인 사람에게 지원합니다.\n단, 직역연금 수급권자와 그 배우자는 기초연금 지급대상에서 제외하나, 특례대상과 예외대상에 해당하는 경우는 수급권자의 범위에 포함",
+          "selection_criteria": "연령 : 만 65세이상인 자\n소득인정액 : 가구의 소득인정액이 선정기준액 이하인 자, 소득인정액은 아래와 같이 계산합니다.\n2026도 선정기준액은 단독가구는 2,470,000원, 부부가구는 3,952,000원\n소득인정액 = 소득평가액 + 재산의 소득환산액\n소득평가액 = {0.7 X (근로소득 - 116만원)} + 기타 소득\n재산의 소득환산액 = [ {(일반재산 - 기본재산액*) + (금융재산 - 2,000만원) - 부채} X 재산의 소득환산율 ÷ 12월] + P**\n*기본재산액은 대도시 및 특례시 1억3,500만원, 중소도시 8,500만원, 농어촌 7,250만원 **P는 고급자동차 및 회원권의 가액으로 월 100%의 소득환산율을 적용\n직역연금 수급권자 제외 요건은 아래과 같습니다.\n공무원, 사립학교교직원, 군인, 별정우체국직원 등 직역연금의 수급권자와 그 배우자는 기초연금 지급대상에서 제외\n(예외) 다음 어느 하나에 해당하는 직역연금의 수급권자 및 그 배우자는 기초연금 수급권자 범위에 포함\n* 연계퇴직연금 또는 연계퇴직유족연금 수급권자 중 직역재직기간이 10년 미만인 경우 * 유족연금일시금, 장해일시금, 비공무상 장해일시금, 비직무상 장해일시금, 퇴직유족연금일시금, 퇴직유족일시금을 받은 이후 5년이 경과된 경우\n(특례) 기초연금 수급권자 대상에서 제외되는 직역연금 수급권자 및 그 배우자 중 아래의 경우에 해당하는 자\n* 1949년 6월 30일 이전 출생자로 종전의 「기초노령연금법」에 따른 기초노령연금 수급권자가 소득인정액이 선정기준액 이하인 경우 * 1996년 6월 30일 이전 출생자로 「장애인연금법」 부칙 제4조에 따른 장애인연금 특례수급권자가 65세에 도달할 당시의 소득인정액이 선정기준액 이하인 경우",
+          "benefits": "매월 25일에 기준연금액(349,700원)과 국민연금 급여액 등을 고려하여 기초연금액을 지급합니다.* 25일이 토·공휴일인 경우에는 그 전 일에 지급\n기초연금액의 감액은 아래의 경우 이뤄집니다.\n(부부감액) 본인과 그 배우자가 모두 기초연금 수급권자인 경우에는 각각의 기초연금액에서 기초연금액의 20%를 감액\n(소득역전방지 감액) 소득인정액과 기초연금액(부부2인 수급가구는 부부감액 적용 이후)을 합산한 금액이 선정기준액 이상인 경우에는 선정기준액을 초과하는 금액의 범위에서 기초연금액의 일부를 감액",
+          "apply_detail": null,
+          "support_cycle": "월",
+          "department": null,
+          "ministry": "보건복지부 기초연금과",
+          "ministry_office": "기초연금과",
+          "main_contact": "1355",
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00001164&wlfareInfoReldBztpCd=01",
+          "criteria_year": "2026",
+          "life_stages": [
+            "노년"
+          ],
+          "target_groups": [
+            "저소득"
+          ],
+          "themes": [
+            "생활지원",
+            "서민금융"
+          ],
+          "provision_types": [
+            "현금지급"
+          ],
+          "apply_methods": [],
+          "online_apply": true,
+          "last_modified": null,
+          "first_registered": "2021-09-03",
+          "period_start": null,
+          "period_end": null,
+          "contacts": [
+            {
+              "name": "국민연금공단",
+              "value": "1355",
+              "raw": {
+                "servSeCode": "010",
+                "servSeDetailLink": "1355",
+                "servSeDetailNm": "국민연금공단"
+              }
+            },
+            {
+              "name": "보건복지상담센터",
+              "value": "129",
+              "raw": {
+                "servSeCode": "010",
+                "servSeDetailLink": "129",
+                "servSeDetailNm": "보건복지상담센터"
+              }
+            }
+          ],
+          "homepages": [
+            {
+              "name": "국민연금공단",
+              "value": "http://www.nps.or.kr",
+              "url": "http://www.nps.or.kr",
+              "link_status": "ok",
+              "raw": {
+                "servSeCode": "020",
+                "servSeDetailLink": "http://www.nps.or.kr",
+                "servSeDetailNm": "국민연금공단"
+              }
+            },
+            {
+              "name": "보건복지상담센터",
+              "value": "http://www.129.go.kr",
+              "url": "http://www.129.go.kr",
+              "link_status": "ok",
+              "raw": {
+                "servSeCode": "020",
+                "servSeDetailLink": "http://www.129.go.kr",
+                "servSeDetailNm": "보건복지상담센터"
+              }
+            }
+          ],
+          "apply_guides": [
+            {
+              "name": "조사기관연락처목록",
+              "value": "담당 시/군/구청 또는 주소지 관할 시군구에서 조사 및 심사",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "담당 시/군/구청 또는 주소지 관할 시군구에서 조사 및 심사",
+                "servSeDetailNm": "조사기관연락처목록"
+              }
+            },
+            {
+              "name": "신청기관연락처목록",
+              "value": "거주지 읍/면/동 주민센터, 전국 국민연금공단 지사 또는 복지로 웹사이트(PC/모바일앱)에서 ‘서비스 신청’",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "거주지 읍/면/동 주민센터, 전국 국민연금공단 지사 또는 복지로 웹사이트(PC/모바일앱)에서 ‘서비스 신청’",
+                "servSeDetailNm": "신청기관연락처목록"
+              }
+            },
+            {
+              "name": "신청기관연락처목록",
+              "value": "거주지 읍/면/동 주민센터, 전국 읍면동 주민센터 또는 행정복지센터 또는 복지로 웹사이트(PC/모바일앱)에서 ‘서비스 신청’",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "거주지 읍/면/동 주민센터, 전국 읍면동 주민센터 또는 행정복지센터 또는 복지로 웹사이트(PC/모바일앱)에서 ‘서비스 신청’",
+                "servSeDetailNm": "신청기관연락처목록"
+              }
+            },
+            {
+              "name": "신청기관연락처목록",
+              "value": "거주지 읍/면/동 주민센터, (온라인신청) 복지로 또는 복지로 웹사이트(PC/모바일앱)에서 ‘서비스 신청’",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "거주지 읍/면/동 주민센터, (온라인신청) 복지로 또는 복지로 웹사이트(PC/모바일앱)에서 ‘서비스 신청’",
+                "servSeDetailNm": "신청기관연락처목록"
+              }
+            },
+            {
+              "name": "결정기관연락처목록",
+              "value": "담당 시/군/구청 또는 주소지 관할 시군구에서 보장 결정",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "담당 시/군/구청 또는 주소지 관할 시군구에서 보장 결정",
+                "servSeDetailNm": "결정기관연락처목록"
+              }
+            },
+            {
+              "name": "이의신청접수기관연락처목록",
+              "value": "이의가 있을 경우, 담당 시/군/구청 또는 주소지 관할 시군구에 이의 신청 접수",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "이의가 있을 경우, 담당 시/군/구청 또는 주소지 관할 시군구에 이의 신청 접수",
+                "servSeDetailNm": "이의신청접수기관연락처목록"
+              }
+            },
+            {
+              "name": "지급기관연락처목록",
+              "value": "담당 시/군/구청 또는 주소지 관할 시군구에서 대상자에게 서비스 제공",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "담당 시/군/구청 또는 주소지 관할 시군구에서 대상자에게 서비스 제공",
+                "servSeDetailNm": "지급기관연락처목록"
+              }
+            },
+            {
+              "name": "사후관리기관목록",
+              "value": "담당 시/군/구청 또는 주소지 관할 시군구에서 서비스 제공 이후 대상자의 상황 관리",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "담당 시/군/구청 또는 주소지 관할 시군구에서 서비스 제공 이후 대상자의 상황 관리",
+                "servSeDetailNm": "사후관리기관목록"
+              }
+            }
+          ],
+          "laws": [
+            {
+              "name": "기초연금법",
+              "value": null,
+              "raw": {
+                "servSeCode": "030",
+                "servSeDetailNm": "기초연금법"
+              }
+            }
+          ],
+          "forms": [
+            {
+              "name": "[별지 1의2] 소득·재산 신고서(신규¸ 변경)(사회보장급여 관련 공통서식에 관한 고시).hwp",
+              "value": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=1035GOWF16GOWF161035&atcflSn=1",
+              "url": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=1035GOWF16GOWF161035&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "servSeCode": "040",
+                "servSeDetailLink": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=1035GOWF16GOWF161035&atcflSn=1",
+                "servSeDetailNm": "[별지 1의2] 소득·재산 신고서(신규¸ 변경)(사회보장급여 관련 공통서식에 관한 고시).hwp"
+              }
+            },
+            {
+              "name": "[별지 1] 사회보장급여 신청(변경)서(사회보장급여 관련 공통서식에 관한 고시).hwp",
+              "value": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=0914GOWF16GOWF160914&atcflSn=1",
+              "url": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=0914GOWF16GOWF160914&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "servSeCode": "040",
+                "servSeDetailLink": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=0914GOWF16GOWF160914&atcflSn=1",
+                "servSeDetailNm": "[별지 1] 사회보장급여 신청(변경)서(사회보장급여 관련 공통서식에 관한 고시).hwp"
+              }
+            },
+            {
+              "name": "[별지 1의3] 금융정보 등(금융·신용·보험정보) 제공 동의서(사회보장급여 관련 공통서식에 관한 고시).hwp",
+              "value": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=1036GOWF16GOWF161036&atcflSn=1",
+              "url": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=1036GOWF16GOWF161036&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "servSeCode": "040",
+                "servSeDetailLink": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=1036GOWF16GOWF161036&atcflSn=1",
+                "servSeDetailNm": "[별지 1의3] 금융정보 등(금융·신용·보험정보) 제공 동의서(사회보장급여 관련 공통서식에 관한 고시).hwp"
+              }
+            },
+            {
+              "name": "★2026년 기초연금 사업안내.pdf",
+              "value": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=20260406UUWBM1452200184060788&atcflSn=1",
+              "url": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=20260406UUWBM1452200184060788&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "servSeCode": "040",
+                "servSeDetailLink": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=20260406UUWBM1452200184060788&atcflSn=1",
+                "servSeDetailNm": "★2026년 기초연금 사업안내.pdf"
+              }
+            }
+          ],
+          "detail_status": "cached",
+          "detail_fetched_at": "2026-11-04T16:19:28+00:00",
+          "source_fetched_at": "2026-11-05T15:20:06+00:00",
+          "raw_sha256": "f188ce440f3a4bb45d0e2ac8d42a404cb11905389e9b6cccc0eb6311e9ae5b00",
+          "unverified_fields": [],
+          "quality_flags": []
+        }
+      },
+      {
+        "cases": [
+          "문의처 값이 전화번호가 아닌 안내 문구"
+        ],
+        "match": "national",
+        "reason": "전국 사업",
+        "record": {
+          "serv_id": "WLF00003265",
+          "source": "central",
+          "scope": "national",
+          "ctpv": null,
+          "sgg": null,
+          "ctpv_raw": null,
+          "sgg_raw": null,
+          "name": "장애수당",
+          "summary": "장애인연금 비수급 경증장애인을 대상으로 장애로 인한 추가적 비용을 보전하여 저소득 장애인 가구의 생활 안정을 도모합니다.",
+          "target_detail": "18세 이상의 등록한 장애인 중 「장애인연금법」상 중증장애인이 아닌 국민기초생활보장수급자 및 차상위 계층에게 지원합니다.\n장애인연금법상 중증장애인이란? 장애인연금법 제2조 제1호, 같은 법 시행령 제2조, 장애정도 판정기준(보건복지부 고시 제2025-228호) 제5장 장애인연금 수급을 위한 중증장애인 판정기준에 해당하는 자\n소득인정액, 연령, 기타 기준은 선정기준의 내용을 참고해주시기 바랍니다.",
+          "selection_criteria": "국민기초생활보장 수급자 및 차상위계층을 대상으로 합니다.\n가구의 범위는 국민기초생활보장제도의 가구 범위와 동일하게 적용하며, 「가정 해체 방지를 위한 별도 가구 특례」적용이 가능합니다.\n소득인정액 산정방식은 국민기초생활보장제도(생계급여)의 방식을 적용합니다. ※ 다만, 차량가액 산정방식은 주거.교육급여 기준 적용\n차상위 계층 선정 기준은 소득인정액이 기준 중위소득 50% 이하인 경우로, 2026년 기준 4인 가구 3,247,369원 이하입니다. ※ 부양의무자 기준은 적용하지 아니함\n소득인정액 기준은 다음과 같습니다.\n소득인정액 : 기준중위소득 50% 이하\n소득인정액 = 소득평가액 + 재산의 소득환산액\n소득평가액 = 실제소득 - 가구특성별 지출 - 근로소득공제\n재산의 소득환산액 = {(일반/금융재산의 종류별가액-기본재산액-부채)+승용차 재산가액} × 재산의 종류별 소득환산액\n연령 기준은 다음과 같습니다.\n신청 월 현재 18세 이상인 자*, 다만, 18~20세로서「초중등교육법」 제 2조에 따른 학교**에 재학(휴학도 포함) 중인 자는 제외\n* 신청일이 속하는 월의 말일까지 18세가 되는 자 포함 ** 「장애인 등에 대한 특수교육법」에 따른 학교도 포함\n기타 기준은 다음과 같습니다.\n신청일 현재 「장애인복지법」제32조에 따라 등록한 장애인\n- 장애정도 : 장애인연금법 상 중증장애인에 해당하지 않는 자 - 단, 아래의 경우는 장애 정도 재심사를 면제함",
+          "benefits": "기초수급(생계,의료,주거,교육급여) 및 차상위계층에게 월 6만원의 장애수당을 지급합니다.\n보장시설 수급자(생계, 의료급여)에게 월 3만원의 장애수당을 지급합니다.",
+          "apply_detail": null,
+          "support_cycle": "월",
+          "department": null,
+          "ministry": "보건복지부 장애인자립기반과",
+          "ministry_office": "장애인자립기반과",
+          "main_contact": "129",
+          "detail_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00003265&wlfareInfoReldBztpCd=01",
+          "criteria_year": "2026",
+          "life_stages": [
+            "중장년",
+            "노년",
+            "청년"
+          ],
+          "target_groups": [
+            "장애인",
+            "저소득"
+          ],
+          "themes": [
+            "생활지원"
+          ],
+          "provision_types": [
+            "현금지급"
+          ],
+          "apply_methods": [],
+          "online_apply": true,
+          "last_modified": null,
+          "first_registered": "2021-09-03",
+          "period_start": null,
+          "period_end": null,
+          "contacts": [
+            {
+              "name": "전국 읍·면·동 주민센터",
+              "value": "전국 읍·면·동 주민센터",
+              "raw": {
+                "servSeCode": "010",
+                "servSeDetailLink": "전국 읍·면·동 주민센터",
+                "servSeDetailNm": "전국 읍·면·동 주민센터"
+              }
+            },
+            {
+              "name": "보건복지상담센터",
+              "value": "129",
+              "raw": {
+                "servSeCode": "010",
+                "servSeDetailLink": "129",
+                "servSeDetailNm": "보건복지상담센터"
+              }
+            }
+          ],
+          "homepages": [
+            {
+              "name": "보건복지상담센터",
+              "value": "http://www.129.go.kr",
+              "url": "http://www.129.go.kr",
+              "link_status": "ok",
+              "raw": {
+                "servSeCode": "020",
+                "servSeDetailLink": "http://www.129.go.kr",
+                "servSeDetailNm": "보건복지상담센터"
+              }
+            }
+          ],
+          "apply_guides": [
+            {
+              "name": "신청기관연락처목록",
+              "value": "거주지 읍/면/동 주민센터, 전국 읍·면·동 주민센터 또는 복지로 웹사이트(PC/모바일앱)에서 ‘서비스 신청’",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "거주지 읍/면/동 주민센터, 전국 읍·면·동 주민센터 또는 복지로 웹사이트(PC/모바일앱)에서 ‘서비스 신청’",
+                "servSeDetailNm": "신청기관연락처목록"
+              }
+            },
+            {
+              "name": "조사기관연락처목록",
+              "value": "담당 시/군/구청 또는 시·군·구에서 조사 및 심사",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "담당 시/군/구청 또는 시·군·구에서 조사 및 심사",
+                "servSeDetailNm": "조사기관연락처목록"
+              }
+            },
+            {
+              "name": "결정기관연락처목록",
+              "value": "담당 시/군/구청 또는 시·군·구에서 보장 결정",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "담당 시/군/구청 또는 시·군·구에서 보장 결정",
+                "servSeDetailNm": "결정기관연락처목록"
+              }
+            },
+            {
+              "name": "지급기관연락처목록",
+              "value": "담당 시/군/구청 또는 시·군·구에서 대상자에게 서비스 제공",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "담당 시/군/구청 또는 시·군·구에서 대상자에게 서비스 제공",
+                "servSeDetailNm": "지급기관연락처목록"
+              }
+            },
+            {
+              "name": "사후관리기관목록",
+              "value": "담당 시/군/구청 또는 시·군·구에서 서비스 제공 이후 대상자의 상황 관리",
+              "raw": {
+                "servSeCode": "070",
+                "servSeDetailLink": "담당 시/군/구청 또는 시·군·구에서 서비스 제공 이후 대상자의 상황 관리",
+                "servSeDetailNm": "사후관리기관목록"
+              }
+            }
+          ],
+          "laws": [
+            {
+              "name": "장애인복지법",
+              "value": null,
+              "raw": {
+                "servSeCode": "030",
+                "servSeDetailNm": "장애인복지법"
+              }
+            }
+          ],
+          "forms": [
+            {
+              "name": "★2026년 장애인연금 사업안내(최종).pdf",
+              "value": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=20260406UUWBM1834240184200408&atcflSn=1",
+              "url": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=20260406UUWBM1834240184200408&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "servSeCode": "040",
+                "servSeDetailLink": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=20260406UUWBM1834240184200408&atcflSn=1",
+                "servSeDetailNm": "★2026년 장애인연금 사업안내(최종).pdf"
+              }
+            },
+            {
+              "name": "사회보장급여(사회서비스이용권) 신청(변경)서(사회보장급여 관련 공통서식에 관한 고시).hwpx",
+              "value": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=20250220UUWBM1352490124684810&atcflSn=1",
+              "url": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=20250220UUWBM1352490124684810&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "servSeCode": "040",
+                "servSeDetailLink": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=20250220UUWBM1352490124684810&atcflSn=1",
+                "servSeDetailNm": "사회보장급여(사회서비스이용권) 신청(변경)서(사회보장급여 관련 공통서식에 관한 고시).hwpx"
+              }
+            },
+            {
+              "name": "[별지 1의3] 금융정보 등(금융ㆍ신용ㆍ보험정보) 제공 동의서.hwp",
+              "value": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=5296GOWF15GOWF155296&atcflSn=1",
+              "url": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=5296GOWF15GOWF155296&atcflSn=1",
+              "link_status": "ok",
+              "raw": {
+                "servSeCode": "040",
+                "servSeDetailLink": "https://bokjiro.go.kr/ssis-tbu/CmmFileUtil/getDownload.do?atcflId=5296GOWF15GOWF155296&atcflSn=1",
+                "servSeDetailNm": "[별지 1의3] 금융정보 등(금융ㆍ신용ㆍ보험정보) 제공 동의서.hwp"
+              }
+            }
+          ],
+          "detail_status": "cached",
+          "detail_fetched_at": "2026-11-04T16:19:28+00:00",
+          "source_fetched_at": "2026-11-05T15:20:06+00:00",
+          "raw_sha256": "ccefe88fae51e62005b2cfbb4763246a84c872edea2acf7502c92c8b4052b478",
+          "unverified_fields": [],
+          "quality_flags": []
+        }
+      }
+    ],
+    "national_omitted": 127
+  },
+  "cases_not_found": []
+}
