@@ -118,7 +118,20 @@ def render_report(inputs: dict, s: dict, recipes: list[dict], dishes: dict[str, 
     f = s["foods"]
     L += ["", "## 6. 식품영양성분DB 정제 결과", "",
           f"- 정제 식품 {f['count']}건. 값은 기준량(100g 또는 100mL)당 함량 그대로이며 g↔mL 환산은 하지 않습니다.",
-          "- 이상값은 고치지 않고 `quality_flags`로 표시합니다.", ""]
+          "- 이상값은 `quality_flags`로 표시합니다. 근거가 있는 원천 오류만 보정표"
+          "(`src/data/agetech_data/resources/food_corrections.json`)로 고치며, 수집 원본은 바꾸지 않고 원래 값을 `corrections`에 남깁니다.", ""]
+    cs = f.get("corrections", [])
+    L += [f"### 원천 오류 보정 {len(cs)}건", ""]
+    L += _table(["식품코드", "식품명", "필드", "원래 값", "바꾼 값", "이유", "확인"], [
+        [f"`{c['food_code']}`", c["name"], f"`{c['field']}`", c["from"], c["to"], c["reason"], f"{c['by']} {c['at']}"]
+        for c in cs
+    ]) if cs else ["없음."]
+    stale, gone = f.get("corrections_stale", []), f.get("corrections_missing", [])
+    if stale or gone:
+        L += ["", "**다시 확인 필요**: 원천이 바뀌어 적용하지 않은 보정 "
+              + ", ".join(f"`{x['food_code']}` {x['name']}" for x in stale)
+              + (" / 수집본에 없는 식품코드 " + ", ".join(f"`{c}`" for c in gone) if gone else "")]
+    L += [""]
     L += _table(["DB군", "기준량 단위", "식품 수"], [
         [k.split("|")[0], k.split("|")[1] if k.split("|")[1] != "None" else "(형식 오류)", v]
         for k, v in f["by_group_basis"].items()
