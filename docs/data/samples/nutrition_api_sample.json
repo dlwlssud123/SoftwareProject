@@ -12,7 +12,7 @@
   },
   "flow": [
     "1. 사진 분석(모델)이 음식명 문자열을 돌려준다 → recognized_name",
-    "2. 서버가 search_dishes()로 식품 후보를 찾는다 → search.candidates (확정 아님)",
+    "2. 서버가 search_dishes()로 식품 후보를 찾는다 → search.candidates (확정 아님). 넓은 이름(떡·전 등)이면 search.ask 질문과 종류 후보(match=category)를 보여 준다",
     "3. 사용자가 음식(후보 중 하나)과 분량(숫자+단위)을 확인·수정한다 → confirm",
     "4. 서버가 food_code 로 식품 행을 찾아 portion_nutrients()로 계산한다 → result",
     "5. 한 끼 합계는 meal_total() → total (계산된 음식만 더하고 빠진 음식·결측 성분 수를 함께 둔다)"
@@ -73,6 +73,7 @@
         "query": "김치찌개",
         "normalized": "김치찌개",
         "alias_food_code": null,
+        "ask": null,
         "candidates": [
           {
             "food_code": "D306-266000000-0001",
@@ -215,6 +216,7 @@
         "query": "공깃밥",
         "normalized": "쌀밥",
         "alias_food_code": null,
+        "ask": null,
         "candidates": [
           {
             "food_code": "D301-022000000-0001",
@@ -329,6 +331,7 @@
         "query": "계란말이",
         "normalized": "달걀말이",
         "alias_food_code": null,
+        "ask": null,
         "candidates": [
           {
             "food_code": "D109-416000000-0001",
@@ -469,6 +472,7 @@
         "query": "고등어구이",
         "normalized": "고등어구이",
         "alias_food_code": null,
+        "ask": null,
         "candidates": [
           {
             "food_code": "D408-357000000-0001",
@@ -609,6 +613,7 @@
         "query": "미역국",
         "normalized": "미역국",
         "alias_food_code": null,
+        "ask": null,
         "candidates": [
           {
             "food_code": "D105-223000000-0001",
@@ -751,6 +756,7 @@
         "query": "순두부찌개",
         "normalized": "순두부찌개",
         "alias_food_code": null,
+        "ask": null,
         "candidates": [
           {
             "food_code": "D106-291030000-0001",
@@ -881,6 +887,7 @@
         "query": "배추김치",
         "normalized": "배추김치",
         "alias_food_code": "R121-006060000-0000",
+        "ask": null,
         "candidates": [
           {
             "food_code": "R121-006060000-0000",
@@ -1011,6 +1018,7 @@
         "query": "귤",
         "normalized": "귤",
         "alias_food_code": null,
+        "ask": null,
         "candidates": [
           {
             "food_code": "R108-010030001-0000",
@@ -1146,6 +1154,7 @@
         "query": "불고기",
         "normalized": "불고기",
         "alias_food_code": null,
+        "ask": null,
         "candidates": [
           {
             "food_code": "D108-386000000-0001",
@@ -1286,6 +1295,7 @@
         "query": "김치찌개",
         "normalized": "김치찌개",
         "alias_food_code": null,
+        "ask": null,
         "candidates": [
           {
             "food_code": "D306-266000000-0001",
@@ -1416,6 +1426,7 @@
         "query": "계란말이",
         "normalized": "달걀말이",
         "alias_food_code": null,
+        "ask": null,
         "candidates": [
           {
             "food_code": "D109-416000000-0001",
@@ -1537,13 +1548,441 @@
     },
     {
       "cases": [
-        "후보 없음 → 음식명 직접 수정"
+        "넓은 이름 → 종류 고르기(category) · 사용자가 인절미 선택"
       ],
-      "recognized_name": "생선조림",
+      "recognized_name": "떡",
       "search": {
-        "query": "생선조림",
-        "normalized": "생선조림",
+        "query": "떡",
+        "normalized": "떡",
         "alias_food_code": null,
+        "ask": "어떤 떡인가요?",
+        "candidates": [
+          {
+            "food_code": "D102-053000000-0001",
+            "name": "가래떡",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "category",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D102-061000000-0001",
+            "name": "백설기",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "category",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D302-071000000-0001",
+            "name": "절편",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "category",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D102-070000000-0001",
+            "name": "인절미",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "category",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D102-063040000-0001",
+            "name": "송편_깨",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.9,
+            "match": "category",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D102-067000000-0001",
+            "name": "시루떡",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "category",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "D102-070000000-0001",
+        "amount": 50,
+        "unit": "g",
+        "picked": "후보 4순위 ('인절미' 선택)"
+      },
+      "food": {
+        "food_code": "D102-070000000-0001",
+        "name": "인절미",
+        "db_group": "음식",
+        "category1": "빵 및 과자류",
+        "basis_text": "100g",
+        "basis_amount": 100.0,
+        "basis_unit": "g",
+        "create_method": "분석",
+        "source_name": "식품의약품안전처",
+        "research_date": "2018-12-31",
+        "update_date": "2025-01-23",
+        "food_weight_text": "100.000g",
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": [
+          "same_name_multiple_rows"
+        ]
+      },
+      "result": {
+        "status": "computed",
+        "food_code": "D102-070000000-0001",
+        "food_name": "인절미",
+        "input": {
+          "amount": 50,
+          "unit": "g"
+        },
+        "amount": 50.0,
+        "amount_unit": "g",
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "g",
+          "text": "100g"
+        },
+        "factor": 0.5,
+        "approx_ml": false,
+        "nutrients": {
+          "energy_kcal": 121.0,
+          "protein_g": 2.82,
+          "fat_g": 1.08,
+          "carbohydrate_g": 25.04,
+          "sugars_g": 3.17,
+          "fiber_g": 1.45,
+          "sodium_mg": 148.5,
+          "potassium_mg": 64.0,
+          "calcium_mg": 8.0,
+          "cholesterol_mg": 0.0,
+          "sat_fat_g": 0.12
+        },
+        "missing": [],
+        "note": ""
+      }
+    },
+    {
+      "cases": [
+        "별칭 → 이름이 다른 DB 행(보쌈 → 제육(돼지고기 수육)) · g 입력 → approx_ml"
+      ],
+      "recognized_name": "보쌈",
+      "search": {
+        "query": "보쌈",
+        "normalized": "제육(돼지고기수육)",
+        "alias_food_code": null,
+        "ask": null,
+        "candidates": [
+          {
+            "food_code": "D507-373000000-0001",
+            "name": "제육(돼지고기 수육)",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "80.00mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D607-373000000-0001",
+            "name": "제육(돼지고기 수육)",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "64.90mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D707-373000000-0001",
+            "name": "제육(돼지고기 수육)",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "103.500mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D307-325010000-0001",
+            "name": "돼지고기_간",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.527,
+            "match": "partial",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": []
+          },
+          {
+            "food_code": "D307-325090000-0001",
+            "name": "돼지고기_머리고기",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.527,
+            "match": "partial",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "200.000g",
+            "quality_flags": []
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "D507-373000000-0001",
+        "amount": 150,
+        "unit": "g",
+        "picked": "후보 1순위"
+      },
+      "food": {
+        "food_code": "D507-373000000-0001",
+        "name": "제육(돼지고기 수육)",
+        "db_group": "음식",
+        "category1": "찜류",
+        "basis_text": "100mL",
+        "basis_amount": 100.0,
+        "basis_unit": "mL",
+        "create_method": "산출",
+        "source_name": "식품의약품안전처",
+        "research_date": "2024-01-31",
+        "update_date": "2025-05-08",
+        "food_weight_text": "80.00mL",
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": [
+          "same_name_multiple_rows"
+        ]
+      },
+      "result": {
+        "status": "approx_ml",
+        "food_code": "D507-373000000-0001",
+        "food_name": "제육(돼지고기 수육)",
+        "input": {
+          "amount": 150,
+          "unit": "g"
+        },
+        "amount": 150.0,
+        "amount_unit": "g",
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "mL",
+          "text": "100mL"
+        },
+        "factor": 1.5,
+        "approx_ml": true,
+        "nutrients": {
+          "energy_kcal": 208.5,
+          "protein_g": 17.85,
+          "fat_g": 12.75,
+          "carbohydrate_g": 3.6,
+          "sugars_g": 1.12,
+          "fiber_g": 0.9,
+          "sodium_mg": 372.0,
+          "potassium_mg": 336.0,
+          "calcium_mg": 18.0,
+          "cholesterol_mg": 60.72,
+          "sat_fat_g": 4.59
+        },
+        "missing": [],
+        "note": "기준량이 100mL인 식품을 g로 계산 — 1mL≈1g 근사(밀도 미반영)"
+      }
+    },
+    {
+      "cases": [
+        "음료 · 별칭이 원재료성 '물에 탄것' 지정 · mL 입력 → approx_ml"
+      ],
+      "recognized_name": "믹스커피",
+      "search": {
+        "query": "믹스커피",
+        "normalized": "믹스커피",
+        "alias_food_code": "R121-039040300-0000",
+        "ask": null,
+        "candidates": [
+          {
+            "food_code": "R121-039040300-0000",
+            "name": "커피, 커피가루, 설탕, 크림, 물에 탄것(중량 12g)",
+            "db_group": "원재료성",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "alias_code",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": null,
+            "quality_flags": []
+          },
+          {
+            "food_code": "D320-748020000-0001",
+            "name": "커피_달고나커피",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.552,
+            "match": "partial",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": []
+          },
+          {
+            "food_code": "D320-748080000-0001",
+            "name": "커피_아메리카노",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.552,
+            "match": "partial",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": []
+          },
+          {
+            "food_code": "D320-748100000-0001",
+            "name": "커피_카라멜마끼아토",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.552,
+            "match": "partial",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": []
+          },
+          {
+            "food_code": "D320-748110000-0001",
+            "name": "커피_카페라떼",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.552,
+            "match": "partial",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": []
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "R121-039040300-0000",
+        "amount": 100,
+        "unit": "mL",
+        "picked": "후보 1순위"
+      },
+      "food": {
+        "food_code": "R121-039040300-0000",
+        "name": "커피, 커피가루, 설탕, 크림, 물에 탄것(중량 12g)",
+        "db_group": "원재료성",
+        "category1": "가공식품류",
+        "basis_text": "100g",
+        "basis_amount": 100.0,
+        "basis_unit": "g",
+        "create_method": "분석",
+        "source_name": "국립식량과학원",
+        "research_date": "2026-07-23",
+        "update_date": "2026-07-23",
+        "food_weight_text": null,
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": []
+      },
+      "result": {
+        "status": "approx_ml",
+        "food_code": "R121-039040300-0000",
+        "food_name": "커피, 커피가루, 설탕, 크림, 물에 탄것(중량 12g)",
+        "input": {
+          "amount": 100,
+          "unit": "mL"
+        },
+        "amount": 100.0,
+        "amount_unit": "mL",
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "g",
+          "text": "100g"
+        },
+        "factor": 1.0,
+        "approx_ml": true,
+        "nutrients": {
+          "energy_kcal": 51.0,
+          "protein_g": 0.43,
+          "fat_g": 1.03,
+          "carbohydrate_g": 10.06,
+          "sugars_g": 5.94,
+          "fiber_g": 0.1,
+          "sodium_mg": 5.0,
+          "potassium_mg": 117.0,
+          "calcium_mg": 14.0,
+          "cholesterol_mg": 0.0,
+          "sat_fat_g": 0.96
+        },
+        "missing": [],
+        "note": "기준량이 100g인 식품을 mL로 계산 — 1mL≈1g 근사(밀도 미반영)"
+      }
+    },
+    {
+      "cases": [
+        "후보 없음(DB에 없는 지역 음식) → 음식명 직접 수정"
+      ],
+      "recognized_name": "찜갈비",
+      "search": {
+        "query": "찜갈비",
+        "normalized": "찜갈비",
+        "alias_food_code": null,
+        "ask": null,
         "candidates": []
       },
       "confirm": null,
