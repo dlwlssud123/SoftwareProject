@@ -48,6 +48,11 @@ def render_report(inputs: dict, s: dict, recipes: list[dict], dishes: dict[str, 
         ["가공 결과", "`data/processed/foods_v03.json`, `data/processed/recipe_ingredient_nutrition.json` (gitignore)"],
     ])
 
+    if inputs["recipes"].get("corrections_path"):
+        L += ["", f"레시피 보완: `{inputs['recipes']['corrections_path']}` "
+              f"sha256 `{inputs['recipes']['corrections_sha256'][:16]}…`, "
+              f"적용 항목 {inputs['recipes']['correction_count']}건. 원본 해시와 보완 목록 해시를 함께 보존합니다."]
+
     n_items = s["items"]
     mi, mg = s["match_items"], s["match_grams"]
     used_items = sum(mi.get(k, 0) for k in ("reviewed", "curated", "exact"))

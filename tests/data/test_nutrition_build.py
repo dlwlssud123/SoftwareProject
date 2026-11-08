@@ -66,6 +66,20 @@ def test_build_main_without_raw(tmp_path, capsys):
     assert "client" in capsys.readouterr().err
 
 
+def test_build_applies_verified_recipe_corrections(tmp_path, nutrition_sample):
+    raw = tmp_path / "nutrition.json"
+    raw.write_text(json.dumps(nutrition_sample), encoding="utf-8")
+    output = tmp_path / "recipes.json"
+    args = ["--nutrition-raw", str(raw), "--foods-out", str(tmp_path / "foods.json"),
+            "--recipes-out", str(output), "--no-report"]
+    assert build.main(args) == 0
+    result = json.loads(output.read_text(encoding="utf-8"))
+    recipes = {row["source_id"]: row for row in result["recipes"]}
+    assert recipes["33"]["quality_status"] == recipes["36"]["quality_status"] == "ok"
+    assert result["input"]["recipes"]["correction_count"] == 6
+    assert result["input"]["recipes"]["corrections_sha256"] == hashlib.sha256(paths.RECIPE_CORRECTIONS.read_bytes()).hexdigest()
+
+
 def test_ingredient_map_file_structure():
     data = json.loads(INGREDIENT_MAP_FILE.read_text(encoding="utf-8"))
     keys = set()
