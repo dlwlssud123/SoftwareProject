@@ -1,6 +1,6 @@
 """음식명 검색 정답 표본 평가 (resources/dish_search_gold.json).
 
-1순위 일치: 첫 후보의 식품명이 정답 패턴에 맞고, 정답에 기준량 단위(basis)가 있으면 그 단위도 같다.
+1순위 일치: 첫 후보의 식품명이 정답 패턴에 맞고, 정답에 기준량 단위(basis)·찾은 방식(match)이 있으면 그것도 같다.
 3순위 안: 상위 3개 후보 중 하나가 같은 조건을 만족한다.
 """
 
@@ -26,6 +26,8 @@ def meal_search_indexes(foods) -> tuple[FoodIndex, FoodIndex]:
 
 def _ok(cand: dict, entry: dict) -> bool:
     if not any(fnmatchcase(cand["name"], pat) for pat in entry["accept"]):
+        return False
+    if entry.get("match") and cand["match"] != entry["match"]:
         return False
     return entry.get("basis") is None or cand["basis_unit"] == entry["basis"]
 

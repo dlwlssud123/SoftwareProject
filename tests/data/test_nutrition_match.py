@@ -146,3 +146,37 @@ def test_raw_fallback_single_char_needs_same_head():
     empty = FoodIndex([], ("음식",))
     assert search_dishes("떡", empty, aliases={}, raw_index=raw) == []
     assert [c["name"] for c in search_dishes("귤", empty, aliases={}, raw_index=raw)] == ["귤, 온주밀감, 생것"]
+
+
+def test_search_dishes_broad_name_returns_choices():
+    from agetech_data.nutrition.match import dish_choice_question
+
+    foods = [_dish("D1", "가래떡", "g"), _dish("D2", "송편_깨", "g", "송편"), _dish("D3", "떡볶이", "g"),
+             _dish("D4", "수육_소고기", "g", "수육")]
+    idx = FoodIndex(foods, ("음식",))
+    broad = {"떡": {"ask": "어떤 떡인가요?", "choices": ["가래떡", "송편", "없는떡"]},
+             "수육": {"ask": "어떤 수육인가요?", "choices": ["수육_소고기"]}}
+    r = search_dishes("떡", idx, aliases={}, broad=broad, limit=1)
+    # limit 와 상관없이 종류를 모두, 목록 순서대로. DB에 없는 종류는 뺀다. 세부 종류만 있으면 family 행
+    assert [(c["name"], c["match"]) for c in r] == [("가래떡", "category"), ("송편_깨", "category")]
+    assert [c["name"] for c in search_dishes("수육", idx, aliases={}, broad=broad)] == ["수육_소고기"]
+    assert dish_choice_question("떡", aliases={}, broad=broad) == "어떤 떡인가요?"
+    assert dish_choice_question("떡볶이", aliases={}, broad=broad) is None
+    # 넓은 이름이 아니면 평소대로
+    assert search_dishes("떡볶이", idx, aliases={}, broad=broad)[0]["match"] == "name"
+
+
+def test_search_dishes_broad_name_falls_back_when_no_choice_found():
+    foods = [_dish("D3", "떡볶이", "g")]
+    r = search_dishes("떡볶이", FoodIndex(foods, ("음식",)), aliases={},
+                      broad={"떡볶이": {"ask": "?", "choices": ["없는음식"]}})
+    assert r and r[0]["match"] == "name"
+
+
+def test_real_alias_file_shape():
+    from agetech_data.nutrition.match import load_broad_names, load_dish_aliases
+
+    aliases, broad = load_dish_aliases(), load_broad_names()
+    assert all(a.get("name") or a.get("food_code") for a in aliases.values())
+    assert broad and all(b["ask"].endswith("?") and len(b["choices"]) >= 2 for b in broad.values())
+    assert not set(aliases) & set(broad)          # 같은 이름이 별칭과 넓은 이름에 동시에 있으면 안 됨

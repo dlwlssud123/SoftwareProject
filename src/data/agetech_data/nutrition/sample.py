@@ -18,7 +18,7 @@ from agetech_data import paths
 from agetech_data.nutrition.dish_eval import meal_search_indexes
 from agetech_data.nutrition.fields import NUTRIENT_FIELDS, SUM_NUTRIENTS
 from agetech_data.nutrition.foods import FoodRecord, clean_foods
-from agetech_data.nutrition.match import normalize_dish_query, search_dishes
+from agetech_data.nutrition.match import dish_choice_question, normalize_dish_query, search_dishes
 from agetech_data.nutrition.portion import meal_total, portion_nutrients
 from agetech_data.recipes.validate import _rel, write_json
 
@@ -44,6 +44,14 @@ def _first_missing(cands, by_code):
 PICKS = {"first": (_first, "첫 후보"), "first_ml": (_first_ml, "100mL 기준 첫 후보"),
          "first_missing": (_first_missing, "성분 결측이 있는 첫 후보")}
 
+
+def _pick(spec: str):
+    """'first' 등 PICKS 이름, 또는 'name=인절미'(그 이름의 후보를 사용자가 고름)."""
+    if spec.startswith("name="):
+        name = spec[5:]
+        return (lambda cands, by_code: next((c for c in cands if c["name"] == name), None)), f"'{name}' 선택"
+    return PICKS[spec]
+
 # (사례, 사진 분석 음식명, 사용자가 고르는 후보, 분량, 단위)
 SINGLE_CASES: list[tuple[str, str, str, float, str]] = [
     ("정상 · 100g 기준 행 · g 입력 → computed", "김치찌개", "first", 300, "g"),
@@ -57,7 +65,10 @@ SINGLE_CASES: list[tuple[str, str, str, float, str]] = [
     ("부분 일치(partial) · 사용자 확인 필요", "불고기", "first", 150, "g"),
     ("인분 입력 · 1인분 중량 근거 없음 → unconvertible", "김치찌개", "first", 1, "인분"),
     ("개수 단위 입력 → unconvertible", "계란말이", "first", 2, "개"),
-    ("후보 없음 → 음식명 직접 수정", "생선조림", "first", 100, "g"),
+    ("넓은 이름 → 종류 고르기(category) · 사용자가 인절미 선택", "떡", "name=인절미", 50, "g"),
+    ("별칭 → 이름이 다른 DB 행(보쌈 → 제육(돼지고기 수육)) · g 입력 → approx_ml", "보쌈", "first", 150, "g"),
+    ("음료 · 별칭이 원재료성 '물에 탄것' 지정 · mL 입력 → approx_ml", "믹스커피", "first", 100, "mL"),
+    ("후보 없음(DB에 없는 지역 음식) → 음식명 직접 수정", "찜갈비", "first", 200, "g"),
 ]
 
 # (사례, [(사진 분석 음식명, 고르는 후보, 분량, 단위), ...])
@@ -83,16 +94,17 @@ class SampleBuilder:
 
     def search(self, name: str) -> dict:
         q, code = normalize_dish_query(name)
+        ask = dish_choice_question(name)
         cands = search_dishes(name, self.dish_index, limit=CANDIDATES, raw_index=self.raw_index)
         for c in cands:
             f = self.by_code[c["food_code"]]
             c.update(basis_text=f.basis_text, create_method=f.create_method, food_weight_text=f.food_weight_text,
                      quality_flags=f.quality_flags)
-        return {"query": name, "normalized": q, "alias_food_code": code, "candidates": cands}
+        return {"query": name, "normalized": q, "alias_food_code": code, "ask": ask, "candidates": cands}
 
     def one(self, name: str, pick: str, amount: float, unit: str) -> tuple[dict, object | None]:
         search = self.search(name)
-        fn, label = PICKS[pick]
+        fn, label = _pick(pick)
         chosen = fn(search["candidates"], self.by_code)
         rec = {"recognized_name": name, "search": search, "confirm": None, "food": None, "result": None}
         if chosen is None:
@@ -146,7 +158,8 @@ def build(raw_path: Path) -> dict:
                   "fetched_at": meta.get("fetched_at"), "item_count": meta.get("item_count")},
         "flow": [
             "1. 사진 분석(모델)이 음식명 문자열을 돌려준다 → recognized_name",
-            "2. 서버가 search_dishes()로 식품 후보를 찾는다 → search.candidates (확정 아님)",
+            "2. 서버가 search_dishes()로 식품 후보를 찾는다 → search.candidates (확정 아님). "
+            "넓은 이름(떡·전 등)이면 search.ask 질문과 종류 후보(match=category)를 보여 준다",
             "3. 사용자가 음식(후보 중 하나)과 분량(숫자+단위)을 확인·수정한다 → confirm",
             "4. 서버가 food_code 로 식품 행을 찾아 portion_nutrients()로 계산한다 → result",
             "5. 한 끼 합계는 meal_total() → total (계산된 음식만 더하고 빠진 음식·결측 성분 수를 함께 둔다)",

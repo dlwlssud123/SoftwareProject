@@ -57,7 +57,8 @@ def test_sample_build_is_complete_and_stable():
     statuses = {s["result"]["status"] for s in a["samples"] if s["result"]}
     assert statuses == {"computed", "approx_ml", "unconvertible"}
     matches = {c["match"] for s in a["samples"] for c in s["search"]["candidates"]}
-    assert {"name", "family", "partial", "alias_code", "ingredient"} <= matches
+    assert {"name", "family", "partial", "alias_code", "ingredient", "category"} <= matches
+    assert any(s["search"]["ask"] for s in a["samples"])
     assert any(s["result"] and s["result"]["missing"] for s in a["samples"])
     # 커밋한 표본이 같은 수집본으로 만든 것이면 지금 다시 만든 결과와 같아야 한다
     if paths.NUTRITION_API_SAMPLE.is_file():
