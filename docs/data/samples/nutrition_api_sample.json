@@ -1,0 +1,2002 @@
+{
+  "schema_version": 1,
+  "description": "사진·영양 API 입력 표본 (데이터 → 사진 분석·영양 계산 백엔드). 실제 수집본으로 만든 대표 사례. 필드 정의는 contract 문서 7절.",
+  "contract": "docs/data/food_nutrition_contract.md",
+  "input": {
+    "path": "data/raw/nutrition/foodntr_v03_representative.json",
+    "sha256": "514c29fd15bacb408b5fed9342c0a67482af00af814e216414fc6f0f838901df",
+    "api_version": "03",
+    "db_class": "품목대표",
+    "fetched_at": "2026-10-31T16:22:23+00:00",
+    "item_count": 8807
+  },
+  "flow": [
+    "1. 사진 분석(모델)이 음식명 문자열을 돌려준다 → recognized_name",
+    "2. 서버가 search_dishes()로 식품 후보를 찾는다 → search.candidates (확정 아님)",
+    "3. 사용자가 음식(후보 중 하나)과 분량(숫자+단위)을 확인·수정한다 → confirm",
+    "4. 서버가 food_code 로 식품 행을 찾아 portion_nutrients()로 계산한다 → result",
+    "5. 한 끼 합계는 meal_total() → total (계산된 음식만 더하고 빠진 음식·결측 성분 수를 함께 둔다)"
+  ],
+  "nutrients": {
+    "energy_kcal": {
+      "label": "에너지(kcal)",
+      "field": "AMT_NUM1"
+    },
+    "protein_g": {
+      "label": "단백질(g)",
+      "field": "AMT_NUM3"
+    },
+    "fat_g": {
+      "label": "지방(g)",
+      "field": "AMT_NUM4"
+    },
+    "carbohydrate_g": {
+      "label": "탄수화물(g)",
+      "field": "AMT_NUM6"
+    },
+    "sugars_g": {
+      "label": "당류(g)",
+      "field": "AMT_NUM7"
+    },
+    "fiber_g": {
+      "label": "식이섬유(g)",
+      "field": "AMT_NUM8"
+    },
+    "sodium_mg": {
+      "label": "나트륨(mg)",
+      "field": "AMT_NUM13"
+    },
+    "potassium_mg": {
+      "label": "칼륨(mg)",
+      "field": "AMT_NUM12"
+    },
+    "calcium_mg": {
+      "label": "칼슘(mg)",
+      "field": "AMT_NUM9"
+    },
+    "cholesterol_mg": {
+      "label": "콜레스테롤(mg)",
+      "field": "AMT_NUM23"
+    },
+    "sat_fat_g": {
+      "label": "포화지방산(g)",
+      "field": "AMT_NUM24"
+    }
+  },
+  "samples": [
+    {
+      "cases": [
+        "정상 · 100g 기준 행 · g 입력 → computed"
+      ],
+      "recognized_name": "김치찌개",
+      "search": {
+        "query": "김치찌개",
+        "normalized": "김치찌개",
+        "alias_food_code": null,
+        "candidates": [
+          {
+            "food_code": "D306-266000000-0001",
+            "name": "김치찌개",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "400.000g",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D406-266000000-0001",
+            "name": "김치찌개",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "200.000mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D506-266000000-0001",
+            "name": "김치찌개",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "200.000mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D606-266000000-0001",
+            "name": "김치찌개",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "200.000mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D706-266000000-0001",
+            "name": "김치찌개",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "200.000mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "D306-266000000-0001",
+        "amount": 300,
+        "unit": "g",
+        "picked": "후보 1순위"
+      },
+      "food": {
+        "food_code": "D306-266000000-0001",
+        "name": "김치찌개",
+        "db_group": "음식",
+        "category1": "찌개 및 전골류",
+        "basis_text": "100g",
+        "basis_amount": 100.0,
+        "basis_unit": "g",
+        "create_method": "분석",
+        "source_name": "식품의약품안전처",
+        "research_date": "2012-02-28",
+        "update_date": "2025-01-23",
+        "food_weight_text": "400.000g",
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": [
+          "same_name_multiple_rows"
+        ]
+      },
+      "result": {
+        "status": "computed",
+        "food_code": "D306-266000000-0001",
+        "food_name": "김치찌개",
+        "input": {
+          "amount": 300,
+          "unit": "g"
+        },
+        "amount": 300.0,
+        "amount_unit": "g",
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "g",
+          "text": "100g"
+        },
+        "factor": 3.0,
+        "approx_ml": false,
+        "nutrients": {
+          "energy_kcal": 183.0,
+          "protein_g": 11.31,
+          "fat_g": 11.25,
+          "carbohydrate_g": 8.94,
+          "sugars_g": 2.28,
+          "fiber_g": 6.3,
+          "sodium_mg": 1473.0,
+          "potassium_mg": 480.0,
+          "calcium_mg": 114.0,
+          "cholesterol_mg": 18.87,
+          "sat_fat_g": 2.07
+        },
+        "missing": [],
+        "note": ""
+      }
+    },
+    {
+      "cases": [
+        "별칭(공깃밥 → 쌀밥) · g 입력"
+      ],
+      "recognized_name": "공깃밥",
+      "search": {
+        "query": "공깃밥",
+        "normalized": "쌀밥",
+        "alias_food_code": null,
+        "candidates": [
+          {
+            "food_code": "D301-022000000-0001",
+            "name": "쌀밥",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D501-022000000-0001",
+            "name": "쌀밥",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "250.000mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D601-022000000-0001",
+            "name": "쌀밥",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "450.000mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "D301-022000000-0001",
+        "amount": 210,
+        "unit": "g",
+        "picked": "후보 1순위"
+      },
+      "food": {
+        "food_code": "D301-022000000-0001",
+        "name": "쌀밥",
+        "db_group": "음식",
+        "category1": "밥류",
+        "basis_text": "100g",
+        "basis_amount": 100.0,
+        "basis_unit": "g",
+        "create_method": "분석",
+        "source_name": "식품의약품안전처",
+        "research_date": "2022-06-30",
+        "update_date": "2025-01-23",
+        "food_weight_text": "100.000g",
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": [
+          "same_name_multiple_rows"
+        ]
+      },
+      "result": {
+        "status": "computed",
+        "food_code": "D301-022000000-0001",
+        "food_name": "쌀밥",
+        "input": {
+          "amount": 210,
+          "unit": "g"
+        },
+        "amount": 210.0,
+        "amount_unit": "g",
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "g",
+          "text": "100g"
+        },
+        "factor": 2.1,
+        "approx_ml": false,
+        "nutrients": {
+          "energy_kcal": 348.6,
+          "protein_g": 7.06,
+          "fat_g": 0.67,
+          "carbohydrate_g": 78.39,
+          "sugars_g": 0.04,
+          "fiber_g": 0.21,
+          "sodium_mg": 0.0,
+          "potassium_mg": 54.6,
+          "calcium_mg": 12.6,
+          "cholesterol_mg": 0.0,
+          "sat_fat_g": 0.21
+        },
+        "missing": [],
+        "note": ""
+      }
+    },
+    {
+      "cases": [
+        "'계란' → '달걀' 치환 · g 입력"
+      ],
+      "recognized_name": "계란말이",
+      "search": {
+        "query": "계란말이",
+        "normalized": "달걀말이",
+        "alias_food_code": null,
+        "candidates": [
+          {
+            "food_code": "D109-416000000-0001",
+            "name": "달걀말이",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D509-416000000-0001",
+            "name": "달걀말이",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "49.20mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D609-416000000-0001",
+            "name": "달걀말이",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "49.20mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D709-416000000-0001",
+            "name": "달걀말이",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "82.40mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D309-416030000-0001",
+            "name": "달걀말이_달걀만",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.9,
+            "match": "family",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": []
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "D109-416000000-0001",
+        "amount": 60,
+        "unit": "g",
+        "picked": "후보 1순위"
+      },
+      "food": {
+        "food_code": "D109-416000000-0001",
+        "name": "달걀말이",
+        "db_group": "음식",
+        "category1": "전·적 및 부침류",
+        "basis_text": "100g",
+        "basis_amount": 100.0,
+        "basis_unit": "g",
+        "create_method": "분석",
+        "source_name": "식품의약품안전처",
+        "research_date": "2019-12-31",
+        "update_date": "2025-01-23",
+        "food_weight_text": "100.000g",
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": [
+          "same_name_multiple_rows"
+        ]
+      },
+      "result": {
+        "status": "computed",
+        "food_code": "D109-416000000-0001",
+        "food_name": "달걀말이",
+        "input": {
+          "amount": 60,
+          "unit": "g"
+        },
+        "amount": 60.0,
+        "amount_unit": "g",
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "g",
+          "text": "100g"
+        },
+        "factor": 0.6,
+        "approx_ml": false,
+        "nutrients": {
+          "energy_kcal": 115.8,
+          "protein_g": 10.33,
+          "fat_g": 7.93,
+          "carbohydrate_g": 0.87,
+          "sugars_g": 0.0,
+          "fiber_g": 0.72,
+          "sodium_mg": 269.4,
+          "potassium_mg": 86.4,
+          "calcium_mg": 33.0,
+          "cholesterol_mg": 203.91,
+          "sat_fat_g": 2.0
+        },
+        "missing": [],
+        "note": ""
+      }
+    },
+    {
+      "cases": [
+        "100mL 기준 행만 있음 · g 입력 → approx_ml(1mL≈1g 근사)"
+      ],
+      "recognized_name": "고등어구이",
+      "search": {
+        "query": "고등어구이",
+        "normalized": "고등어구이",
+        "alias_food_code": null,
+        "candidates": [
+          {
+            "food_code": "D408-357000000-0001",
+            "name": "고등어구이",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "170.000mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D508-357000000-0001",
+            "name": "고등어구이",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "60.00mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D608-357000000-0001",
+            "name": "고등어구이",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "90.00mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D708-357000000-0001",
+            "name": "고등어구이",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "130.000mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D108-357110000-0001",
+            "name": "고등어구이_석쇠",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.9,
+            "match": "family",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "200.000g",
+            "quality_flags": []
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "D408-357000000-0001",
+        "amount": 100,
+        "unit": "g",
+        "picked": "후보 1순위"
+      },
+      "food": {
+        "food_code": "D408-357000000-0001",
+        "name": "고등어구이",
+        "db_group": "음식",
+        "category1": "구이류",
+        "basis_text": "100mL",
+        "basis_amount": 100.0,
+        "basis_unit": "mL",
+        "create_method": "산출",
+        "source_name": "식품의약품안전처",
+        "research_date": "2022-11-30",
+        "update_date": "2025-01-23",
+        "food_weight_text": "170.000mL",
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": [
+          "same_name_multiple_rows"
+        ]
+      },
+      "result": {
+        "status": "approx_ml",
+        "food_code": "D408-357000000-0001",
+        "food_name": "고등어구이",
+        "input": {
+          "amount": 100,
+          "unit": "g"
+        },
+        "amount": 100.0,
+        "amount_unit": "g",
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "mL",
+          "text": "100mL"
+        },
+        "factor": 1.0,
+        "approx_ml": true,
+        "nutrients": {
+          "energy_kcal": 142.0,
+          "protein_g": 9.51,
+          "fat_g": 9.99,
+          "carbohydrate_g": 2.69,
+          "sugars_g": 0.0,
+          "fiber_g": 0.0,
+          "sodium_mg": 207.0,
+          "potassium_mg": 146.0,
+          "calcium_mg": 14.0,
+          "cholesterol_mg": 27.09,
+          "sat_fat_g": 2.35
+        },
+        "missing": [],
+        "note": "기준량이 100mL인 식품을 g로 계산 — 1mL≈1g 근사(밀도 미반영)"
+      }
+    },
+    {
+      "cases": [
+        "100mL 기준 행을 골라 mL 입력 → computed"
+      ],
+      "recognized_name": "미역국",
+      "search": {
+        "query": "미역국",
+        "normalized": "미역국",
+        "alias_food_code": null,
+        "candidates": [
+          {
+            "food_code": "D105-223000000-0001",
+            "name": "미역국",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "400.000g",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D405-223000000-0001",
+            "name": "미역국",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "240.200mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D505-223000000-0001",
+            "name": "미역국",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "88.00mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D605-223000000-0001",
+            "name": "미역국",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "122.000mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D705-223000000-0001",
+            "name": "미역국",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "200.000mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "D405-223000000-0001",
+        "amount": 250,
+        "unit": "mL",
+        "picked": "후보 2순위 (100mL 기준 첫 후보)"
+      },
+      "food": {
+        "food_code": "D405-223000000-0001",
+        "name": "미역국",
+        "db_group": "음식",
+        "category1": "국 및 탕류",
+        "basis_text": "100mL",
+        "basis_amount": 100.0,
+        "basis_unit": "mL",
+        "create_method": "산출",
+        "source_name": "식품의약품안전처",
+        "research_date": "2024-01-31",
+        "update_date": "2025-05-08",
+        "food_weight_text": "240.200mL",
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": [
+          "same_name_multiple_rows"
+        ]
+      },
+      "result": {
+        "status": "computed",
+        "food_code": "D405-223000000-0001",
+        "food_name": "미역국",
+        "input": {
+          "amount": 250,
+          "unit": "mL"
+        },
+        "amount": 250.0,
+        "amount_unit": "mL",
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "mL",
+          "text": "100mL"
+        },
+        "factor": 2.5,
+        "approx_ml": false,
+        "nutrients": {
+          "energy_kcal": 27.5,
+          "protein_g": 4.0,
+          "fat_g": 1.15,
+          "carbohydrate_g": 2.3,
+          "sugars_g": 0.03,
+          "fiber_g": 2.0,
+          "sodium_mg": 847.5,
+          "potassium_mg": 405.0,
+          "calcium_mg": 147.5,
+          "cholesterol_mg": 27.8,
+          "sat_fat_g": 0.23
+        },
+        "missing": [],
+        "note": ""
+      }
+    },
+    {
+      "cases": [
+        "대표 음식명만 일치(family) · 세부 종류 확인 필요"
+      ],
+      "recognized_name": "순두부찌개",
+      "search": {
+        "query": "순두부찌개",
+        "normalized": "순두부찌개",
+        "alias_food_code": null,
+        "candidates": [
+          {
+            "food_code": "D106-291030000-0001",
+            "name": "순두부찌개_김치",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.9,
+            "match": "family",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "200.000g",
+            "quality_flags": []
+          },
+          {
+            "food_code": "D506-291141500-0001",
+            "name": "순두부찌개_배추김치_돼지고기",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 0.9,
+            "match": "family",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "190.000mL",
+            "quality_flags": []
+          },
+          {
+            "food_code": "D506-291270000-0001",
+            "name": "순두부찌개_해물",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 0.9,
+            "match": "family",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "190.000mL",
+            "quality_flags": []
+          },
+          {
+            "food_code": "D506-291320000-0001",
+            "name": "순두부찌개_모듬",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 0.9,
+            "match": "family",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "150.000mL",
+            "quality_flags": []
+          },
+          {
+            "food_code": "D506-277000000-0001",
+            "name": "두부찌개",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 0.74,
+            "match": "partial",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "222.800mL",
+            "quality_flags": []
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "D106-291030000-0001",
+        "amount": 300,
+        "unit": "g",
+        "picked": "후보 1순위"
+      },
+      "food": {
+        "food_code": "D106-291030000-0001",
+        "name": "순두부찌개_김치",
+        "db_group": "음식",
+        "category1": "찌개 및 전골류",
+        "basis_text": "100g",
+        "basis_amount": 100.0,
+        "basis_unit": "g",
+        "create_method": "분석",
+        "source_name": "식품의약품안전처",
+        "research_date": "2017-12-31",
+        "update_date": "2025-01-23",
+        "food_weight_text": "200.000g",
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": []
+      },
+      "result": {
+        "status": "computed",
+        "food_code": "D106-291030000-0001",
+        "food_name": "순두부찌개_김치",
+        "input": {
+          "amount": 300,
+          "unit": "g"
+        },
+        "amount": 300.0,
+        "amount_unit": "g",
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "g",
+          "text": "100g"
+        },
+        "factor": 3.0,
+        "approx_ml": false,
+        "nutrients": {
+          "energy_kcal": 105.0,
+          "protein_g": 8.94,
+          "fat_g": 4.77,
+          "carbohydrate_g": 6.51,
+          "sugars_g": 0.96,
+          "fiber_g": 3.0,
+          "sodium_mg": 453.0,
+          "potassium_mg": 378.0,
+          "calcium_mg": 42.0,
+          "cholesterol_mg": 13.8,
+          "sat_fat_g": 1.38
+        },
+        "missing": [],
+        "note": ""
+      }
+    },
+    {
+      "cases": [
+        "음식 DB군에 없는 반찬 · 별칭이 원재료성 식품 지정(alias_code)"
+      ],
+      "recognized_name": "배추김치",
+      "search": {
+        "query": "배추김치",
+        "normalized": "배추김치",
+        "alias_food_code": "R121-006060000-0000",
+        "candidates": [
+          {
+            "food_code": "R121-006060000-0000",
+            "name": "김치, 배추 김치",
+            "db_group": "원재료성",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "alias_code",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": null,
+            "quality_flags": []
+          },
+          {
+            "food_code": "D615-687000000-0001",
+            "name": "양배추김치",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 0.74,
+            "match": "partial",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "54.70mL",
+            "quality_flags": []
+          },
+          {
+            "food_code": "D403-164250000-0001",
+            "name": "우동_배추김치",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 0.7,
+            "match": "partial",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "770.000mL",
+            "quality_flags": []
+          },
+          {
+            "food_code": "D115-674000000-0001",
+            "name": "얼갈이배추김치",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.671,
+            "match": "partial",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "80.00g",
+            "quality_flags": []
+          },
+          {
+            "food_code": "D401-035230000-0001",
+            "name": "주먹밥_배추김치",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 0.671,
+            "match": "partial",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "320.000mL",
+            "quality_flags": []
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "R121-006060000-0000",
+        "amount": 40,
+        "unit": "g",
+        "picked": "후보 1순위"
+      },
+      "food": {
+        "food_code": "R121-006060000-0000",
+        "name": "김치, 배추 김치",
+        "db_group": "원재료성",
+        "category1": "가공식품류",
+        "basis_text": "100g",
+        "basis_amount": 100.0,
+        "basis_unit": "g",
+        "create_method": "분석",
+        "source_name": "국립식량과학원",
+        "research_date": "2026-07-23",
+        "update_date": "2026-07-23",
+        "food_weight_text": null,
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": []
+      },
+      "result": {
+        "status": "computed",
+        "food_code": "R121-006060000-0000",
+        "food_name": "김치, 배추 김치",
+        "input": {
+          "amount": 40,
+          "unit": "g"
+        },
+        "amount": 40.0,
+        "amount_unit": "g",
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "g",
+          "text": "100g"
+        },
+        "factor": 0.4,
+        "approx_ml": false,
+        "nutrients": {
+          "energy_kcal": 15.2,
+          "protein_g": 0.79,
+          "fat_g": 0.17,
+          "carbohydrate_g": 2.6,
+          "sugars_g": 0.96,
+          "fiber_g": 1.0,
+          "sodium_mg": 220.4,
+          "potassium_mg": 133.6,
+          "calcium_mg": 17.2,
+          "cholesterol_mg": 0.0,
+          "sat_fat_g": 0.03
+        },
+        "missing": [],
+        "note": ""
+      }
+    },
+    {
+      "cases": [
+        "원재료성 후보(ingredient) · 성분 결측은 null"
+      ],
+      "recognized_name": "귤",
+      "search": {
+        "query": "귤",
+        "normalized": "귤",
+        "alias_food_code": null,
+        "candidates": [
+          {
+            "food_code": "R108-010030001-0000",
+            "name": "귤, 임온주, 생것",
+            "db_group": "원재료성",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "ingredient",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": null,
+            "quality_flags": []
+          },
+          {
+            "food_code": "R108-010020001-0000",
+            "name": "귤, 온주밀감, 생것",
+            "db_group": "원재료성",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "ingredient",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": null,
+            "quality_flags": []
+          },
+          {
+            "food_code": "R108-010010001-0000",
+            "name": "귤, 만감류, 한라봉, 생것",
+            "db_group": "원재료성",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "ingredient",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": null,
+            "quality_flags": []
+          },
+          {
+            "food_code": "R108-010060001-0000",
+            "name": "귤, 만감류, 천혜향, 생것",
+            "db_group": "원재료성",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "ingredient",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": null,
+            "quality_flags": []
+          },
+          {
+            "food_code": "R108-010140001-0000",
+            "name": "귤, 만감류, 레드향, 생것",
+            "db_group": "원재료성",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "ingredient",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": null,
+            "quality_flags": []
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "R108-010030001-0000",
+        "amount": 100,
+        "unit": "g",
+        "picked": "후보 1순위 (성분 결측이 있는 첫 후보)"
+      },
+      "food": {
+        "food_code": "R108-010030001-0000",
+        "name": "귤, 임온주, 생것",
+        "db_group": "원재료성",
+        "category1": "과일류",
+        "basis_text": "100g",
+        "basis_amount": 100.0,
+        "basis_unit": "g",
+        "create_method": "분석",
+        "source_name": "국립식량과학원",
+        "research_date": "2026-07-23",
+        "update_date": "2026-07-23",
+        "food_weight_text": null,
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": []
+      },
+      "result": {
+        "status": "computed",
+        "food_code": "R108-010030001-0000",
+        "food_name": "귤, 임온주, 생것",
+        "input": {
+          "amount": 100,
+          "unit": "g"
+        },
+        "amount": 100.0,
+        "amount_unit": "g",
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "g",
+          "text": "100g"
+        },
+        "factor": 1.0,
+        "approx_ml": false,
+        "nutrients": {
+          "energy_kcal": 43.0,
+          "protein_g": 1.0,
+          "fat_g": 0.1,
+          "carbohydrate_g": 10.8,
+          "sugars_g": null,
+          "fiber_g": null,
+          "sodium_mg": 15.0,
+          "potassium_mg": 120.0,
+          "calcium_mg": 9.0,
+          "cholesterol_mg": null,
+          "sat_fat_g": null
+        },
+        "missing": [
+          "sugars_g",
+          "fiber_g",
+          "cholesterol_mg",
+          "sat_fat_g"
+        ],
+        "note": "원천에 값이 없는 성분 4개는 null(0 아님)"
+      }
+    },
+    {
+      "cases": [
+        "부분 일치(partial) · 사용자 확인 필요"
+      ],
+      "recognized_name": "불고기",
+      "search": {
+        "query": "불고기",
+        "normalized": "불고기",
+        "alias_food_code": null,
+        "candidates": [
+          {
+            "food_code": "D108-386000000-0001",
+            "name": "소불고기",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.725,
+            "match": "partial",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "200.000g",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D308-364000000-0001",
+            "name": "꿩불고기",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.725,
+            "match": "partial",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "500.000g",
+            "quality_flags": []
+          },
+          {
+            "food_code": "D508-386000000-0001",
+            "name": "소불고기",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 0.725,
+            "match": "partial",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "73.40mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D608-386000000-0001",
+            "name": "소불고기",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 0.725,
+            "match": "partial",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "73.40mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D708-386000000-0001",
+            "name": "소불고기",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 0.725,
+            "match": "partial",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "100.000mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "D108-386000000-0001",
+        "amount": 150,
+        "unit": "g",
+        "picked": "후보 1순위"
+      },
+      "food": {
+        "food_code": "D108-386000000-0001",
+        "name": "소불고기",
+        "db_group": "음식",
+        "category1": "구이류",
+        "basis_text": "100g",
+        "basis_amount": 100.0,
+        "basis_unit": "g",
+        "create_method": "분석",
+        "source_name": "식품의약품안전처",
+        "research_date": "2018-12-31",
+        "update_date": "2025-01-23",
+        "food_weight_text": "200.000g",
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": [
+          "same_name_multiple_rows"
+        ]
+      },
+      "result": {
+        "status": "computed",
+        "food_code": "D108-386000000-0001",
+        "food_name": "소불고기",
+        "input": {
+          "amount": 150,
+          "unit": "g"
+        },
+        "amount": 150.0,
+        "amount_unit": "g",
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "g",
+          "text": "100g"
+        },
+        "factor": 1.5,
+        "approx_ml": false,
+        "nutrients": {
+          "energy_kcal": 255.0,
+          "protein_g": 24.61,
+          "fat_g": 14.49,
+          "carbohydrate_g": 6.39,
+          "sugars_g": 4.86,
+          "fiber_g": 5.25,
+          "sodium_mg": 627.0,
+          "potassium_mg": 463.5,
+          "calcium_mg": 28.5,
+          "cholesterol_mg": 75.03,
+          "sat_fat_g": 4.89
+        },
+        "missing": [],
+        "note": ""
+      }
+    },
+    {
+      "cases": [
+        "인분 입력 · 1인분 중량 근거 없음 → unconvertible"
+      ],
+      "recognized_name": "김치찌개",
+      "search": {
+        "query": "김치찌개",
+        "normalized": "김치찌개",
+        "alias_food_code": null,
+        "candidates": [
+          {
+            "food_code": "D306-266000000-0001",
+            "name": "김치찌개",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "400.000g",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D406-266000000-0001",
+            "name": "김치찌개",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "200.000mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D506-266000000-0001",
+            "name": "김치찌개",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "200.000mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D606-266000000-0001",
+            "name": "김치찌개",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "200.000mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D706-266000000-0001",
+            "name": "김치찌개",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "200.000mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "D306-266000000-0001",
+        "amount": 1,
+        "unit": "인분",
+        "picked": "후보 1순위"
+      },
+      "food": {
+        "food_code": "D306-266000000-0001",
+        "name": "김치찌개",
+        "db_group": "음식",
+        "category1": "찌개 및 전골류",
+        "basis_text": "100g",
+        "basis_amount": 100.0,
+        "basis_unit": "g",
+        "create_method": "분석",
+        "source_name": "식품의약품안전처",
+        "research_date": "2012-02-28",
+        "update_date": "2025-01-23",
+        "food_weight_text": "400.000g",
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": [
+          "same_name_multiple_rows"
+        ]
+      },
+      "result": {
+        "status": "unconvertible",
+        "food_code": "D306-266000000-0001",
+        "food_name": "김치찌개",
+        "input": {
+          "amount": 1,
+          "unit": "인분"
+        },
+        "amount": null,
+        "amount_unit": null,
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "g",
+          "text": "100g"
+        },
+        "factor": null,
+        "approx_ml": false,
+        "nutrients": null,
+        "missing": [],
+        "note": "'인분' 단위의 중량 근거(1회분량 참고량·1회 섭취참고량)가 원천에 없음 → g 또는 mL 로 다시 입력"
+      }
+    },
+    {
+      "cases": [
+        "개수 단위 입력 → unconvertible"
+      ],
+      "recognized_name": "계란말이",
+      "search": {
+        "query": "계란말이",
+        "normalized": "달걀말이",
+        "alias_food_code": null,
+        "candidates": [
+          {
+            "food_code": "D109-416000000-0001",
+            "name": "달걀말이",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D509-416000000-0001",
+            "name": "달걀말이",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "49.20mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D609-416000000-0001",
+            "name": "달걀말이",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "49.20mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D709-416000000-0001",
+            "name": "달걀말이",
+            "db_group": "음식",
+            "basis_unit": "mL",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100mL",
+            "create_method": "산출",
+            "food_weight_text": "82.40mL",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D309-416030000-0001",
+            "name": "달걀말이_달걀만",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.9,
+            "match": "family",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "100.000g",
+            "quality_flags": []
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "D109-416000000-0001",
+        "amount": 2,
+        "unit": "개",
+        "picked": "후보 1순위"
+      },
+      "food": {
+        "food_code": "D109-416000000-0001",
+        "name": "달걀말이",
+        "db_group": "음식",
+        "category1": "전·적 및 부침류",
+        "basis_text": "100g",
+        "basis_amount": 100.0,
+        "basis_unit": "g",
+        "create_method": "분석",
+        "source_name": "식품의약품안전처",
+        "research_date": "2019-12-31",
+        "update_date": "2025-01-23",
+        "food_weight_text": "100.000g",
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": [
+          "same_name_multiple_rows"
+        ]
+      },
+      "result": {
+        "status": "unconvertible",
+        "food_code": "D109-416000000-0001",
+        "food_name": "달걀말이",
+        "input": {
+          "amount": 2,
+          "unit": "개"
+        },
+        "amount": null,
+        "amount_unit": null,
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "g",
+          "text": "100g"
+        },
+        "factor": null,
+        "approx_ml": false,
+        "nutrients": null,
+        "missing": [],
+        "note": "'개' 단위는 출처 있는 중량표가 없어 환산하지 않음 → g 또는 mL 로 다시 입력"
+      }
+    },
+    {
+      "cases": [
+        "후보 없음 → 음식명 직접 수정"
+      ],
+      "recognized_name": "생선조림",
+      "search": {
+        "query": "생선조림",
+        "normalized": "생선조림",
+        "alias_food_code": null,
+        "candidates": []
+      },
+      "confirm": null,
+      "food": null,
+      "result": null
+    }
+  ],
+  "meals": [
+    {
+      "cases": [
+        "한 끼 합계 · 모든 음식 계산됨"
+      ],
+      "items": [
+        {
+          "recognized_name": "쌀밥",
+          "confirm": {
+            "food_code": "D301-022000000-0001",
+            "amount": 210,
+            "unit": "g",
+            "picked": "후보 1순위"
+          },
+          "food": {
+            "food_code": "D301-022000000-0001",
+            "name": "쌀밥",
+            "basis_text": "100g"
+          },
+          "result": {
+            "status": "computed",
+            "food_code": "D301-022000000-0001",
+            "food_name": "쌀밥",
+            "input": {
+              "amount": 210,
+              "unit": "g"
+            },
+            "amount": 210.0,
+            "amount_unit": "g",
+            "serving": null,
+            "basis": {
+              "amount": 100.0,
+              "unit": "g",
+              "text": "100g"
+            },
+            "factor": 2.1,
+            "approx_ml": false,
+            "nutrients": {
+              "energy_kcal": 348.6,
+              "protein_g": 7.06,
+              "fat_g": 0.67,
+              "carbohydrate_g": 78.39,
+              "sugars_g": 0.04,
+              "fiber_g": 0.21,
+              "sodium_mg": 0.0,
+              "potassium_mg": 54.6,
+              "calcium_mg": 12.6,
+              "cholesterol_mg": 0.0,
+              "sat_fat_g": 0.21
+            },
+            "missing": [],
+            "note": ""
+          }
+        },
+        {
+          "recognized_name": "김치찌개",
+          "confirm": {
+            "food_code": "D306-266000000-0001",
+            "amount": 300,
+            "unit": "g",
+            "picked": "후보 1순위"
+          },
+          "food": {
+            "food_code": "D306-266000000-0001",
+            "name": "김치찌개",
+            "basis_text": "100g"
+          },
+          "result": {
+            "status": "computed",
+            "food_code": "D306-266000000-0001",
+            "food_name": "김치찌개",
+            "input": {
+              "amount": 300,
+              "unit": "g"
+            },
+            "amount": 300.0,
+            "amount_unit": "g",
+            "serving": null,
+            "basis": {
+              "amount": 100.0,
+              "unit": "g",
+              "text": "100g"
+            },
+            "factor": 3.0,
+            "approx_ml": false,
+            "nutrients": {
+              "energy_kcal": 183.0,
+              "protein_g": 11.31,
+              "fat_g": 11.25,
+              "carbohydrate_g": 8.94,
+              "sugars_g": 2.28,
+              "fiber_g": 6.3,
+              "sodium_mg": 1473.0,
+              "potassium_mg": 480.0,
+              "calcium_mg": 114.0,
+              "cholesterol_mg": 18.87,
+              "sat_fat_g": 2.07
+            },
+            "missing": [],
+            "note": ""
+          }
+        },
+        {
+          "recognized_name": "계란말이",
+          "confirm": {
+            "food_code": "D109-416000000-0001",
+            "amount": 60,
+            "unit": "g",
+            "picked": "후보 1순위"
+          },
+          "food": {
+            "food_code": "D109-416000000-0001",
+            "name": "달걀말이",
+            "basis_text": "100g"
+          },
+          "result": {
+            "status": "computed",
+            "food_code": "D109-416000000-0001",
+            "food_name": "달걀말이",
+            "input": {
+              "amount": 60,
+              "unit": "g"
+            },
+            "amount": 60.0,
+            "amount_unit": "g",
+            "serving": null,
+            "basis": {
+              "amount": 100.0,
+              "unit": "g",
+              "text": "100g"
+            },
+            "factor": 0.6,
+            "approx_ml": false,
+            "nutrients": {
+              "energy_kcal": 115.8,
+              "protein_g": 10.33,
+              "fat_g": 7.93,
+              "carbohydrate_g": 0.87,
+              "sugars_g": 0.0,
+              "fiber_g": 0.72,
+              "sodium_mg": 269.4,
+              "potassium_mg": 86.4,
+              "calcium_mg": 33.0,
+              "cholesterol_mg": 203.91,
+              "sat_fat_g": 2.0
+            },
+            "missing": [],
+            "note": ""
+          }
+        },
+        {
+          "recognized_name": "배추김치",
+          "confirm": {
+            "food_code": "R121-006060000-0000",
+            "amount": 40,
+            "unit": "g",
+            "picked": "후보 1순위"
+          },
+          "food": {
+            "food_code": "R121-006060000-0000",
+            "name": "김치, 배추 김치",
+            "basis_text": "100g"
+          },
+          "result": {
+            "status": "computed",
+            "food_code": "R121-006060000-0000",
+            "food_name": "김치, 배추 김치",
+            "input": {
+              "amount": 40,
+              "unit": "g"
+            },
+            "amount": 40.0,
+            "amount_unit": "g",
+            "serving": null,
+            "basis": {
+              "amount": 100.0,
+              "unit": "g",
+              "text": "100g"
+            },
+            "factor": 0.4,
+            "approx_ml": false,
+            "nutrients": {
+              "energy_kcal": 15.2,
+              "protein_g": 0.79,
+              "fat_g": 0.17,
+              "carbohydrate_g": 2.6,
+              "sugars_g": 0.96,
+              "fiber_g": 1.0,
+              "sodium_mg": 220.4,
+              "potassium_mg": 133.6,
+              "calcium_mg": 17.2,
+              "cholesterol_mg": 0.0,
+              "sat_fat_g": 0.03
+            },
+            "missing": [],
+            "note": ""
+          }
+        }
+      ],
+      "total": {
+        "items": 4,
+        "items_calculated": 4,
+        "excluded": [],
+        "complete": true,
+        "approx_ml_items": 0,
+        "nutrients": {
+          "energy_kcal": 662.6,
+          "protein_g": 29.49,
+          "fat_g": 20.02,
+          "carbohydrate_g": 90.8,
+          "sugars_g": 3.28,
+          "fiber_g": 8.23,
+          "sodium_mg": 1962.8,
+          "potassium_mg": 754.6,
+          "calcium_mg": 176.8,
+          "cholesterol_mg": 222.78,
+          "sat_fat_g": 4.31
+        },
+        "missing_items": {}
+      }
+    },
+    {
+      "cases": [
+        "한 끼 합계 · 일부 음식 제외(공기 입력) · mL 근사 · 성분 결측 포함"
+      ],
+      "items": [
+        {
+          "recognized_name": "쌀밥",
+          "confirm": {
+            "food_code": "D301-022000000-0001",
+            "amount": 1,
+            "unit": "공기",
+            "picked": "후보 1순위"
+          },
+          "food": {
+            "food_code": "D301-022000000-0001",
+            "name": "쌀밥",
+            "basis_text": "100g"
+          },
+          "result": {
+            "status": "unconvertible",
+            "food_code": "D301-022000000-0001",
+            "food_name": "쌀밥",
+            "input": {
+              "amount": 1,
+              "unit": "공기"
+            },
+            "amount": null,
+            "amount_unit": null,
+            "serving": null,
+            "basis": {
+              "amount": 100.0,
+              "unit": "g",
+              "text": "100g"
+            },
+            "factor": null,
+            "approx_ml": false,
+            "nutrients": null,
+            "missing": [],
+            "note": "'공기' 단위의 중량 근거(1회분량 참고량·1회 섭취참고량)가 원천에 없음 → g 또는 mL 로 다시 입력"
+          }
+        },
+        {
+          "recognized_name": "고등어구이",
+          "confirm": {
+            "food_code": "D408-357000000-0001",
+            "amount": 100,
+            "unit": "g",
+            "picked": "후보 1순위"
+          },
+          "food": {
+            "food_code": "D408-357000000-0001",
+            "name": "고등어구이",
+            "basis_text": "100mL"
+          },
+          "result": {
+            "status": "approx_ml",
+            "food_code": "D408-357000000-0001",
+            "food_name": "고등어구이",
+            "input": {
+              "amount": 100,
+              "unit": "g"
+            },
+            "amount": 100.0,
+            "amount_unit": "g",
+            "serving": null,
+            "basis": {
+              "amount": 100.0,
+              "unit": "mL",
+              "text": "100mL"
+            },
+            "factor": 1.0,
+            "approx_ml": true,
+            "nutrients": {
+              "energy_kcal": 142.0,
+              "protein_g": 9.51,
+              "fat_g": 9.99,
+              "carbohydrate_g": 2.69,
+              "sugars_g": 0.0,
+              "fiber_g": 0.0,
+              "sodium_mg": 207.0,
+              "potassium_mg": 146.0,
+              "calcium_mg": 14.0,
+              "cholesterol_mg": 27.09,
+              "sat_fat_g": 2.35
+            },
+            "missing": [],
+            "note": "기준량이 100mL인 식품을 g로 계산 — 1mL≈1g 근사(밀도 미반영)"
+          }
+        },
+        {
+          "recognized_name": "시금치나물",
+          "confirm": {
+            "food_code": "D113-586000000-0001",
+            "amount": 50,
+            "unit": "g",
+            "picked": "후보 1순위"
+          },
+          "food": {
+            "food_code": "D113-586000000-0001",
+            "name": "시금치나물",
+            "basis_text": "100g"
+          },
+          "result": {
+            "status": "computed",
+            "food_code": "D113-586000000-0001",
+            "food_name": "시금치나물",
+            "input": {
+              "amount": 50,
+              "unit": "g"
+            },
+            "amount": 50.0,
+            "amount_unit": "g",
+            "serving": null,
+            "basis": {
+              "amount": 100.0,
+              "unit": "g",
+              "text": "100g"
+            },
+            "factor": 0.5,
+            "approx_ml": false,
+            "nutrients": {
+              "energy_kcal": 34.5,
+              "protein_g": 1.87,
+              "fat_g": 2.23,
+              "carbohydrate_g": 1.68,
+              "sugars_g": 0.05,
+              "fiber_g": 1.0,
+              "sodium_mg": 68.0,
+              "potassium_mg": 313.5,
+              "calcium_mg": 43.0,
+              "cholesterol_mg": 0.0,
+              "sat_fat_g": 0.2
+            },
+            "missing": [],
+            "note": ""
+          }
+        },
+        {
+          "recognized_name": "귤",
+          "confirm": {
+            "food_code": "R108-010030001-0000",
+            "amount": 100,
+            "unit": "g",
+            "picked": "후보 1순위 (성분 결측이 있는 첫 후보)"
+          },
+          "food": {
+            "food_code": "R108-010030001-0000",
+            "name": "귤, 임온주, 생것",
+            "basis_text": "100g"
+          },
+          "result": {
+            "status": "computed",
+            "food_code": "R108-010030001-0000",
+            "food_name": "귤, 임온주, 생것",
+            "input": {
+              "amount": 100,
+              "unit": "g"
+            },
+            "amount": 100.0,
+            "amount_unit": "g",
+            "serving": null,
+            "basis": {
+              "amount": 100.0,
+              "unit": "g",
+              "text": "100g"
+            },
+            "factor": 1.0,
+            "approx_ml": false,
+            "nutrients": {
+              "energy_kcal": 43.0,
+              "protein_g": 1.0,
+              "fat_g": 0.1,
+              "carbohydrate_g": 10.8,
+              "sugars_g": null,
+              "fiber_g": null,
+              "sodium_mg": 15.0,
+              "potassium_mg": 120.0,
+              "calcium_mg": 9.0,
+              "cholesterol_mg": null,
+              "sat_fat_g": null
+            },
+            "missing": [
+              "sugars_g",
+              "fiber_g",
+              "cholesterol_mg",
+              "sat_fat_g"
+            ],
+            "note": "원천에 값이 없는 성분 4개는 null(0 아님)"
+          }
+        }
+      ],
+      "total": {
+        "items": 4,
+        "items_calculated": 3,
+        "excluded": [
+          {
+            "index": 0,
+            "food_code": "D301-022000000-0001",
+            "status": "unconvertible",
+            "note": "'공기' 단위의 중량 근거(1회분량 참고량·1회 섭취참고량)가 원천에 없음 → g 또는 mL 로 다시 입력"
+          }
+        ],
+        "complete": false,
+        "approx_ml_items": 1,
+        "nutrients": {
+          "energy_kcal": 219.5,
+          "protein_g": 12.38,
+          "fat_g": 12.32,
+          "carbohydrate_g": 15.17,
+          "sugars_g": 0.05,
+          "fiber_g": 1.0,
+          "sodium_mg": 290.0,
+          "potassium_mg": 579.5,
+          "calcium_mg": 66.0,
+          "cholesterol_mg": 27.09,
+          "sat_fat_g": 2.55
+        },
+        "missing_items": {
+          "sugars_g": 1,
+          "fiber_g": 1,
+          "cholesterol_mg": 1,
+          "sat_fat_g": 1
+        }
+      }
+    }
+  ],
+  "cases_not_found": []
+}

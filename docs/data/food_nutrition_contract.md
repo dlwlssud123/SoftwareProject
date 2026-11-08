@@ -5,7 +5,7 @@
 | 작성 | 최재영 (데이터) |
 | 대상 | 저장 구조·사진 분석·영양 계산 API(이진녕), 영양 표시 화면(김찬형), 품질 평가(김민찬) |
 | 원천 | 식품의약품안전처_식품영양성분DB정보 Open API **03 판본** (`FoodNtrCpntDbInfo03`), `DB_CLASS_NM=품목대표` |
-| 생성 명령 | `uv run python -m agetech_data.nutrition.client` → `uv run python -m agetech_data.nutrition.build` |
+| 생성 명령 | `uv run python -m agetech_data.nutrition.client` → `uv run python -m agetech_data.nutrition.build` → `uv run python -m agetech_data.nutrition.sample`(사진·영양 API 표본, 7절) |
 | 상태 | 초안. DB 스키마는 저장 구조 작업에서 확정하며, 이 문서는 필드 의미·단위·결측 규칙을 정한다 |
 
 ## 1. 꼭 지킬 규칙
@@ -32,7 +32,8 @@
 | `basis_text` | 문자열·null | `SERVING_SIZE` | 영양성분함량기준량 원문 |
 | `basis_amount`, `basis_unit` | 수·null, `g`/`mL`/null | 〃 | 파싱 결과. 형식이 다르면 null + `invalid_basis` |
 | `food_weight_text` / `_amount` / `_unit` | | `Z10500` | 식품중량 원문·파싱 (예: `900.000g`). 의미는 명세의 "식품중량" 그대로이며 1회 섭취량으로 단정하지 않는다 |
-| `serving_ref_text` | 문자열·null | `NUTRI_AMOUNT_SERVING` | 1회 섭취참고량 원문 (대부분 비어 있음) |
+| `serving_ref_text` | 문자열·null | `NUTRI_AMOUNT_SERVING` | 1회 섭취참고량 원문 (가공식품 950건에만 있음, 음식은 모두 비어 있음) |
+| `dish_serving_text` | 문자열·null | `DISH_ONE_SERVING` | 1회분량 참고량 원문 (10/31 수집본은 모두 비어 있음). 인분 환산 근거로 쓴다(7절) |
 | `source_name`, `create_method` | 문자열·null | `SUB_REF_NAME`, `CRT_MTH_NM` | 출처명, 데이터생성방법(분석/산출/수집) |
 | `research_date`, `update_date` | 문자열·null | `RESEARCH_YMD`, `UPDATE_DATE` | 데이터생성일자, 수정일자 (갱신 감지에 사용) |
 | `nutrients` | 객체 | `AMT_NUM*` | 아래 성분 키 → 기준량당 값 또는 null |
@@ -71,18 +72,24 @@
 ## 4. 코드에서 쓰는 함수 (서버 연동용)
 
 ```python
+from agetech_data.nutrition.dish_eval import meal_search_indexes
 from agetech_data.nutrition.foods import clean_foods
 from agetech_data.nutrition.match import FoodIndex, match_ingredient, search_dishes
+from agetech_data.nutrition.portion import meal_total, portion_nutrients
 
 foods = clean_foods(raw["items"])                    # 원본 행 → 정제 레코드
-dish_index = FoodIndex(foods, ("음식",))              # 사진 분석 음식명 검색용
-search_dishes("계란말이", dish_index, limit=5)        # → [{food_code, name, basis_unit, score}, …] 사용자 확인용 후보
-ingredient_index = FoodIndex(foods)                  # 원재료성·가공식품
+by_code = {f.food_code: f for f in foods}
+dish_index, raw_index = meal_search_indexes(foods)   # 사진 분석 음식명 검색용 (음식 DB군, 원재료성)
+search_dishes("계란말이", dish_index, limit=5, raw_index=raw_index)
+#   → [{food_code, name, db_group, basis_unit, score, match}, …] 사용자 확인용 후보 (7절)
+p = portion_nutrients(by_code["D109-416000000-0001"], 60, "g")   # 사용자가 확인한 식품·분량 → Portion (7절)
+meal_total([p, ...])                                 # 한 끼 합계
+ingredient_index = FoodIndex(foods)                  # 원재료성·가공식품 (레시피 재료 매핑용)
 match_ingredient("다진 마늘", ingredient_index)       # → MatchResult(status, food_code, food_name, rule, rationale, candidates)
 ```
 
 - `search_dishes`는 **후보 목록**이다. 최종 음식·분량은 사용자 확인 후 확정한다(기획서 CORE-04). 점수가 같으면 100g 기준 행이 앞에 온다.
-- 영양 계산은 서버에서 확정한 `food_code`와 분량(g)으로 한다. 외부 AI가 말한 영양값은 쓰지 않는다.
+- 영양 계산은 서버에서 확정한 `food_code`와 분량으로 한다. 외부 AI가 말한 영양값은 쓰지 않는다.
 
 ## 5. 수집·갱신과 오류 동작
 
@@ -102,7 +109,81 @@ match_ingredient("다진 마늘", ingredient_index)       # → MatchResult(stat
 - 레시피 재료 매핑: (레시피 ID, `order_no`) 단위로 `match.status`·`food_code`·`grams`·`grams.status` 저장. `curated`→`reviewed` 전환 이력(확인자·일시)을 남길 수 있게 한다.
 - 수동 매핑표 원본은 `src/data/agetech_data/resources/ingredient_food_map.json`(커밋 대상)이며, 관리자 화면에서 검수하게 되면 이 파일 형식을 기준으로 옮긴다.
 
-## 7. 알려진 제한
+## 7. 사진·영양 API — 음식명 → 후보 → 사용자 확인 → 영양값
+
+사진 분석·영양 계산 백엔드(이진녕)와 식사 기록 화면(김찬형)에 넘기는 입력 형식이다. 실제 수집본으로 만든 표본은 `docs/data/samples/nutrition_api_sample.json`(단일 음식 12건 + 한 끼 2건, `uv run python -m agetech_data.nutrition.sample`로 재생성, 같은 수집본이면 같은 출력).
+
+### 7.1 흐름
+
+| 단계 | 하는 쪽 | 표본 필드 |
+|---|---|---|
+| 1. 사진 → 음식명 문자열 | 사진 분석 모델 | `recognized_name` |
+| 2. 음식명 → 식품 후보 | 서버, `search_dishes(name, dish_index, limit=5, raw_index=raw_index)` | `search.candidates[]` |
+| 3. 음식·분량 확인·수정 | 사용자(앱) | `confirm` = {`food_code`, `amount`, `unit`} |
+| 4. 영양값 계산 | 서버, `food_code`로 식품 행 조회 → `portion_nutrients(food, amount, unit)` | `food`, `result` |
+| 5. 한 끼 합계 | 서버, `meal_total([...])` | `meals[].total` |
+
+### 7.2 후보 — `search.candidates[]`
+
+| 필드 | 설명 |
+|---|---|
+| `food_code`, `name`, `db_group`, `basis_unit` | 식품 행 (2절). `db_group`은 보통 `음식`, 보조 후보는 `원재료성` |
+| `score` | 0~1. 정렬용이며 같은 `match` 안에서만 비교할 것 |
+| `match` | 찾은 방식: `name` 음식명 일치 · `alias_code` 별칭표가 식품을 직접 지정(예: 배추김치 → 원재료성 `김치, 배추 김치`) · `family` 대표 음식명만 일치, 세부 종류 확인 필요(예: 순두부찌개 → `순두부찌개_김치`) · `partial` 일부 일치(예: 불고기 → `소불고기`) · `ingredient` 음식 DB군에 맞는 이름이 없어 원재료성에서 찾음(예: 사과 → `사과, 생것`) |
+
+- 표본에는 화면 설명용으로 `basis_text`·`create_method`·`food_weight_text`·`quality_flags`를 덧붙였다. 서버는 `food_code`로 2절 레코드를 조회하면 된다.
+- 화면 권장: `name`·`alias_code`이면 1순위를 미리 선택하고, `family`·`partial`·`ingredient`이면 "이 음식이 맞나요?" 확인을 강조한다. 후보가 없으면 음식명을 직접 고치게 한다.
+- 별칭표는 `src/data/agetech_data/resources/dish_aliases.json`(맞춤법·다른 이름, `food_code` 직접 지정). 검색 품질은 정답 표본 82건(`resources/dish_search_gold.json`, 1순위 일치 77건, 알려진 미해결 5건: 보쌈·믹스커피·떡·전·생선구이)으로 확인하며 결과는 `nutrition_mapping_report.md` 7절에 있다. 미해결 5건은 데이터에 없거나 이름이 너무 넓어 사용자에게 음식명을 다시 물어야 하는 경우다.
+- 한 글자 검색어(귤·김 등)는 원재료성 보조 후보를 첫 이름이 같은 식품만 낸다(떡 → 떡조개 같은 오답 방지).
+
+### 7.3 사용자 확인 값 — `confirm` (서버 입력)
+
+| 필드 | 형식 | 설명 |
+|---|---|---|
+| `food_code` | 문자열 | 후보 중 사용자가 고른 식품 |
+| `amount` | 수 | 0보다 커야 한다. 숫자 문자열(`"150"`)도 받는다 |
+| `unit` | 문자열 | `g` `kg` `mL` `ml` `cc` `L` → 계산 / `인분` `그릇` `공기` `접시` `대접` `회분` → 원천의 1인분 중량이 있을 때만 계산 / 그 밖(`개`·`조각`·`마리` 등) → 계산 안 함 |
+
+### 7.4 계산 결과 — `result` (`Portion`)
+
+| `status` | 뜻 | `nutrients` |
+|---|---|---|
+| `computed` | 분량 단위(g·mL)가 기준량 단위와 같아 그대로 계산 | 값 |
+| `approx_ml` | g↔mL가 달라 **1mL≈1g 근사**로 계산(밀도 근거 없음). 화면에 "근사" 표시 | 값 |
+| `unconvertible` | 인분인데 원천 1인분 중량이 없음 / 개수 단위 / 단위 없음 → g·mL로 다시 입력받기 | null |
+| `invalid` | 분량이 0 이하·숫자 아님, 또는 식품 기준량을 읽을 수 없음(`invalid_basis`) | null |
+
+| 필드 | 설명 |
+|---|---|
+| `input` | 사용자가 확인한 `{amount, unit}` 그대로 |
+| `amount`, `amount_unit` | g 또는 mL로 바꾼 분량 (계산 안 했으면 null) |
+| `serving` | 인분을 환산했으면 근거 `{field, label, text}` (예: `DISH_ONE_SERVING`, 1회분량 참고량, `250g`) |
+| `basis` | 식품 기준량 `{amount, unit, text}` |
+| `factor` | 분량 ÷ 기준량 |
+| `approx_ml` | 1mL≈1g 근사 여부 |
+| `nutrients` | `energy_kcal`·`protein_g`·`fat_g`·`carbohydrate_g`·`sugars_g`·`fiber_g`·`sodium_mg`·`potassium_mg`·`calcium_mg`·`cholesterol_mg`·`sat_fat_g` (소수 둘째 자리). **null = 원천에 값 없음(0 아님)** |
+| `missing` | 값이 없는 성분 키 목록 |
+| `note` | 화면·로그용 설명 |
+
+### 7.5 한 끼 합계 — `total` (`meal_total`)
+
+| 필드 | 설명 |
+|---|---|
+| `items`, `items_calculated` | 음식 수, 계산된(`computed`·`approx_ml`) 음식 수 |
+| `excluded[]` | 계산에서 빠진 음식 `{index, food_code, status, note}` |
+| `complete` | 모든 음식이 계산됐는지. false면 합계 옆에 "일부 음식 제외" 표시 |
+| `approx_ml_items` | 1mL≈1g 근사로 계산된 음식 수 |
+| `nutrients` | 성분별 합계. 값이 있는 음식만 더하며, 모든 음식에 값이 없으면 null |
+| `missing_items` | 성분별로 값이 없어 합계에서 빠진 음식 수 (예: `{"sugars_g": 1}`) |
+
+### 7.6 데이터에서 확인한 주의점 (10/31 수집본)
+
+- **1인분 중량 근거가 없다.** 음식 4,048건 모두 1회분량 참고량(`DISH_ONE_SERVING`)·1회 섭취참고량(`NUTRI_AMOUNT_SERVING`)이 비어 있어 지금은 인분·그릇 입력이 모두 `unconvertible`이다. 식품중량(`Z10500`, 예: 김치찌개 400g·쌀밥 100g)은 값이 있지만 명세 항목명이 '식품중량'일 뿐 1인분이라는 근거가 없어 계산에 쓰지 않는다. 화면에서 "참고 중량"으로 보여 줄지는 백엔드·앱과 정한다.
+- **같은 음식명이 기준량·생성 방법이 다른 여러 행이다.** 식품기원코드 1·3은 분석값이며 대부분 100g 기준(906건, 100mL 2건), 4~7은 100mL 기준·산출(3,140건)이다. 원천에 식품기원명이 비어 있어 4~7의 차이는 알 수 없다. 같은 음식이라도 값 차이가 크다(김치찌개 열량 61kcal/100g 분석 vs 19kcal/100mL 산출, 미역국 나트륨 168mg/100g vs 339mg/100mL). 검색은 100g 분석 행을 앞에 둔다.
+- **100mL 기준 행만 있는 음식이 있다.** 고등어구이·제육볶음·도라지나물·달걀찜 등. g으로 입력하면 `approx_ml`이다.
+- **원재료성 식품은 결측이 많다.** 당류·포화지방산·식이섬유·콜레스테롤(보고서 6절). 과일 등 `ingredient` 후보는 `missing`이 자주 있다. 음식 100g 기준 행은 906건 중 2건만 합산 성분(7.4절 11개)에 결측이 있다.
+
+## 8. 알려진 제한
 
 - 개수 단위(개·장·알·뿌리 등)는 출처 있는 개당 중량표가 없어 g으로 환산하지 않는다.
 - `curated` 매핑은 사람 확인 전이다. 보고서(`docs/data/nutrition_mapping_report.md`) 3절에서 검토한다.
