@@ -35,7 +35,7 @@ DISH_ALIAS_FILE = RESOURCES / "dish_aliases.json"
 
 MatchStatus = Literal["reviewed", "curated", "exact", "water", "candidate", "unmapped"]
 USABLE: tuple[MatchStatus, ...] = ("reviewed", "curated", "exact")
-WATER_NAMES = {"물", "끓는물", "생수", "정수"}
+WATER_NAMES = {"물", "끓는물", "생수", "정수", "쌀뜨물"}  # 쌀뜨물: DB 항목 없음, 영양 미미 → 물로 취급
 RAW_STATE = "생것"
 INGREDIENT_GROUPS = ("원재료성", "가공식품")
 GROUP_RANK = {"원재료성": 0, "가공식품": 1, "음식": 2}
