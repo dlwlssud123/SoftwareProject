@@ -253,10 +253,11 @@ def normalize_dish_query(query: str, aliases: dict | None = None) -> tuple[str, 
     q = norm(query)
     a = aliases.get(q)
     code = None
+    # 별칭의 name 은 DB 음식명 그대로 적는다('갈비찜_고춧가루'). 검색 키는 '_'를 뺀 형태라 맞춰 준다
     if isinstance(a, str):
-        q = norm(a)
+        q = norm(a).replace("_", "")
     elif isinstance(a, dict):
-        q, code = norm(a.get("name") or q), a.get("food_code")
+        q, code = norm(a.get("name") or q).replace("_", ""), a.get("food_code")
     return q.replace("계란", "달걀"), code
 
 

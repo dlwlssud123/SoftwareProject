@@ -131,6 +131,8 @@ def test_normalize_dish_query():
     assert normalize_dish_query(" 계란 말이 ", {}) == ("달걀말이", None)
     assert normalize_dish_query("공깃밥", {"공깃밥": "쌀밥"}) == ("쌀밥", None)
     assert normalize_dish_query("김치", {"김치": {"food_code": "R1"}}) == ("김치", "R1")
+    # 별칭 name 에 DB 음식명을 그대로 적어도(대표_세부) 검색 키와 맞는다
+    assert normalize_dish_query("찜갈비", {"찜갈비": {"name": "갈비찜_고춧가루"}}) == ("갈비찜고춧가루", None)
 
 
 def test_search_dishes_name_matches_prefer_gram_even_if_swapped():

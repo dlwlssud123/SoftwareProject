@@ -1975,12 +1975,123 @@
     },
     {
       "cases": [
-        "후보 없음(DB에 없는 지역 음식) → 음식명 직접 수정"
+        "대구 지역 음식 · 별칭(찜갈비 → 갈비찜_고춧가루) · g 입력"
       ],
       "recognized_name": "찜갈비",
       "search": {
         "query": "찜갈비",
-        "normalized": "찜갈비",
+        "normalized": "갈비찜고춧가루",
+        "alias_food_code": null,
+        "ask": null,
+        "candidates": [
+          {
+            "food_code": "D307-306030000-0001",
+            "name": "갈비찜_고춧가루",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "name",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "300.000g",
+            "quality_flags": []
+          },
+          {
+            "food_code": "D107-306130000-0001",
+            "name": "갈비찜_소고기",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.534,
+            "match": "partial",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "300.000g",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          },
+          {
+            "food_code": "D307-306130000-0001",
+            "name": "갈비찜_소고기",
+            "db_group": "음식",
+            "basis_unit": "g",
+            "score": 0.534,
+            "match": "partial",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": "250.000g",
+            "quality_flags": [
+              "same_name_multiple_rows"
+            ]
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "D307-306030000-0001",
+        "amount": 200,
+        "unit": "g",
+        "picked": "후보 1순위"
+      },
+      "food": {
+        "food_code": "D307-306030000-0001",
+        "name": "갈비찜_고춧가루",
+        "db_group": "음식",
+        "category1": "찜류",
+        "basis_text": "100g",
+        "basis_amount": 100.0,
+        "basis_unit": "g",
+        "create_method": "분석",
+        "source_name": "식품의약품안전처",
+        "research_date": "2016-10-31",
+        "update_date": "2025-01-23",
+        "food_weight_text": "300.000g",
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": []
+      },
+      "result": {
+        "status": "computed",
+        "food_code": "D307-306030000-0001",
+        "food_name": "갈비찜_고춧가루",
+        "input": {
+          "amount": 200,
+          "unit": "g"
+        },
+        "amount": 200.0,
+        "amount_unit": "g",
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "g",
+          "text": "100g"
+        },
+        "factor": 2.0,
+        "approx_ml": false,
+        "nutrients": {
+          "energy_kcal": 344.0,
+          "protein_g": 40.86,
+          "fat_g": 13.14,
+          "carbohydrate_g": 15.8,
+          "sugars_g": 7.14,
+          "fiber_g": 5.6,
+          "sodium_mg": 760.0,
+          "potassium_mg": 724.0,
+          "calcium_mg": 42.0,
+          "cholesterol_mg": 108.86,
+          "sat_fat_g": 5.34
+        },
+        "missing": [],
+        "note": ""
+      }
+    },
+    {
+      "cases": [
+        "후보 없음(DB에 없는 지역 음식) → 음식명 직접 수정"
+      ],
+      "recognized_name": "뭉티기",
+      "search": {
+        "query": "뭉티기",
+        "normalized": "뭉티기",
         "alias_food_code": null,
         "ask": null,
         "candidates": []
