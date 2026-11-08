@@ -10,6 +10,7 @@ import sys
 import uuid
 from collections import Counter
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
@@ -69,12 +70,28 @@ def decimal_value(value) -> Decimal | None:
     return number if number.is_finite() else None
 
 
+def snapshot_time(meta: dict) -> datetime | None:
+    value = meta.get("fetched_at", meta.get("fetchedAt"))
+    if value is None:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        raise ValueError(
+            "Snapshot fetched_at must be an ISO datetime with timezone"
+        ) from None
+    if parsed.tzinfo is None:
+        raise ValueError("Snapshot fetched_at requires a timezone")
+    return parsed.astimezone(UTC)
+
+
 def read_snapshot(path: Path, dataset: str) -> tuple[list[dict], dict]:
     raw_bytes = path.read_bytes()
     data = json.loads(raw_bytes.decode("utf-8-sig"))
     if not isinstance(data, dict) or not isinstance(data.get("meta"), dict):
         raise ValueError(f"{dataset}: full collector snapshot with metadata required")
     meta, items = data["meta"], data.get("items")
+    snapshot_time(meta)
     if (
         not isinstance(items, list)
         or not items
@@ -208,6 +225,21 @@ def apply_import(session: Session, plan: ImportPlan) -> dict:
             "new_foods": 0,
             "new_food_revisions": 0,
         }
+    history = list(session.scalars(select(DataImportRun.inputs)))
+    for dataset in ("recipes", "nutrition"):
+        if dataset not in plan.inputs:
+            continue
+        incoming = snapshot_time(plan.inputs[dataset]["meta"])
+        known_times = [
+            timestamp
+            for inputs in history
+            if dataset in inputs
+            if (timestamp := snapshot_time(inputs[dataset]["meta"])) is not None
+        ]
+        if known_times and (incoming is None or incoming < max(known_times)):
+            raise ValueError(
+                f"{dataset}: older or undated snapshot cannot replace newer data"
+            )
     run = DataImportRun(
         id=uuid.uuid4(),
         fingerprint=plan.fingerprint,

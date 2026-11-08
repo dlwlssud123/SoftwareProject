@@ -26,7 +26,7 @@ from app.models import (
 )
 
 
-def snapshot(tmp_path, dataset="recipes", rows=None):
+def snapshot(tmp_path, dataset="recipes", rows=None, fetched_at=None):
     if rows is None:
         rows = [
             {
@@ -56,6 +56,8 @@ def snapshot(tmp_path, dataset="recipes", rows=None):
         },
         "items": rows,
     }
+    if fetched_at is not None:
+        data["meta"]["fetched_at"] = fetched_at
     path = tmp_path / f"{dataset}.json"
     path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     return path
@@ -96,6 +98,9 @@ def test_prepare_keeps_raw_and_missing_distinct_from_zero(tmp_path):
         {"total_count": 2},
         {"items_sha256": "invalid"},
         {"service": "other"},
+        {"fetched_at": "invalid"},
+        {"fetched_at": "2026-11-05T00:00:00"},
+        {"fetched_at": 123},
     ],
 )
 def test_reject_partial_or_altered_snapshot(tmp_path, change):
@@ -246,7 +251,7 @@ def test_validation_revision_refreshes_recipe_but_reuses_food(
 ):
     from app.jobs import import_public_data as importer
 
-    recipe_path = snapshot(tmp_path)
+    recipe_path = snapshot(tmp_path, fetched_at="2026-11-05T00:00:00Z")
     food_path = snapshot(
         tmp_path,
         "nutrition",
@@ -289,3 +294,58 @@ def test_validation_revision_refreshes_recipe_but_reuses_food(
         with session.begin():
             assert apply_import(session, updated)["already_imported"] is True
             assert total(session, RecipeRevision) == 2
+
+
+@pytest.mark.parametrize("dataset", ["recipes", "nutrition"])
+@pytest.mark.parametrize("incoming_time", ["2026-11-05T00:00:00Z", None])
+def test_older_or_undated_snapshot_cannot_reactivate_previous_revision(
+    tmp_path, pg_connection, dataset, incoming_time
+):
+    # Value: protects=latest active or held state survives stale cross-mode imports;
+    # fails_when=old revisions are reactivated; why_new=idempotency does not cover all-mode fingerprints;
+    # seam=none; no_claim=authenticity of a provider's source clock.
+    old_time, new_time = "2026-11-05T00:00:00Z", "2026-11-06T00:00:00Z"
+    food_rows = [
+        {"FOOD_CD": "F1", "FOOD_NM_KR": "소금", "SERVING_SIZE": "100g", "AMT_NUM1": "1"}
+    ]
+    recipe_path = snapshot(tmp_path, fetched_at=old_time)
+    food_path = snapshot(tmp_path, "nutrition", food_rows, fetched_at=old_time)
+    correction_path = corrections(tmp_path)
+    original = prepare_import(dataset, recipe_path, food_path, correction_path)
+    stale_path = recipe_path if dataset == "recipes" else food_path
+    raw = json.loads(stale_path.read_text(encoding="utf-8"))
+    if incoming_time is None:
+        raw["meta"].pop("fetched_at")
+    stale_path.write_text(json.dumps(raw), encoding="utf-8")
+    stale = prepare_import("all", recipe_path, food_path, correction_path)
+    if dataset == "recipes":
+        latest_rows = [{**original.recipes[0]["raw"], "MANUAL01": ""}]
+        snapshot(tmp_path, rows=latest_rows, fetched_at=new_time)
+    else:
+        snapshot(
+            tmp_path,
+            "nutrition",
+            [{**food_rows[0], "AMT_NUM1": "2"}],
+            fetched_at=new_time,
+        )
+    latest = prepare_import(dataset, recipe_path, food_path, correction_path)
+    with Session(pg_connection) as session:
+        with session.begin():
+            apply_import(session, original)
+        with session.begin():
+            apply_import(session, latest)
+        with pytest.raises(ValueError, match="snapshot"), session.begin():
+            apply_import(session, stale)
+        with session.begin():
+            assert total(session, DataImportRun) == 2
+            if dataset == "recipes":
+                assert session.scalar(select(Recipe.active_revision_id)) is None
+                assert total(session, Food) == 0
+            else:
+                active = session.scalar(
+                    select(FoodRevision).join(
+                        Food, Food.active_revision_id == FoodRevision.id
+                    )
+                )
+                assert active.energy_kcal == Decimal(2)
+                assert total(session, Recipe) == 0
