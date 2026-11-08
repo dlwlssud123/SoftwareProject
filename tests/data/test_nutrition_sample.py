@@ -24,7 +24,9 @@ def test_gold_file_shape():
     assert bool(gold["checked_by"]) == bool(gold["checked_at"])   # 확인자와 확인일은 함께 채운다
     queries = [e["query"] for e in gold["entries"]]
     assert len(queries) == len(set(queries)) and len(queries) >= 40
-    assert all(e["accept"] and e.get("basis") in (None, "g", "mL") for e in gold["entries"])
+    assert all(e.get("basis") in (None, "g", "mL") for e in gold["entries"])
+    # 후보 없음이 정답인 항목(accept 빈 목록)은 이유를 적고, 기준량·찾은 방식 조건을 두지 않는다
+    assert all(e["note"] and not e.get("basis") and not e.get("match") for e in gold["entries"] if not e["accept"])
 
 
 @needs_raw
@@ -65,3 +67,13 @@ def test_sample_build_is_complete_and_stable():
         committed = json.loads(paths.NUTRITION_API_SAMPLE.read_text(encoding="utf-8"))
         if committed["input"]["sha256"] == hashlib.sha256(paths.NUTRITION_RAW.read_bytes()).hexdigest():
             assert committed == a
+
+
+def test_evaluate_empty_accept_means_no_candidates():
+    from agetech_data.nutrition.dish_eval import evaluate
+    from agetech_data.nutrition.foods import clean_foods
+
+    foods = clean_foods([])
+    gold = {"entries": [{"query": "탕후루", "accept": [], "note": "DB에 없음"}]}
+    r = evaluate(foods, gold)
+    assert (r["top1"], r["unexpected"]) == (1, [])

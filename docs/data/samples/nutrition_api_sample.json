@@ -2086,12 +2086,95 @@
     },
     {
       "cases": [
-        "후보 없음(DB에 없는 지역 음식) → 음식명 직접 수정"
+        "대구 지역 음식 · 별칭이 원재료성 생고기 지정(뭉티기 → 소고기 우둔 생것)"
       ],
       "recognized_name": "뭉티기",
       "search": {
         "query": "뭉티기",
         "normalized": "뭉티기",
+        "alias_food_code": "R109-027066201-0000",
+        "ask": null,
+        "candidates": [
+          {
+            "food_code": "R109-027066201-0000",
+            "name": "소고기, 한우(1등급), 우둔, 생것",
+            "db_group": "원재료성",
+            "basis_unit": "g",
+            "score": 1.0,
+            "match": "alias_code",
+            "basis_text": "100g",
+            "create_method": "분석",
+            "food_weight_text": null,
+            "quality_flags": []
+          }
+        ]
+      },
+      "confirm": {
+        "food_code": "R109-027066201-0000",
+        "amount": 150,
+        "unit": "g",
+        "picked": "후보 1순위"
+      },
+      "food": {
+        "food_code": "R109-027066201-0000",
+        "name": "소고기, 한우(1등급), 우둔, 생것",
+        "db_group": "원재료성",
+        "category1": null,
+        "basis_text": "100g",
+        "basis_amount": 100.0,
+        "basis_unit": "g",
+        "create_method": "분석",
+        "source_name": "국립식량과학원",
+        "research_date": "2026-07-23",
+        "update_date": "2026-07-23",
+        "food_weight_text": null,
+        "dish_serving_text": null,
+        "serving_ref_text": null,
+        "quality_flags": []
+      },
+      "result": {
+        "status": "computed",
+        "food_code": "R109-027066201-0000",
+        "food_name": "소고기, 한우(1등급), 우둔, 생것",
+        "input": {
+          "amount": 150,
+          "unit": "g"
+        },
+        "amount": 150.0,
+        "amount_unit": "g",
+        "serving": null,
+        "basis": {
+          "amount": 100.0,
+          "unit": "g",
+          "text": "100g"
+        },
+        "factor": 1.5,
+        "approx_ml": false,
+        "nutrients": {
+          "energy_kcal": 243.0,
+          "protein_g": 34.5,
+          "fat_g": 10.38,
+          "carbohydrate_g": 0.0,
+          "sugars_g": 0.0,
+          "fiber_g": 0.0,
+          "sodium_mg": 75.0,
+          "potassium_mg": 502.5,
+          "calcium_mg": 7.5,
+          "cholesterol_mg": 85.64,
+          "sat_fat_g": 4.32
+        },
+        "missing": [],
+        "note": ""
+      }
+    },
+    {
+      "cases": [
+        "후보 없음(DB에 없는 음식) → 음식명 직접 수정"
+      ],
+      "recognized_name": "탕후루",
+      "search": {
+        "query": "탕후루",
+        "normalized": "탕후루",
         "alias_food_code": null,
         "ask": null,
         "candidates": []

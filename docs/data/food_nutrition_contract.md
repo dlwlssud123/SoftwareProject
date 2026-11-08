@@ -111,7 +111,7 @@ match_ingredient("다진 마늘", ingredient_index)       # → MatchResult(stat
 
 ## 7. 사진·영양 API — 음식명 → 후보 → 사용자 확인 → 영양값
 
-사진 분석·영양 계산 백엔드(이진녕)와 식사 기록 화면(김찬형)에 넘기는 입력 형식이다. 실제 수집본으로 만든 표본은 `docs/data/samples/nutrition_api_sample.json`(단일 음식 16건 + 한 끼 2건, `uv run python -m agetech_data.nutrition.sample`로 재생성, 같은 수집본이면 같은 출력).
+사진 분석·영양 계산 백엔드(이진녕)와 식사 기록 화면(김찬형)에 넘기는 입력 형식이다. 실제 수집본으로 만든 표본은 `docs/data/samples/nutrition_api_sample.json`(단일 음식 17건 + 한 끼 2건, `uv run python -m agetech_data.nutrition.sample`로 재생성, 같은 수집본이면 같은 출력).
 
 ### 7.1 흐름
 
@@ -134,8 +134,9 @@ match_ingredient("다진 마늘", ingredient_index)       # → MatchResult(stat
 - 표본에는 화면 설명용으로 `basis_text`·`create_method`·`food_weight_text`·`quality_flags`를 덧붙였다. 서버는 `food_code`로 2절 레코드를 조회하면 된다.
 - 화면 권장: `name`·`alias_code`이면 1순위를 미리 선택하고, `family`·`partial`·`ingredient`이면 "이 음식이 맞나요?" 확인을 강조한다. 후보가 없으면 음식명을 직접 고치게 한다.
 - **넓은 이름(`category`)**: 떡·전(부침개)·생선구이(생선)·생선조림·나물·죽·수육은 사진만으로 종류를 정할 수 없어 자주 먹는 종류를 **목록 순서대로 모두** 돌려준다(`limit`과 상관없음). 화면은 `dish_choice_question(name)`이 돌려주는 질문(예: "어떤 떡인가요?", 표본의 `search.ask`)과 함께 종류를 버튼으로 보여 주고, 고른 행으로 3단계를 이어 간다. 종류마다 100g 기준 행이 있으면 그 행을 쓴다.
-- 별칭표는 `src/data/agetech_data/resources/dish_aliases.json`: `aliases`(맞춤법·다른 이름, `food_code` 직접 지정. 예: 보쌈 → `제육(돼지고기 수육)`, 믹스커피 → `커피, 커피가루, 설탕, 크림, 물에 탄것(중량 12g)`, 대구식 찜갈비 → `갈비찜_고춧가루`)와 `broad`(넓은 이름과 종류 목록). `name`에는 DB 음식명을 그대로 적는다(`_` 포함).
-- 검색 품질은 정답 표본 91건(`resources/dish_search_gold.json`)으로 확인하며 결과는 `nutrition_mapping_report.md` 7절에 있다. 1순위 일치 90건, 알려진 미해결 1건(대구식 **뭉티기** — DB에 생소고기 음식 행이 없고, 양념한 `육회`와는 다른 음식으로 봄. 표본의 "후보 없음" 사례).
+- 별칭표는 `src/data/agetech_data/resources/dish_aliases.json`: `aliases`(맞춤법·다른 이름, `food_code` 직접 지정. 예: 보쌈 → `제육(돼지고기 수육)`, 믹스커피 → `커피, 커피가루, 설탕, 크림, 물에 탄것(중량 12g)`, 대구식 찜갈비 → `갈비찜_고춧가루`, 대구식 뭉티기 → `소고기, 한우(1등급), 우둔, 생것`)와 `broad`(넓은 이름과 종류 목록). `name`에는 DB 음식명을 그대로 적는다(`_` 포함).
+  - 뭉티기를 `육회`로 잡지 않은 이유: 육회(음식)는 양념·배 등이 섞여 100g당 단백질 9.9g·나트륨 418mg이고, 생 살코기(우둔)는 23.0g·50mg이다. 육회로 잡으면 단백질이 절반 이하로 잡힌다. 찍어 먹는 장은 계산에 넣지 않는다(필요하면 한 끼에 양념장을 따로 추가).
+- 검색 품질은 정답 표본 93건(`resources/dish_search_gold.json`)으로 확인하며 결과는 `nutrition_mapping_report.md` 7절에 있다. 1순위 일치 93건, 알려진 미해결 0건. 이 중 2건(탕후루, "알 수 없는 음식")은 후보가 없어야 맞는 항목이다(DB에 없는 음식·인식 실패 문구 → 화면에서 음식명 직접 수정).
 - 한 글자 검색어(귤·김 등)는 원재료성 보조 후보를 첫 이름이 같은 식품만 낸다(떡 → 떡조개 같은 오답 방지).
 
 ### 7.3 사용자 확인 값 — `confirm` (서버 입력)
