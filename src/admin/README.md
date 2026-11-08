@@ -1,75 +1,98 @@
-# React + TypeScript + Vite
+# ValueFlow 관리자 웹
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript + Vite로 구성한 관리자 웹 기본 구조입니다.
+저장소 내 위치는 `src/admin`입니다.
 
-Currently, two official plugins are available:
+## 현재 구현 범위
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- 공통 레이아웃과 관리자 홈
+- 수집 상태·콘텐츠 검수·품질 검토 화면 이동
+- URL 해시 기반 화면 이동
+- 공통 API 요청 함수
+- 로딩·오류·빈 결과·API 연결 대기 표시 컴포넌트
 
-## React Compiler
+현재 화면에는 API 연결 대기를 표시합니다.
+실제 운영 데이터 조회·검수·재시도와 관리자 인증은 연결하지 않았습니다.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 개발 환경
 
-## Expanding the ESLint configuration
+최초 실행 확인 환경:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Windows / PowerShell
+- Node.js 26.13.0
+- npm 11.20.0
+- TypeScript 5.9.3
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+의존성의 실제 설치 버전은 `package-lock.json`으로 관리합니다.
+팀 공통 Node.js 버전과 실행 환경은 확인이 필요합니다.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 설치 및 실행
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+저장소 루트에서 실행합니다.
 
+```powershell
+cd src/admin
+npm.cmd ci
+npm.cmd run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+개발 서버 주소는 터미널에 표시된 주소를 사용합니다.
+기본 주소는 `http://localhost:5173`입니다.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+종료하려면 개발 서버 터미널에서 `Ctrl + C`를 누릅니다.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 환경변수
 
+API 연동 시 `.env.example`을 복사합니다.
+
+```powershell
+Copy-Item .env.example .env.local
 ```
+
+- `VITE_API_BASE_URL`: 서버 담당자와 확인한 API 기본 주소
+- 현재 기본값은 빈칸이며 실제 요청은 수행하지 않습니다.
+- 환경변수 변경 후 개발 서버를 다시 실행합니다.
+- `VITE_` 변수는 브라우저에 노출되므로 비밀번호·인증키를 넣지 않습니다.
+- 실제 환경 파일은 Git에 올리지 않습니다.
+
+## 주요 파일
+
+- `src/App.tsx`: 공통 레이아웃과 화면 이동
+- `src/App.css`: 관리자 화면 스타일
+- `src/index.css`: 전역 스타일
+- `src/api.ts`: 공통 JSON 요청과 HTTP 오류 처리
+- `src/components/StatusMessage.tsx`: 공통 상태 표시
+
+## 검증
+
+```powershell
+npm.cmd run build
+npm.cmd run lint
+```
+
+수동 확인 항목:
+
+- 관리자 홈과 각 메뉴 사이 이동
+- 이동한 화면에서 새로고침 후 화면 유지
+- 브라우저 뒤로 가기·앞으로 가기
+- 좁은 화면에서 메뉴와 본문 표시
+- 연결 대기 안내 표시
+
+공통 상태 컴포넌트의 로딩·오류·빈 결과 표시는
+실제 API 연동 시 각 응답 흐름에서도 검증해야 합니다.
+
+## 서버·데이터 담당자와 확인할 사항
+
+- 이진녕: API 주소·경로·요청/응답·오류 형식
+- 이진녕: 로그인 방식·인증 전달·만료 처리·CORS 설정
+- 이진녕: 관리자 API의 서버 측 권한 검사
+- 최재영: 수집 상태·콘텐츠·품질 필드와 상태값
+
+현재 요청 함수는 인증정보를 전송하지 않습니다.
+관리자 권한은 서버에서 검사해야 하며 화면 숨김만으로 대체하지 않습니다.
+위 항목은 협의 대기이며 합의 완료로 기록하지 않습니다.
+
+## 알려진 확인 사항
+
+최초 설치 시 npm audit에서 moderate 취약점 12건이 보고되었습니다.
+세부 영향과 조치 여부는 추가 확인이 필요합니다.

@@ -148,3 +148,15 @@
     padding: 24px 16px;
   }
 }
+.retry-button {
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: #315fd2;
+  color: #fff;
+  cursor: pointer;
+}
+
+.retry-button:hover {
+  background: #244aaa;
+}

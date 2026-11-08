@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
+import StatePreview from './components/StatePreview'
 
 const pages = {
   overview: {
@@ -89,9 +90,7 @@ export default function App() {
           <section className="card">
             <h3>{pages[page].title}</h3>
             <p>{pages[page].description}</p>
-            <div className="empty-state">
-              API 계약 확인 후 목록과 상세 화면을 연결할 예정입니다.
-            </div>
+            <StatePreview />
           </section>
         )}
       </main>
