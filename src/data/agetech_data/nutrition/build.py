@@ -24,9 +24,10 @@ from collections import Counter
 from pathlib import Path
 
 from agetech_data import paths
-from agetech_data.nutrition.fields import NUTRIENT_FIELDS
+from agetech_data.nutrition.dish_eval import evaluate as evaluate_dish_search
+from agetech_data.nutrition.fields import NUTRIENT_FIELDS, SUM_NUTRIENTS
 from agetech_data.nutrition.foods import FoodRecord, clean_foods
-from agetech_data.nutrition.match import FoodIndex, load_ingredient_map, match_ingredient, search_dishes
+from agetech_data.nutrition.match import FoodIndex, load_ingredient_map, match_ingredient
 from agetech_data.nutrition.units import CONVERTED, to_grams
 from agetech_data.recipes.validate import check_recipe, load_rows
 
@@ -34,10 +35,6 @@ SCHEMA_VERSION = 1
 # 레시피 원문 영양값(INFO_*)과 비교할 성분
 COMPARE = {"energy_kcal": "INFO_ENG", "protein_g": "INFO_PRO", "fat_g": "INFO_FAT",
            "carbohydrate_g": "INFO_CAR", "sodium_mg": "INFO_NA"}
-SUM_NUTRIENTS = ["energy_kcal", "protein_g", "fat_g", "carbohydrate_g", "sugars_g", "fiber_g",
-                 "sodium_mg", "potassium_mg", "calcium_mg", "cholesterol_mg", "sat_fat_g"]
-DISH_EXAMPLES = ["김치찌개", "된장찌개", "쌀밥", "미역국", "불고기", "비빔밥", "잡채", "계란말이",
-                 "고등어구이", "제육볶음", "순두부찌개", "김치찌게"]
 
 
 def _rel(p: Path) -> str:
@@ -168,8 +165,7 @@ def main(argv: list[str] | None = None) -> int:
     rows = load_rows(args.recipes)
     recipes = build_recipe_nutrition(rows, foods, entries)
     summary = summarize(recipes, foods, entries)
-    dish_index = FoodIndex(foods, ("음식",))
-    dishes = {q: search_dishes(q, dish_index, limit=3) for q in DISH_EXAMPLES}
+    dishes = evaluate_dish_search(foods)
 
     inputs = {
         "nutrition_raw": {"path": _rel(args.nutrition_raw), "sha256": hashlib.sha256(raw_bytes).hexdigest(),
@@ -187,6 +183,7 @@ def main(argv: list[str] | None = None) -> int:
 
     mi = summary["match_items"]
     print(f"식품 {len(foods)}건 정제 → {_rel(args.foods_out)}")
+    print(f"음식명 검색 정답 표본 {dishes['total']}건: 1순위 일치 {dishes['top1']}, 3순위 안 {dishes['top3']}")
     print(f"레시피 {summary['recipes']}건 재료 {summary['items']}개: " +
           ", ".join(f"{k} {mi.get(k, 0)}" for k in ("exact", "curated", "reviewed", "water", "candidate", "unmapped")))
     print(f"모든 재료가 계산된 레시피 {summary['complete_recipes']}건 → {_rel(args.recipes_out)}")

@@ -91,6 +91,7 @@ class FoodRecord:
     nutrients: dict[str, float | None]  # basis 당 함량
     raw_sha256: str
     quality_flags: list[str] = field(default_factory=list)
+    dish_serving_text: str | None = None  # 1회분량 참고량 원문 (DISH_ONE_SERVING)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -115,6 +116,7 @@ def clean_food(row: dict) -> FoodRecord:
         serving_ref_text=t["serving_ref_text"], source_name=t["source_name"], create_method=t["create_method"],
         research_date=t["research_date"], update_date=t["update_date"],
         nutrients=nutrients, raw_sha256=sha256_json(row), quality_flags=flags,
+        dish_serving_text=t["dish_serving_text"],
     )
     rec.quality_flags += food_flags(rec)
     return rec

@@ -83,3 +83,66 @@ def test_search_dishes_alias_and_egg(dishes):
     assert r[0]["name"] == "국밥_돼지머리"
     assert search_dishes("김치찌게", dishes, aliases={"김치찌게": "김치찌개"})[0]["name"] == "김치찌개"
     assert search_dishes("", dishes, aliases={}) == []
+
+
+def _dish(code, name, unit="g", ref=None, group="음식"):
+    return {"food_code": code, "name": name, "db_group": group, "basis_unit": unit, "ref_name": ref}
+
+
+def test_search_dishes_family_beats_contained_shorter_dish():
+    # '순두부찌개' 단독 행이 없을 때, 이름 안에 들어 있는 '두부찌개'보다 세부 종류가 앞에 와야 한다
+    foods = [_dish("D1", "두부찌개", "mL", "두부찌개"), _dish("D2", "순두부찌개_해물", "mL", "순두부찌개"),
+             _dish("D3", "순두부찌개_김치", "g", "순두부찌개")]
+    r = search_dishes("순두부찌개", FoodIndex(foods, ("음식",)), aliases={})
+    assert [(c["name"], c["match"]) for c in r[:2]] == [("순두부찌개_김치", "family"), ("순두부찌개_해물", "family")]
+    assert r[2]["name"] == "두부찌개" and r[2]["match"] == "partial"
+
+
+def test_search_dishes_exact_name_beats_family(dishes):
+    r = search_dishes("기장밥", dishes, aliases={})
+    assert r[0]["match"] == "name" and r[0]["db_group"] == "음식"
+
+
+def test_search_dishes_raw_fallback(dishes, index):
+    assert search_dishes("양파", dishes, aliases={}) == []          # 음식 DB군만 보면 없음
+    r = search_dishes("양파", dishes, aliases={}, raw_index=index)
+    assert (r[0]["name"], r[0]["match"], r[0]["db_group"]) == ("양파, 생것", "ingredient", "원재료성")
+    # 음식명 일치가 있으면 원재료성 후보를 붙이지 않는다
+    assert all(c["match"] != "ingredient" for c in search_dishes("달걀말이", dishes, aliases={}, raw_index=index))
+
+
+def test_search_dishes_weak_raw_after_dish():
+    foods = [_dish("D1", "소불고기", "g", "소불고기"), _dish("R1", "소불고기, 볶은것", "g", None, "원재료성")]
+    r = search_dishes("불고기", FoodIndex(foods, ("음식",)), aliases={}, raw_index=FoodIndex(foods, ("원재료성",)))
+    assert [(c["name"], c["match"]) for c in r] == [("소불고기", "partial"), ("소불고기, 볶은것", "ingredient")]
+
+
+def test_search_dishes_alias_food_code(dishes, index):
+    aliases = {"양파반찬": {"food_code": "R106-132000001-0000"}}
+    r = search_dishes("양파반찬", dishes, aliases=aliases, raw_index=index)
+    assert (r[0]["food_code"], r[0]["match"], r[0]["score"]) == ("R106-132000001-0000", "alias_code", 1.0)
+    # 식품코드를 찾을 색인이 없으면 지정 후보 없이 일반 검색만 한다
+    assert all(c["match"] != "alias_code" for c in search_dishes("양파반찬", dishes, aliases=aliases))
+
+
+def test_normalize_dish_query():
+    from agetech_data.nutrition.match import normalize_dish_query
+
+    assert normalize_dish_query(" 계란 말이 ", {}) == ("달걀말이", None)
+    assert normalize_dish_query("공깃밥", {"공깃밥": "쌀밥"}) == ("쌀밥", None)
+    assert normalize_dish_query("김치", {"김치": {"food_code": "R1"}}) == ("김치", "R1")
+
+
+def test_search_dishes_name_matches_prefer_gram_even_if_swapped():
+    # 100g 기준은 이름 순서가 바뀐 '무국_소고기'에만 있을 때, 정확히 같은 이름의 100mL 행보다 앞에 둔다
+    foods = [_dish("D5", "소고기 무국", "mL"), _dish("D1", "무국_소고기", "g", "무국")]
+    r = search_dishes("소고기무국", FoodIndex(foods, ("음식",)), aliases={})
+    assert [(c["name"], c["basis_unit"]) for c in r] == [("무국_소고기", "g"), ("소고기 무국", "mL")]
+
+
+def test_raw_fallback_single_char_needs_same_head():
+    foods = [_dish("R1", "떡조개, 생것", "g", None, "원재료성"), _dish("R2", "귤, 온주밀감, 생것", "g", None, "원재료성")]
+    raw = FoodIndex(foods, ("원재료성",))
+    empty = FoodIndex([], ("음식",))
+    assert search_dishes("떡", empty, aliases={}, raw_index=raw) == []
+    assert [c["name"] for c in search_dishes("귤", empty, aliases={}, raw_index=raw)] == ["귤, 온주밀감, 생것"]
