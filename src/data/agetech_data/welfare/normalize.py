@@ -62,6 +62,12 @@ _TAG = re.compile(r"<[^>]+>")
 _BR = re.compile(r"<br\s*/?>", re.I)
 _URL = re.compile(r"^https?://\S+$", re.I)
 _DOMAIN = re.compile(r"^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}(/\S*)?$", re.I)
+# '첨부파일없음.hwp'처럼 첨부가 없다는 자리 표시 파일 — 내려받을 서식이 아니다 (11/06 수집본 88건)
+_PLACEHOLDER_FORM = re.compile(r"^(첨부\s*파일\s*)?없음\.(hwpx?|pdf|docx?)$", re.I)
+
+
+def is_placeholder_form(entry: dict) -> bool:
+    return bool(_PLACEHOLDER_FORM.match((entry.get("name") or "").strip()))
 
 
 def clean_text(v: str | None) -> str | None:
@@ -221,6 +227,10 @@ def normalize_item(item: dict, source: str, fetched_at: str | None, as_of: date)
     groups = _groups(item.get("detail_xml"))
     if any(e["link_status"] == "not_url" for e in groups["homepages"]):
         flags.append("homepage_not_url")
+    if any(is_placeholder_form(e) for e in groups["forms"]):
+        # 자리 표시 파일은 서식 목록에서 뺀다(원문은 data/raw 에 그대로)
+        groups["forms"] = [e for e in groups["forms"] if not is_placeholder_form(e)]
+        flags.append("placeholder_form")
     unverified = [k for k in DETAIL_KEY_FIELDS if not text[k]]
     if source == "local" and not text["apply_detail"]:
         unverified.append("apply_detail")

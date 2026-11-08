@@ -5,7 +5,8 @@ import pytest
 
 from agetech_data import paths
 from agetech_data.welfare import build
-from agetech_data.welfare.normalize import clean_text, normalize_item, normalize_payload, parse_ymd, split_list
+from agetech_data.welfare.normalize import (clean_text, is_placeholder_form, normalize_item, normalize_payload, parse_ymd,
+                                            split_list)
 from agetech_data.welfare.query import services_for
 from agetech_data.welfare.regions import MERGED, match_sgg, normalize_ctpv, normalize_sgg
 
@@ -130,6 +131,25 @@ def test_local_detail_entries_use_common_keys_and_link_status():
     assert r.homepages[2]["value"] == "목포시청"
     assert (r.forms[0]["url"], r.forms[0]["link_status"]) == ("https://www.bokjiro.go.kr/f?id=1&sn=1", "ok")
     assert "homepage_not_url" in r.quality_flags and r.unverified_fields == []
+    assert "placeholder_form" not in r.quality_flags
+
+
+@pytest.mark.parametrize("name,placeholder", [("첨부파일없음.hwp", True), ("없음.hwp", True), ("첨부 파일 없음.pdf", True),
+                                              ("신청서.hwp", False), ("없음안내문.hwp", False)])
+def test_placeholder_forms_are_dropped(name, placeholder):
+    """'첨부파일없음.hwp'는 내려받을 서식이 아니다 — 서식 목록에서 빼고 사업에 표시한다(원문은 data/raw 그대로)."""
+    xml = ("<wantedDtl><resultCode>0</resultCode>"
+           f"<basfrmList><wlfareInfoReldNm>{name}</wlfareInfoReldNm>"
+           "<wlfareInfoReldCn>https://www.bokjiro.go.kr/f?id=9&amp;sn=1</wlfareInfoReldCn></basfrmList>"
+           "<basfrmList><wlfareInfoReldNm>신청서2.hwp</wlfareInfoReldNm>"
+           "<wlfareInfoReldCn>https://www.bokjiro.go.kr/f?id=9&amp;sn=2</wlfareInfoReldCn></basfrmList>"
+           "</wantedDtl>")
+    item = _local("WLF00000011", "경상북도", "경산시", status="fresh", detail={"servId": "WLF00000011"})
+    item["detail_xml"] = xml
+    r = normalize_item(item, "local", None, AS_OF)
+    names = [f["name"] for f in r.forms]
+    assert (name not in names) == placeholder and "신청서2.hwp" in names
+    assert ("placeholder_form" in r.quality_flags) == placeholder
 
 
 def test_period_ended_and_unknown_ctpv_flags():
@@ -209,7 +229,9 @@ def test_real_welfare_regression():
     entries = [e for r in recs for e in r.contacts + r.homepages + r.apply_guides + r.laws + r.forms]
     assert all(e["name"] or e["value"] for e in entries)
     assert {e["link_status"] for r in recs for e in r.homepages + r.forms} <= {"ok", "scheme_added", "not_url"}
-    fresh = [r for r in recs if r.detail_status == "fresh"]
+    assert not [f for r in recs for f in r.forms if is_placeholder_form(f)]   # 자리 표시 서식은 남지 않는다
+    assert sum("placeholder_form" in r.quality_flags for r in recs) >= 80     # 11/06 수집본 88개 사업
+    fresh =[r for r in recs if r.detail_status == "fresh"]
     assert sum(bool(r.target_detail) for r in fresh) >= 0.95 * len(fresh)
     q, m = services_for(recs, "광주광역시", "광산구")
     assert q.ctpv == MERGED and any(x["match"] == "district" for x in m)

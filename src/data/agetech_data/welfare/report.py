@@ -10,7 +10,8 @@ DETAIL_LABEL = {"fresh": "이번 갱신에서 받음", "cached": "캐시 재사�
                 "pending": "상세 미수집(목록 정보만)"}
 FLAG_LABEL = {"detail_pending": "상세 미수집", "detail_stale": "상세 갱신 대기", "period_ended": "시행 기간 종료",
               "no_official_link": "복지로 공식 링크 없음", "unknown_ctpv": "시도명 미인식",
-              "homepage_not_url": "관련 누리집 값이 주소가 아님(기관명 등)"}
+              "homepage_not_url": "관련 누리집 값이 주소가 아님(기관명 등)",
+              "placeholder_form": "'첨부파일없음.hwp' 같은 자리 표시 서식을 목록에서 뺌"}
 FIELD_LABEL = {"summary": "서비스 요약", "target_detail": "지원 대상", "selection_criteria": "선정 기준",
                "benefits": "지원 내용", "apply_detail": "신청 방법 설명", "apply_methods": "신청 방법(구분)",
                "target_groups": "대상 특성", "themes": "관심 주제", "contacts": "문의처 목록",

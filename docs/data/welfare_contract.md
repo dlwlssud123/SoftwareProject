@@ -49,7 +49,7 @@
 | `detail_fetched_at`, `source_fetched_at` | ISO 시각·null | | 상세·목록 확인 시각 (UTC) |
 | `raw_sha256` | 문자열 | | 원문 항목 해시 |
 | `unverified_fields` | 문자열 배열 | | 안내에 필요한데 아직 확인 못 한 필드 |
-| `quality_flags` | 문자열 배열 | | `detail_pending`, `detail_stale`, `period_ended`, `no_official_link`, `unknown_ctpv`, `homepage_not_url`, `invalid_date:<필드>` |
+| `quality_flags` | 문자열 배열 | | `detail_pending`, `detail_stale`, `period_ended`, `no_official_link`, `unknown_ctpv`, `homepage_not_url`, `placeholder_form`(자리 표시 서식을 뺌), `invalid_date:<필드>` |
 
 텍스트는 HTML 엔티티·`<br>`(줄바꿈)·태그만 정리하고 내용은 바꾸지 않는다. 원문은 `data/raw/welfare/`에 그대로 있다.
 
@@ -70,9 +70,10 @@
 | `raw` | 원천 하위 태그 그대로 (추적용) |
 
 - 이름·값 없이 구분 코드만 있는 항목은 뺀다.
+- `첨부파일없음.hwp`·`없음.hwp`처럼 첨부가 없다는 **자리 표시 파일은 서식(`forms`)에서 뺀다.** 사업에는 `placeholder_form`을 붙인다(원문은 `data/raw/welfare/`에 그대로).
 - 중앙은 신청 방법 설명(`apply_detail`)이 없고 `apply_guides`에 단계별 기관 안내가 있다. 지자체는 `apply_guides`가 없다.
 - 원문 오타는 고치지 않는다. 예: `https;//www.ulleung.go.kr`, `강원특별자치도청(www.provin.gangwon.kr)`은 `not_url`로 남는다.
-- 전체 1,468건 상세 확인(11/06) 기준: 서식 링크 1,644개는 모두 `ok`, 누리집은 `ok` 208 / `scheme_added` 79 / `not_url` 20. 지자체 신청 방법 설명(`apply_detail`)이 원천에 없는 사업은 1,338건 중 258건.
+- 전체 1,468건 상세 확인(11/06) 기준: 서식 링크 1,556개는 모두 `ok`(자리 표시 파일 88건은 뺌 — 88개 사업, 그중 77개는 서식이 없어짐), 누리집은 `ok` 208 / `scheme_added` 79 / `not_url` 20. 지자체 신청 방법 설명(`apply_detail`)이 원천에 없는 사업은 1,338건 중 258건.
 
 ## 3. 지역별 조회 (서버 연동용)
 
