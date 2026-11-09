@@ -107,6 +107,8 @@ def build_recipe_nutrition(rows: list[dict], foods: list[FoodRecord], entries) -
 
 
 def summarize(recipes: list[dict], foods: list[FoodRecord], entries) -> dict:
+    from agetech_data.nutrition.corrections import load_corrections
+
     items = [i for r in recipes for i in r["ingredients"]]
     grams_by_status: Counter = Counter()
     for i in items:
@@ -140,6 +142,12 @@ def summarize(recipes: list[dict], foods: list[FoodRecord], entries) -> dict:
             "flags": dict(Counter(fl for f in foods for fl in f.quality_flags).most_common()),
             "missing_pct": {k: round(100 * sum(f.nutrients[k] is None for f in foods) / max(len(foods), 1), 1)
                             for k in SUM_NUTRIENTS},
+            # 원천 오류 보정 (resources/food_corrections.json, clean_foods 에서 적용됨)
+            "corrections": [{"food_code": f.food_code, "name": f.name, **c} for f in foods for c in f.corrections],
+            "corrections_stale": [{"food_code": f.food_code, "name": f.name} for f in foods
+                                  if "correction_stale" in f.quality_flags],
+            "corrections_missing": sorted({c["food_code"] for c in load_corrections()}
+                                          - {f.food_code for f in foods}),
         },
         "manual_map": {"entries": len(entries), "reviewed": sum(bool(e.get("reviewed_by")) for e in entries),
                        "codes": len(used_codes)},
