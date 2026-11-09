@@ -63,8 +63,9 @@ def render_report(inputs: dict, s: dict, recipes: list[dict], dishes: dict[str, 
           f"g 환산된 재료 무게(물 제외) 기준 **{_pct(round(g_used), round(g_all))}**",
           f"- 모든 재료(물 제외)가 영양 계산에 들어간 레시피 **{s['complete_recipes']}건**. "
           "나머지는 개수 단위·정성 분량·미매핑 재료가 있어 합계가 부분값입니다.",
-          f"- 수동 매핑표 {s['manual_map']['entries']}건 중 사람 확인 {s['manual_map']['reviewed']}건 "
-          "(나머지는 근거만 적은 `curated`, PR 리뷰에서 확인 요청)", ""]
+          f"- 수동 매핑표 {s['manual_map']['entries']}건 중 사람 확인 {s['manual_map']['reviewed']}건"
+          + ("" if s["manual_map"]["reviewed"] == s["manual_map"]["entries"]
+             else " (나머지는 근거만 적은 `curated`, PR 리뷰에서 확인 요청)"), ""]
     L += _table(["매핑 상태", "의미", "영양 계산", "항목 수", "비율", "g (환산분)", "무게 비율(물 제외)"], [
         [f"`{k}`", MATCH_LABEL[k][0], MATCH_LABEL[k][1], mi.get(k, 0), _pct(mi.get(k, 0), n_items),
          _fmt(mg.get(k), 0), "-" if k == "water" else _pct(round(mg.get(k, 0)), round(g_all))]
@@ -88,18 +89,21 @@ def render_report(inputs: dict, s: dict, recipes: list[dict], dishes: dict[str, 
           "- `candidate`는 유사도 상위 후보만 제시하며 영양 계산에 쓰지 않습니다."]
 
     cur = [d for d in s["review"] if d["status"] == "curated"]
+    mm = s["manual_map"]
     L += ["", f"## 3. 검토 대기: 수동 매핑(`curated`) {len(cur)}종", "",
-          "근거만 적고 사람이 확인하지 않은 매핑입니다. 확인 후 매핑표의 `reviewed_by`·`reviewed_at`을 채우면 `reviewed`가 됩니다.", ""]
+          "근거만 적고 사람이 확인하지 않은 매핑입니다. 확인 후 매핑표의 `reviewed_by`·`reviewed_at`을 채우면 `reviewed`가 됩니다. "
+          f"(매핑표 {mm['entries']}건 중 확인 완료 {mm['reviewed']}건)", ""]
     L += _table(["재료명", "식품명", "근거", "사용 횟수", "g"], [
         [d["name"], d["food_name"], d["rationale"], d["count"], _fmt(d["grams"], 0)] for d in cur
     ]) if cur else ["없음."]
 
     rest = [d for d in s["review"] if d["status"] in ("candidate", "unmapped")]
     L += ["", f"## 4. 식품코드가 정해지지 않은 재료 {len(rest)}종", "",
-          "부위·품종·가공 형태를 원문만으로 정할 수 없거나 DB에 대응 식품이 없는 재료입니다. 영양 계산에서 빠집니다.", ""]
-    L += _table(["재료명", "상태", "사용 횟수", "g", "상위 후보 (식품명·점수)"], [
+          "부위·품종·가공 형태를 원문만으로 정할 수 없거나 DB에 대응 식품이 없는 재료입니다. 영양 계산에서 빠집니다. "
+          "`unmapped` 중 근거가 있는 것은 매핑표에서 '매핑하지 않음'으로 정한 것입니다(먹지 않는 약재·이중 계산되는 소스 등).", ""]
+    L += _table(["재료명", "상태", "사용 횟수", "g", "결정 근거 / 상위 후보 (식품명·점수)"], [
         [d["name"], f"`{d['status']}`", d["count"], _fmt(d["grams"], 0),
-         "; ".join(f"{c['name']} ({c['score']:.2f})" for c in d["candidates"]) or "-"] for d in rest
+         d["rationale"] or "; ".join(f"{c['name']} ({c['score']:.2f})" for c in d["candidates"]) or "-"] for d in rest
     ]) if rest else ["없음."]
 
     L += ["", "## 5. 레시피 원문 영양값과 비교 (참고)", "",
@@ -144,6 +148,7 @@ def render_report(inputs: dict, s: dict, recipes: list[dict], dishes: dict[str, 
     L += ["", "## 8. 원칙과 제한", "",
           "- 원문 분량(`amount_text`)과 재료명은 바꾸지 않습니다. g 환산·매핑 결과는 근거와 함께 별도 필드로 둡니다.",
           "- 개수 단위(개·장·알 등)는 출처 있는 개당 중량표가 없어 환산하지 않습니다. 근거 자료가 생기면 추가합니다.",
-          "- `curated` 매핑의 '(검토 필요)' 항목은 품종·형태를 원문에서 알 수 없어 고른 것으로, 영양값 차이를 리뷰에서 확인해야 합니다.",
+          "- 부위·품종이 적히지 않은 재료(돼지고기·소고기 → 앞다리, 새우 → 대하 등)는 매핑표의 기본값으로 계산하며, 고른 이유는 매핑표 근거에 있습니다.",
+          "- 저염 제품 항목이 없는 재료(저염된장·저염소금)는 일반 제품으로 근사해 **나트륨이 실제보다 많게** 잡힙니다.",
           "- DB 적재는 공통 저장 구조(API·DB 담당) 확정 후 진행합니다. 필드 정의는 `docs/data/food_nutrition_contract.md`를 따릅니다."]
     return "\n".join(L) + "\n"
