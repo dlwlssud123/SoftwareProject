@@ -44,6 +44,10 @@ WELFARE_LOCAL_RAW = WELFARE_RAW_DIR / "local_elderly.json"
 REFRESH_STATUS = PROCESSED_DIR / "refresh_status.json"
 REFRESH_LOG = PROCESSED_DIR / "refresh_log.jsonl"
 
+# 복지 정제 결과(gitignore)와 지역별 보고서(커밋)
+WELFARE_PROCESSED = PROCESSED_DIR / "welfare_elderly.json"
+WELFARE_REGIONAL_REPORT = REPORTS_DIR / "welfare_regional_report.md"
+
 # 영양 매핑 가공 결과(gitignore)와 보고서(커밋)
 FOODS_PROCESSED = PROCESSED_DIR / "foods_v03.json"
 RECIPE_NUTRITION = PROCESSED_DIR / "recipe_ingredient_nutrition.json"
