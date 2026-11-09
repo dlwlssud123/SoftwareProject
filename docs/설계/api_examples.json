@@ -1,0 +1,462 @@
+{
+  "description": "실제 공개 원천의 DTO 표본. 서버 조회/추천 결과가 아니며 DB 판본은 미연결(null). request_id는 예시 값.",
+  "requests": {
+    "recipe_list": {
+      "method": "GET",
+      "path": "/api/v1/recipes?limit=20&offset=0&exclude_allergens=알류&exclude_allergens=우유"
+    },
+    "recipe_detail": {
+      "method": "GET",
+      "path": "/api/v1/recipes/108"
+    },
+    "recipe_recommendation": {
+      "method": "POST",
+      "path": "/api/v1/meal/recommendations",
+      "body": {
+        "meal_time": "lunch",
+        "exclude_allergens": [
+          "알류",
+          "우유"
+        ],
+        "exclude_ingredients": [],
+        "limit": 5
+      }
+    },
+    "welfare_list": {
+      "method": "GET",
+      "path": "/api/v1/welfare?limit=20&offset=0&scope=central_nationwide"
+    },
+    "welfare_detail": {
+      "method": "GET",
+      "path": "/api/v1/welfare/WLF00000060"
+    },
+    "welfare_recommendation": {
+      "method": "POST",
+      "path": "/api/v1/welfare/recommendations",
+      "body": {
+        "age": 70,
+        "region": "대구",
+        "district": "남구",
+        "lives_alone": true,
+        "limit": 5
+      }
+    }
+  },
+  "responses": {
+    "recipe_detail": {
+      "data": {
+        "recipe_id": "108",
+        "name": "오렌지와 당근 만남주스",
+        "category": "후식",
+        "cooking_method": "기타",
+        "hashtag": null,
+        "images": {
+          "small": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00108_1.png",
+          "large": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00108_1.png"
+        },
+        "ingredients_text": "오렌지 당근펀치\n당근 100g(1/2개), 오렌지 100g(1/2개)",
+        "ingredients": [
+          {
+            "order_no": 1,
+            "section": "오렌지 당근펀치",
+            "name": "당근",
+            "name_raw": "당근",
+            "amount_text": "100g(1/2개)",
+            "amount": 100.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          },
+          {
+            "order_no": 2,
+            "section": "오렌지 당근펀치",
+            "name": "오렌지",
+            "name_raw": "오렌지",
+            "amount_text": "100g(1/2개)",
+            "amount": 100.0,
+            "unit": "g",
+            "amount_kind": "measured"
+          }
+        ],
+        "steps": [
+          {
+            "no": 1,
+            "text": "오렌지는 깨끗이 씻어 껍질을 벗긴다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_1.jpg",
+            "source_field": "MANUAL01"
+          },
+          {
+            "no": 2,
+            "text": "당근은 깨끗이 씻어 작은 토막으로 썬다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_2.jpg",
+            "source_field": "MANUAL02"
+          },
+          {
+            "no": 3,
+            "text": "당근, 오렌지, 물(50ml)을 믹서에 곱게 간다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_3.jpg",
+            "source_field": "MANUAL03"
+          },
+          {
+            "no": 4,
+            "text": "믹서에 갈아낸 주스는 고운 체로 거른다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_4.jpg",
+            "source_field": "MANUAL04"
+          },
+          {
+            "no": 5,
+            "text": "주스를 살얼음이 생길 만큼 시원하게 냉동한다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_5.jpg",
+            "source_field": "MANUAL05"
+          },
+          {
+            "no": 6,
+            "text": "컵에 담아 마무리한다.",
+            "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_6.jpg",
+            "source_field": "MANUAL06"
+          }
+        ],
+        "missing_step_nos": [],
+        "nutrition": {
+          "basis": "per_serving_unverified",
+          "serving_weight_g": 250.0,
+          "ingredient_servings": null,
+          "energy_kcal": 60.0,
+          "carbohydrate_g": 14.0,
+          "protein_g": 1.0,
+          "fat_g": 0.0,
+          "sodium_mg": 76.0,
+          "energy_from_macros_kcal": 60.0,
+          "energy_ratio": 1.0,
+          "suspect": false
+        },
+        "sodium_tip": "시판되는 대부분의 주스는 가공되고 농축되는 과정에서 나트륨이 첨가되는 경우가 있어 과일, 채소를 직접 갈아 마시면 나트륨 섭취를 줄일 수 있어요.",
+        "allergens": {
+          "basis": "ingredient_name",
+          "detected": [],
+          "needs_check": [],
+          "not_determinable": [
+            "아황산류"
+          ],
+          "complete": true
+        },
+        "quality": {
+          "status": "ok",
+          "issues": [],
+          "info_codes": [],
+          "missing_fields": [
+            "HASH_TAG"
+          ]
+        },
+        "source": {
+          "provider": "식품안전나라",
+          "service": "COOKRCP01",
+          "source_id": "108",
+          "fetched_at": "2026-10-26T07:46:53.482870Z",
+          "raw_sha256": "a820e3619ada32d09f10e062b8574d16869b8c8777cd428581a84870d050385b",
+          "revision_id": null
+        }
+      },
+      "meta": {
+        "request_id": "00000000-0000-4000-8000-000000000001",
+        "revision": null,
+        "checked_at": null
+      }
+    },
+    "welfare_detail": {
+      "data": {
+        "service_id": "WLF00000060",
+        "scope": "central_nationwide",
+        "title": "청년내일저축계좌",
+        "summary": "근로빈곤층 청년의 생계수급자 등으로의 하락을 사전에 예방하고, 일하는 중간계층 청년이 사회에 안착할 수 있도록 자산형성을 지원합니다. (2026년 모집기간: '26.5.4.(월) ~ '26.5.20.(수))",
+        "target_text": "가입연령 : 신청 당시 만 15세~ 39세 ※ 신청 월의 전월에 만 15세가 된 자 ~ 신청 월에 만 40세가 되는 자\n근로·사업소득 : 근로,사업소득이 월10만원 이상 발생\n가구소득 : 소득인정액 기준 중위소득 50% 이하",
+        "selection_text": "지원대상의 내용을 참고해주시기 바랍니다.",
+        "benefit_text": "매월 본인 저축 납입자에 한하여 본인저축액 10만원 이상(매월 전월 23일~현월 22일 입금마감일 이전) 대비 정부지원금을 정액 매칭합니다.\n중위소득 50%초과~100%이하 : 10만원 정액 매칭\n중위소득 50%이하 : 30만원 정액 매칭(3년간 통장유지, 근로활동 지속, 교육이수, 자금사용계획서 제출시 적립금 전액 지급)\n정책대상별 추가지원금(근로소득공제금(생계급여 수급 청년), 탈수급장려금, 내일키움장려금, 내일키움수익금 등) 지급이 가능합니다.",
+        "application": [
+          {
+            "method": "신청기관연락처목록",
+            "description": "거주지 읍/면/동 주민센터, 주민센터 또는 복지로 웹사이트(PC/모바일앱)에서 ‘서비스 신청’"
+          },
+          {
+            "method": "신청기관연락처목록",
+            "description": "거주지 읍/면/동 주민센터, 복지로(www.bokjiro.go.kr) 또는 복지로 웹사이트(PC/모바일앱)에서 ‘서비스 신청’"
+          },
+          {
+            "method": "조사기관연락처목록",
+            "description": "담당 시/군/구청 또는 주민센터에서 조사 및 심사"
+          },
+          {
+            "method": "결정기관연락처목록",
+            "description": "담당 시/군/구청 또는 시군구에서 보장 결정"
+          },
+          {
+            "method": "지급기관연락처목록",
+            "description": "담당 시/군/구청 또는 한국자활복지개발원에서 대상자에게 서비스 제공"
+          },
+          {
+            "method": "사후관리기관목록",
+            "description": "담당 시/군/구청 또는 시군구에서 서비스 제공 이후 대상자의 상황 관리"
+          }
+        ],
+        "contacts": [
+          {
+            "name": "보건복지상담센터",
+            "contact": "129"
+          },
+          {
+            "name": "자산형성지원 콜센터",
+            "contact": "1522-3690"
+          }
+        ],
+        "criteria_year": "2026",
+        "application_status": "unknown",
+        "detail_state": "ready",
+        "quality_status": "ok",
+        "issues": [],
+        "source": {
+          "provider": "한국사회보장정보원 / 복지로",
+          "source_id": "WLF00000060",
+          "source_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00000060&wlfareInfoReldBztpCd=01",
+          "checked_at": "2026-11-04T22:53:51Z",
+          "detail_checked_at": "2026-11-04T22:53:51Z",
+          "raw_sha256": "ad773984699c855f10cab6d4da0f020637e0a20e38e6c5967d2e7d53952fa9f8",
+          "revision_id": null
+        }
+      },
+      "meta": {
+        "request_id": "00000000-0000-4000-8000-000000000001",
+        "revision": null,
+        "checked_at": null
+      }
+    },
+    "recipe_list": {
+      "data": {
+        "items": [
+          {
+            "recipe_id": "108",
+            "name": "오렌지와 당근 만남주스",
+            "category": "후식",
+            "cooking_method": "기타",
+            "hashtag": null,
+            "images": {
+              "small": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00108_1.png",
+              "large": "https://www.foodsafetykorea.go.kr/uploadimg/cook/10_00108_1.png"
+            },
+            "ingredients_text": "오렌지 당근펀치\n당근 100g(1/2개), 오렌지 100g(1/2개)",
+            "ingredients": [
+              {
+                "order_no": 1,
+                "section": "오렌지 당근펀치",
+                "name": "당근",
+                "name_raw": "당근",
+                "amount_text": "100g(1/2개)",
+                "amount": 100.0,
+                "unit": "g",
+                "amount_kind": "measured"
+              },
+              {
+                "order_no": 2,
+                "section": "오렌지 당근펀치",
+                "name": "오렌지",
+                "name_raw": "오렌지",
+                "amount_text": "100g(1/2개)",
+                "amount": 100.0,
+                "unit": "g",
+                "amount_kind": "measured"
+              }
+            ],
+            "steps": [
+              {
+                "no": 1,
+                "text": "오렌지는 깨끗이 씻어 껍질을 벗긴다.",
+                "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_1.jpg",
+                "source_field": "MANUAL01"
+              },
+              {
+                "no": 2,
+                "text": "당근은 깨끗이 씻어 작은 토막으로 썬다.",
+                "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_2.jpg",
+                "source_field": "MANUAL02"
+              },
+              {
+                "no": 3,
+                "text": "당근, 오렌지, 물(50ml)을 믹서에 곱게 간다.",
+                "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_3.jpg",
+                "source_field": "MANUAL03"
+              },
+              {
+                "no": 4,
+                "text": "믹서에 갈아낸 주스는 고운 체로 거른다.",
+                "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_4.jpg",
+                "source_field": "MANUAL04"
+              },
+              {
+                "no": 5,
+                "text": "주스를 살얼음이 생길 만큼 시원하게 냉동한다.",
+                "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_5.jpg",
+                "source_field": "MANUAL05"
+              },
+              {
+                "no": 6,
+                "text": "컵에 담아 마무리한다.",
+                "image": "https://www.foodsafetykorea.go.kr/uploadimg/cook/20_00108_6.jpg",
+                "source_field": "MANUAL06"
+              }
+            ],
+            "missing_step_nos": [],
+            "nutrition": {
+              "basis": "per_serving_unverified",
+              "serving_weight_g": 250.0,
+              "ingredient_servings": null,
+              "energy_kcal": 60.0,
+              "carbohydrate_g": 14.0,
+              "protein_g": 1.0,
+              "fat_g": 0.0,
+              "sodium_mg": 76.0,
+              "energy_from_macros_kcal": 60.0,
+              "energy_ratio": 1.0,
+              "suspect": false
+            },
+            "sodium_tip": "시판되는 대부분의 주스는 가공되고 농축되는 과정에서 나트륨이 첨가되는 경우가 있어 과일, 채소를 직접 갈아 마시면 나트륨 섭취를 줄일 수 있어요.",
+            "allergens": {
+              "basis": "ingredient_name",
+              "detected": [],
+              "needs_check": [],
+              "not_determinable": [
+                "아황산류"
+              ],
+              "complete": true
+            },
+            "quality": {
+              "status": "ok",
+              "issues": [],
+              "info_codes": [],
+              "missing_fields": [
+                "HASH_TAG"
+              ]
+            },
+            "source": {
+              "provider": "식품안전나라",
+              "service": "COOKRCP01",
+              "source_id": "108",
+              "fetched_at": "2026-10-26T07:46:53.482870Z",
+              "raw_sha256": "a820e3619ada32d09f10e062b8574d16869b8c8777cd428581a84870d050385b",
+              "revision_id": null
+            }
+          }
+        ],
+        "limit": 20,
+        "offset": 0,
+        "total": 1
+      },
+      "meta": {
+        "request_id": "00000000-0000-4000-8000-000000000001",
+        "revision": null,
+        "checked_at": null
+      }
+    },
+    "welfare_list": {
+      "data": {
+        "items": [
+          {
+            "service_id": "WLF00000060",
+            "scope": "central_nationwide",
+            "title": "청년내일저축계좌",
+            "summary": "근로빈곤층 청년의 생계수급자 등으로의 하락을 사전에 예방하고, 일하는 중간계층 청년이 사회에 안착할 수 있도록 자산형성을 지원합니다. (2026년 모집기간: '26.5.4.(월) ~ '26.5.20.(수))",
+            "target_text": "가입연령 : 신청 당시 만 15세~ 39세 ※ 신청 월의 전월에 만 15세가 된 자 ~ 신청 월에 만 40세가 되는 자\n근로·사업소득 : 근로,사업소득이 월10만원 이상 발생\n가구소득 : 소득인정액 기준 중위소득 50% 이하",
+            "selection_text": "지원대상의 내용을 참고해주시기 바랍니다.",
+            "benefit_text": "매월 본인 저축 납입자에 한하여 본인저축액 10만원 이상(매월 전월 23일~현월 22일 입금마감일 이전) 대비 정부지원금을 정액 매칭합니다.\n중위소득 50%초과~100%이하 : 10만원 정액 매칭\n중위소득 50%이하 : 30만원 정액 매칭(3년간 통장유지, 근로활동 지속, 교육이수, 자금사용계획서 제출시 적립금 전액 지급)\n정책대상별 추가지원금(근로소득공제금(생계급여 수급 청년), 탈수급장려금, 내일키움장려금, 내일키움수익금 등) 지급이 가능합니다.",
+            "application": [
+              {
+                "method": "신청기관연락처목록",
+                "description": "거주지 읍/면/동 주민센터, 주민센터 또는 복지로 웹사이트(PC/모바일앱)에서 ‘서비스 신청’"
+              },
+              {
+                "method": "신청기관연락처목록",
+                "description": "거주지 읍/면/동 주민센터, 복지로(www.bokjiro.go.kr) 또는 복지로 웹사이트(PC/모바일앱)에서 ‘서비스 신청’"
+              },
+              {
+                "method": "조사기관연락처목록",
+                "description": "담당 시/군/구청 또는 주민센터에서 조사 및 심사"
+              },
+              {
+                "method": "결정기관연락처목록",
+                "description": "담당 시/군/구청 또는 시군구에서 보장 결정"
+              },
+              {
+                "method": "지급기관연락처목록",
+                "description": "담당 시/군/구청 또는 한국자활복지개발원에서 대상자에게 서비스 제공"
+              },
+              {
+                "method": "사후관리기관목록",
+                "description": "담당 시/군/구청 또는 시군구에서 서비스 제공 이후 대상자의 상황 관리"
+              }
+            ],
+            "contacts": [
+              {
+                "name": "보건복지상담센터",
+                "contact": "129"
+              },
+              {
+                "name": "자산형성지원 콜센터",
+                "contact": "1522-3690"
+              }
+            ],
+            "criteria_year": "2026",
+            "application_status": "unknown",
+            "detail_state": "ready",
+            "quality_status": "ok",
+            "issues": [],
+            "source": {
+              "provider": "한국사회보장정보원 / 복지로",
+              "source_id": "WLF00000060",
+              "source_url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00000060&wlfareInfoReldBztpCd=01",
+              "checked_at": "2026-11-04T22:53:51Z",
+              "detail_checked_at": "2026-11-04T22:53:51Z",
+              "raw_sha256": "ad773984699c855f10cab6d4da0f020637e0a20e38e6c5967d2e7d53952fa9f8",
+              "revision_id": null
+            }
+          }
+        ],
+        "limit": 20,
+        "offset": 0,
+        "total": 1
+      },
+      "meta": {
+        "request_id": "00000000-0000-4000-8000-000000000001",
+        "revision": null,
+        "checked_at": null
+      }
+    },
+    "empty_list": {
+      "data": {
+        "items": [],
+        "limit": 20,
+        "offset": 0,
+        "total": 0
+      },
+      "meta": {
+        "request_id": "00000000-0000-4000-8000-000000000001",
+        "revision": null,
+        "checked_at": null
+      }
+    },
+    "validation_error": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "입력값을 확인해 주세요.",
+        "fields": [
+          {
+            "field": "body.age",
+            "reason": "less_than_equal"
+          }
+        ],
+        "retryable": false
+      },
+      "meta": {
+        "request_id": "00000000-0000-4000-8000-000000000001",
+        "revision": null,
+        "checked_at": null
+      }
+    }
+  }
+}

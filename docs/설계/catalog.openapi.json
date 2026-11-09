@@ -1,0 +1,1752 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ValueFlow 예정 카탈로그 API 계약",
+    "version": "2026-11-07",
+    "description": "앱·관리자 DTO 선행 개발용. 실제 서버 명세는 openapi.json."
+  },
+  "paths": {
+    "/api/v1/meal/recommendations": {
+      "post": {
+        "x-implementation-status": "planned",
+        "description": "DTO 인계 계약. 실행 서버에는 등록되지 않아 현재 404를 반환한다.",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "계약 표본; 실제 조회 연결은 후속 작업",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_RecommendationResult_RecipeRecord__"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "공통 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "공통 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "공통 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecipeRecommendationRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/welfare": {
+      "get": {
+        "x-implementation-status": "planned",
+        "description": "DTO 인계 계약. 실행 서버에는 등록되지 않아 현재 404를 반환한다.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 10000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Q"
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "const": "central_nationwide",
+              "default": "central_nationwide",
+              "title": "Scope",
+              "type": "string"
+            },
+            "style": "form",
+            "explode": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "계약 표본; 실제 조회 연결은 후속 작업",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_Page_WelfareRecord__"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "공통 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "공통 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "공통 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/welfare/{service_id}": {
+      "get": {
+        "x-implementation-status": "planned",
+        "description": "DTO 인계 계약. 실행 서버에는 등록되지 않아 현재 404를 반환한다.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "service_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^WLF[0-9]+$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "계약 표본; 실제 조회 연결은 후속 작업",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_WelfareRecord_"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "공통 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "공통 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "공통 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/welfare/recommendations": {
+      "post": {
+        "x-implementation-status": "planned",
+        "description": "DTO 인계 계약. 실행 서버에는 등록되지 않아 현재 404를 반환한다.",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "계약 표본; 실제 조회 연결은 후속 작업",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_RecommendationResult_WelfareRecord__"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "공통 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "공통 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "공통 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WelfareRecommendationRequest"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AllergenEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "ingredient": {
+            "title": "Ingredient",
+            "type": "string"
+          },
+          "term": {
+            "title": "Term",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "direct",
+              "usually"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "From"
+          }
+        },
+        "required": [
+          "ingredient",
+          "term",
+          "kind"
+        ],
+        "title": "AllergenEvidence",
+        "type": "object"
+      },
+      "DetectedAllergen": {
+        "additionalProperties": false,
+        "properties": {
+          "allergen": {
+            "enum": [
+              "알류",
+              "우유",
+              "메밀",
+              "땅콩",
+              "대두",
+              "밀",
+              "고등어",
+              "게",
+              "새우",
+              "돼지고기",
+              "복숭아",
+              "토마토",
+              "아황산류",
+              "호두",
+              "닭고기",
+              "쇠고기",
+              "오징어",
+              "조개류",
+              "잣"
+            ],
+            "title": "Allergen",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "direct",
+              "usually"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/AllergenEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          }
+        },
+        "required": [
+          "allergen",
+          "kind",
+          "evidence"
+        ],
+        "title": "DetectedAllergen",
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "retryable": {
+            "default": false,
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "error",
+          "meta"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "FieldError": {
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "reason"
+        ],
+        "title": "FieldError",
+        "type": "object"
+      },
+      "JsonValue": {},
+      "Page_WelfareRecord_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WelfareRecord"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "limit",
+          "offset",
+          "total"
+        ],
+        "title": "Page[WelfareRecord]",
+        "type": "object"
+      },
+      "QualityIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "warning",
+              "error"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "detail": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Detail",
+            "type": "object"
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "label",
+          "detail"
+        ],
+        "title": "QualityIssue",
+        "type": "object"
+      },
+      "RecipeAllergens": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "const": "ingredient_name",
+            "title": "Basis",
+            "type": "string"
+          },
+          "detected": {
+            "items": {
+              "$ref": "#/components/schemas/DetectedAllergen"
+            },
+            "title": "Detected",
+            "type": "array"
+          },
+          "needs_check": {
+            "items": {
+              "$ref": "#/components/schemas/UncertainAllergen"
+            },
+            "title": "Needs Check",
+            "type": "array"
+          },
+          "not_determinable": {
+            "items": {
+              "enum": [
+                "알류",
+                "우유",
+                "메밀",
+                "땅콩",
+                "대두",
+                "밀",
+                "고등어",
+                "게",
+                "새우",
+                "돼지고기",
+                "복숭아",
+                "토마토",
+                "아황산류",
+                "호두",
+                "닭고기",
+                "쇠고기",
+                "오징어",
+                "조개류",
+                "잣"
+              ],
+              "type": "string"
+            },
+            "title": "Not Determinable",
+            "type": "array"
+          },
+          "complete": {
+            "title": "Complete",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "basis",
+          "detected",
+          "needs_check",
+          "not_determinable",
+          "complete"
+        ],
+        "title": "RecipeAllergens",
+        "type": "object"
+      },
+      "RecipeImages": {
+        "additionalProperties": false,
+        "properties": {
+          "small": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Small"
+          },
+          "large": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Large"
+          }
+        },
+        "required": [
+          "small",
+          "large"
+        ],
+        "title": "RecipeImages",
+        "type": "object"
+      },
+      "RecipeIngredient": {
+        "additionalProperties": false,
+        "properties": {
+          "order_no": {
+            "minimum": 1,
+            "title": "Order No",
+            "type": "integer"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "name_raw": {
+            "title": "Name Raw",
+            "type": "string"
+          },
+          "amount_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Text"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "amount_kind": {
+            "enum": [
+              "measured",
+              "qualitative",
+              "none"
+            ],
+            "title": "Amount Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_no",
+          "section",
+          "name",
+          "name_raw",
+          "amount_text",
+          "amount",
+          "unit",
+          "amount_kind"
+        ],
+        "title": "RecipeIngredient",
+        "type": "object"
+      },
+      "RecipeNutrition": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "const": "per_serving_unverified",
+            "title": "Basis",
+            "type": "string"
+          },
+          "serving_weight_g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serving Weight G"
+          },
+          "ingredient_servings": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ingredient Servings"
+          },
+          "energy_kcal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energy Kcal"
+          },
+          "carbohydrate_g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Carbohydrate G"
+          },
+          "protein_g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protein G"
+          },
+          "fat_g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fat G"
+          },
+          "sodium_mg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sodium Mg"
+          },
+          "energy_from_macros_kcal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energy From Macros Kcal"
+          },
+          "energy_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energy Ratio"
+          },
+          "suspect": {
+            "title": "Suspect",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "basis",
+          "serving_weight_g",
+          "ingredient_servings",
+          "energy_kcal",
+          "carbohydrate_g",
+          "protein_g",
+          "fat_g",
+          "sodium_mg",
+          "energy_from_macros_kcal",
+          "energy_ratio",
+          "suspect"
+        ],
+        "title": "RecipeNutrition",
+        "type": "object"
+      },
+      "RecipeQuality": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "enum": [
+              "ok",
+              "flagged",
+              "hold"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/QualityIssue"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "info_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Info Codes",
+            "type": "array"
+          },
+          "missing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Fields",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "issues",
+          "info_codes",
+          "missing_fields"
+        ],
+        "title": "RecipeQuality",
+        "type": "object"
+      },
+      "RecipeRecommendationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "meal_time": {
+            "enum": [
+              "breakfast",
+              "lunch",
+              "dinner",
+              "snack"
+            ],
+            "title": "Meal Time",
+            "type": "string"
+          },
+          "exclude_allergens": {
+            "items": {
+              "enum": [
+                "알류",
+                "우유",
+                "메밀",
+                "땅콩",
+                "대두",
+                "밀",
+                "고등어",
+                "게",
+                "새우",
+                "돼지고기",
+                "복숭아",
+                "토마토",
+                "아황산류",
+                "호두",
+                "닭고기",
+                "쇠고기",
+                "오징어",
+                "조개류",
+                "잣"
+              ],
+              "type": "string"
+            },
+            "maxItems": 19,
+            "title": "Exclude Allergens",
+            "type": "array"
+          },
+          "exclude_ingredients": {
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Exclude Ingredients",
+            "type": "array"
+          },
+          "limit": {
+            "default": 5,
+            "maximum": 20,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "meal_time"
+        ],
+        "title": "RecipeRecommendationRequest",
+        "type": "object"
+      },
+      "RecipeRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "recipe_id": {
+            "pattern": "^[0-9]+$",
+            "title": "Recipe Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "cooking_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cooking Method"
+          },
+          "hashtag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hashtag"
+          },
+          "images": {
+            "$ref": "#/components/schemas/RecipeImages"
+          },
+          "ingredients_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ingredients Text"
+          },
+          "ingredients": {
+            "items": {
+              "$ref": "#/components/schemas/RecipeIngredient"
+            },
+            "title": "Ingredients",
+            "type": "array"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/RecipeStep"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "missing_step_nos": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Missing Step Nos",
+            "type": "array"
+          },
+          "nutrition": {
+            "$ref": "#/components/schemas/RecipeNutrition"
+          },
+          "sodium_tip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sodium Tip"
+          },
+          "allergens": {
+            "$ref": "#/components/schemas/RecipeAllergens"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/RecipeQuality"
+          },
+          "source": {
+            "$ref": "#/components/schemas/RecipeSource"
+          }
+        },
+        "required": [
+          "recipe_id",
+          "name",
+          "category",
+          "cooking_method",
+          "hashtag",
+          "images",
+          "ingredients_text",
+          "ingredients",
+          "steps",
+          "missing_step_nos",
+          "nutrition",
+          "sodium_tip",
+          "allergens",
+          "quality",
+          "source"
+        ],
+        "title": "RecipeRecord",
+        "type": "object"
+      },
+      "RecipeSource": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "service": {
+            "const": "COOKRCP01",
+            "title": "Service",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "fetched_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetched At"
+          },
+          "raw_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Raw Sha256",
+            "type": "string"
+          },
+          "revision_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Revision Id"
+          }
+        },
+        "required": [
+          "provider",
+          "service",
+          "source_id",
+          "fetched_at",
+          "raw_sha256"
+        ],
+        "title": "RecipeSource",
+        "type": "object"
+      },
+      "RecipeStep": {
+        "additionalProperties": false,
+        "properties": {
+          "no": {
+            "maximum": 20,
+            "minimum": 1,
+            "title": "No",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "source_field": {
+            "title": "Source Field",
+            "type": "string"
+          }
+        },
+        "required": [
+          "no",
+          "text",
+          "image",
+          "source_field"
+        ],
+        "title": "RecipeStep",
+        "type": "object"
+      },
+      "RecommendationResult_RecipeRecord_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Recommendation_RecipeRecord_"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "evaluated_at": {
+            "format": "date-time",
+            "title": "Evaluated At",
+            "type": "string"
+          },
+          "rules_version": {
+            "title": "Rules Version",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "evaluated_at",
+          "rules_version",
+          "warnings"
+        ],
+        "title": "RecommendationResult[RecipeRecord]",
+        "type": "object"
+      },
+      "RecommendationResult_WelfareRecord_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Recommendation_WelfareRecord_"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "evaluated_at": {
+            "format": "date-time",
+            "title": "Evaluated At",
+            "type": "string"
+          },
+          "rules_version": {
+            "title": "Rules Version",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "evaluated_at",
+          "rules_version",
+          "warnings"
+        ],
+        "title": "RecommendationResult[WelfareRecord]",
+        "type": "object"
+      },
+      "Recommendation_RecipeRecord_": {
+        "additionalProperties": false,
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/RecipeRecord"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "item",
+          "reasons"
+        ],
+        "title": "Recommendation[RecipeRecord]",
+        "type": "object"
+      },
+      "Recommendation_WelfareRecord_": {
+        "additionalProperties": false,
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/WelfareRecord"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "item",
+          "reasons"
+        ],
+        "title": "Recommendation[WelfareRecord]",
+        "type": "object"
+      },
+      "ResponseMeta": {
+        "properties": {
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Revision"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Checked At"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "title": "ResponseMeta",
+        "type": "object"
+      },
+      "SuccessResponse_Page_WelfareRecord__": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Page_WelfareRecord_"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[Page[WelfareRecord]]",
+        "type": "object"
+      },
+      "SuccessResponse_RecommendationResult_RecipeRecord__": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RecommendationResult_RecipeRecord_"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[RecommendationResult[RecipeRecord]]",
+        "type": "object"
+      },
+      "SuccessResponse_RecommendationResult_WelfareRecord__": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RecommendationResult_WelfareRecord_"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[RecommendationResult[WelfareRecord]]",
+        "type": "object"
+      },
+      "SuccessResponse_WelfareRecord_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WelfareRecord"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[WelfareRecord]",
+        "type": "object"
+      },
+      "UncertainAllergen": {
+        "additionalProperties": false,
+        "properties": {
+          "ingredient": {
+            "title": "Ingredient",
+            "type": "string"
+          },
+          "term": {
+            "title": "Term",
+            "type": "string"
+          },
+          "candidates": {
+            "items": {
+              "enum": [
+                "알류",
+                "우유",
+                "메밀",
+                "땅콩",
+                "대두",
+                "밀",
+                "고등어",
+                "게",
+                "새우",
+                "돼지고기",
+                "복숭아",
+                "토마토",
+                "아황산류",
+                "호두",
+                "닭고기",
+                "쇠고기",
+                "오징어",
+                "조개류",
+                "잣"
+              ],
+              "type": "string"
+            },
+            "title": "Candidates",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ingredient",
+          "term",
+          "candidates"
+        ],
+        "title": "UncertainAllergen",
+        "type": "object"
+      },
+      "WelfareApplication": {
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          }
+        },
+        "required": [
+          "method",
+          "description"
+        ],
+        "title": "WelfareApplication",
+        "type": "object"
+      },
+      "WelfareContact": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "contact": {
+            "title": "Contact",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "contact"
+        ],
+        "title": "WelfareContact",
+        "type": "object"
+      },
+      "WelfareListQuery": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "default": 20,
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "default": 0,
+            "maximum": 10000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "q": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Q"
+          },
+          "scope": {
+            "const": "central_nationwide",
+            "default": "central_nationwide",
+            "title": "Scope",
+            "type": "string"
+          }
+        },
+        "title": "WelfareListQuery",
+        "type": "object"
+      },
+      "WelfareRecommendationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "age": {
+            "maximum": 120,
+            "minimum": 0,
+            "title": "Age",
+            "type": "integer"
+          },
+          "region": {
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Region",
+            "type": "string"
+          },
+          "district": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "District"
+          },
+          "lives_alone": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Lives Alone"
+          },
+          "limit": {
+            "default": 5,
+            "maximum": 20,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "age",
+          "region"
+        ],
+        "title": "WelfareRecommendationRequest",
+        "type": "object"
+      },
+      "WelfareRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "service_id": {
+            "pattern": "^WLF[0-9]+$",
+            "title": "Service Id",
+            "type": "string"
+          },
+          "scope": {
+            "const": "central_nationwide",
+            "title": "Scope",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "target_text": {
+            "title": "Target Text",
+            "type": "string"
+          },
+          "selection_text": {
+            "title": "Selection Text",
+            "type": "string"
+          },
+          "benefit_text": {
+            "title": "Benefit Text",
+            "type": "string"
+          },
+          "application": {
+            "items": {
+              "$ref": "#/components/schemas/WelfareApplication"
+            },
+            "title": "Application",
+            "type": "array"
+          },
+          "contacts": {
+            "items": {
+              "$ref": "#/components/schemas/WelfareContact"
+            },
+            "title": "Contacts",
+            "type": "array"
+          },
+          "criteria_year": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Criteria Year"
+          },
+          "application_status": {
+            "const": "unknown",
+            "title": "Application Status",
+            "type": "string"
+          },
+          "detail_state": {
+            "enum": [
+              "ready",
+              "pending"
+            ],
+            "title": "Detail State",
+            "type": "string"
+          },
+          "quality_status": {
+            "enum": [
+              "ok",
+              "flagged",
+              "hold"
+            ],
+            "title": "Quality Status",
+            "type": "string"
+          },
+          "issues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "source": {
+            "$ref": "#/components/schemas/WelfareSource"
+          }
+        },
+        "required": [
+          "service_id",
+          "scope",
+          "title",
+          "summary",
+          "target_text",
+          "selection_text",
+          "benefit_text",
+          "application",
+          "contacts",
+          "criteria_year",
+          "application_status",
+          "detail_state",
+          "quality_status",
+          "issues",
+          "source"
+        ],
+        "title": "WelfareRecord",
+        "type": "object"
+      },
+      "WelfareSource": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          },
+          "checked_at": {
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "detail_checked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail Checked At"
+          },
+          "raw_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Raw Sha256",
+            "type": "string"
+          },
+          "revision_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Revision Id"
+          }
+        },
+        "required": [
+          "provider",
+          "source_id",
+          "source_url",
+          "checked_at",
+          "detail_checked_at",
+          "raw_sha256"
+        ],
+        "title": "WelfareSource",
+        "type": "object"
+      }
+    }
+  }
+}
