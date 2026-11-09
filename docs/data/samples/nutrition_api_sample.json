@@ -4,10 +4,10 @@
   "contract": "docs/data/food_nutrition_contract.md",
   "input": {
     "path": "data/raw/nutrition/foodntr_v03_representative.json",
-    "sha256": "514c29fd15bacb408b5fed9342c0a67482af00af814e216414fc6f0f838901df",
+    "sha256": "52542f93f8f878dec570f06eea7bd6fbb8b3e88e3ba081d1fa3e62bccd8a7c92",
     "api_version": "03",
     "db_class": "품목대표",
-    "fetched_at": "2026-10-31T16:22:23+00:00",
+    "fetched_at": "2026-11-04T22:23:17+00:00",
     "item_count": 8807
   },
   "flow": [
@@ -741,7 +741,7 @@
           "potassium_mg": 405.0,
           "calcium_mg": 147.5,
           "cholesterol_mg": 27.8,
-          "sat_fat_g": 0.23
+          "sat_fat_g": 0.22
         },
         "missing": [],
         "note": ""
@@ -1271,7 +1271,7 @@
         "approx_ml": false,
         "nutrients": {
           "energy_kcal": 255.0,
-          "protein_g": 24.61,
+          "protein_g": 24.62,
           "fat_g": 14.49,
           "carbohydrate_g": 6.39,
           "sugars_g": 4.86,

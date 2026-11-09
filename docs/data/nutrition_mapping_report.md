@@ -6,11 +6,13 @@
 |---|---|
 | 영양DB | 식품의약품안전처_식품영양성분DB정보 (03 판본) |
 | 수집 조건 | `DB_CLASS_NM=품목대표` |
-| 수집 시각(UTC) | 2026-10-31T16:22:23+00:00 |
+| 수집 시각(UTC) | 2026-11-04T22:23:17+00:00 |
 | 수집 건수 | 8807 / totalCount 8807 |
-| 원본 파일 | `data/raw/nutrition/foodntr_v03_representative.json` (gitignore) sha256 `514c29fd15bacb40…` |
+| 원본 파일 | `data/raw/nutrition/foodntr_v03_representative.json` (gitignore) sha256 `52542f93f8f878de…` |
 | 레시피 입력 | `src/frontend/assets/data/recipes.json` sha256 `d5db8e9435fe6679…` |
 | 가공 결과 | `data/processed/foods_v03.json`, `data/processed/recipe_ingredient_nutrition.json` (gitignore) |
+
+레시피 보완: `src/frontend/assets/data/recipe_corrections.json` sha256 `a65aa83fad372106…`, 적용 항목 6건. 원본 해시와 보완 목록 해시를 함께 보존합니다.
 
 ## 1. 요약
 
@@ -292,4 +294,4 @@
 - 개수 단위(개·장·알 등)는 출처 있는 개당 중량표가 없어 환산하지 않습니다. 근거 자료가 생기면 추가합니다.
 - 부위·품종이 적히지 않은 재료(돼지고기·소고기 → 앞다리, 새우 → 대하 등)는 매핑표의 기본값으로 계산하며, 고른 이유는 매핑표 근거에 있습니다.
 - 저염 제품 항목이 없는 재료(저염된장·저염소금)는 일반 제품으로 근사해 **나트륨이 실제보다 많게** 잡힙니다.
-- DB 적재는 공통 저장 구조(API·DB 담당) 확정 후 진행합니다. 필드 정의는 `docs/data/food_nutrition_contract.md`를 따릅니다.
+- 원천 식품과 보정 내역의 DB 적재는 구현되어 있습니다. 재료 매핑·계산 결과의 DB 연결은 후속 작업이며, 필드 정의는 `docs/data/food_nutrition_contract.md`를 따릅니다.

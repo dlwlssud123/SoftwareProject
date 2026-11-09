@@ -37,8 +37,9 @@
 | `source_name`, `create_method` | 문자열·null | `SUB_REF_NAME`, `CRT_MTH_NM` | 출처명, 데이터생성방법(분석/산출/수집) |
 | `research_date`, `update_date` | 문자열·null | `RESEARCH_YMD`, `UPDATE_DATE` | 데이터생성일자, 수정일자 (갱신 감지에 사용) |
 | `nutrients` | 객체 | `AMT_NUM*` | 아래 성분 키 → 기준량당 값 또는 null |
-| `raw_sha256` | 문자열 | 원본 행 | 원본 행 해시 (변경 감지·추적) |
-| `corrections` | 객체 배열 | | 보정 기록 `{field, from, to, reason, evidence, by, at}`. 보정이 없으면 `[]`. `from`이 원래(원천) 값이다 (2.1절) |
+| `raw_sha256` | 문자열 | 원본 행 | `NUM`까지 포함한 전체 원본 행 해시 (원문 추적) |
+| `source_sha256` | 문자열 | 원본 행 | 응답 번호 `NUM`만 제외한 내용 해시. 나머지 모든 필드는 포함 (보정 검증용) |
+| `corrections` | 객체 배열 | | 보정 기록 `{field, from, to, reason, evidence, by, at, source_sha256?}`. 보정이 없으면 `[]`. `from`이 원래(원천) 값이다 (2.1절) |
 | `quality_flags` | 문자열 배열 | | 아래 품질 표시 |
 
 **성분 키** (단위는 키 이름 끝): `energy_kcal`, `water_g`, `protein_g`, `fat_g`, `ash_g`, `carbohydrate_g`, `sugars_g`, `fiber_g`, `calcium_mg`, `iron_mg`, `phosphorus_mg`, `potassium_mg`, `sodium_mg`, `vitamin_a_ug_rae`, `vitamin_b1_mg`, `vitamin_b2_mg`, `niacin_mg`, `vitamin_c_mg`, `vitamin_d_ug`, `cholesterol_mg`, `sat_fat_g`, `trans_fat_g`, `salt_equiv_g`, `refuse_pct`
@@ -49,13 +50,17 @@
 
 | 항목 | 내용 |
 |---|---|
-| 형식 | `corrections[]` = `{food_code, food_name, field, from, to, reason, evidence, raw_sha256, by, at}`. `field`는 `basis_text`(기준량 — `basis_amount`·`basis_unit`도 다시 읽음) 또는 `nutrients.<성분 키>` |
-| 적용 조건 | 원본 행 해시(`raw_sha256`)와 원래 값(`from`)이 **둘 다** 지금 수집본과 같을 때만 적용한다 |
-| 원천이 바뀌면 | 식약처가 행을 고치거나 다시 수집해 해시·값이 달라지면 적용하지 않고 `correction_stale`을 붙인다. 보고서 6절에 "다시 확인 필요"로 나온다 |
+| 형식 | `corrections[]` = `{food_code, food_name, field, from, to, reason, evidence, raw_sha256, by, at, source_sha256?}`. `field`는 `basis_text`(기준량 — `basis_amount`·`basis_unit`도 다시 읽음) 또는 `nutrients.<성분 키>` |
+| 적용 조건 | `source_sha256`가 있으면 내용 해시와 원래 값(`from`)이 **둘 다** 일치해야 한다. 구형 항목은 기존 `raw_sha256`와 `from`으로 검증한다. 원본 해시는 계속 보존한다 |
+| 원천이 바뀌면 | 응답 번호 `NUM`만 달라진 경우는 같은 내용으로 본다. 영양값·식품명·기준량 등 다른 필드나 응답 스키마가 달라지면 적용하지 않고 `correction_stale`을 붙인다. 보고서 6절에 "다시 확인 필요"로 나온다 |
 | 품질 표시 | 보정한 값으로 다시 계산한다(예: 기준량을 고치면 `invalid_basis`·`proximate_exceeds_basis` 다시 판정) |
 | 넣는 기준 | 데이터 자체로 오류가 확실하거나(물리적으로 불가능한 값, 같은 값의 다른 공식 행) 외부 공식 근거가 있을 때만 넣는다. `evidence`에 근거를 적는다 |
 
 **현재 보정 (10/31 수집본)**: 분말 9건(커피믹스·커피가루 2종·디카페인커피·녹차라떼·쌍화차·율무차·인삼차·홍차복숭아분말)의 기준량 `100mL` → `100g`. 기준량이 100mL인데 수분 1~4g·열량 350~470kcal로 액체에서는 나올 수 없는 값이고, 고친 뒤 수분·단백질·지방·회분·탄수화물의 합이 9건 모두 100.0g으로 맞는다. 커피믹스는 같은 값의 원재료성 행(100g 기준)도 있다.
+
+**11/09 해시 재검증**: 로컬 11/05 수집본에서 9건 모두 `NUM`만 기존 보정 원본보다 1 작았다. `NUM`만 +1한 행의 전체 해시가 기존 `raw_sha256`와 모두 정확히 일치하여 다른 필드가 그대로임을 확인했다. 기존 원본 해시는 유지하고 `NUM`만 제외한 `source_sha256`를 추가했다. 재검증 기준·시각은 보정표의 `hash_validation`에 기록했다.
+
+DB 적재는 정제 레코드까지 판본 지문에 포함한다. 원본이 같고 보정표만 바뀌어도 새 식품 판본이 생성되며, 원본·보정 내역을 함께 보관한다. 보정하지 않은 성분은 원본의 소수 정밀도를 유지하고, 보정한 성분만 해당 `to` 값을 저장한다. 이 변경은 스키마 마이그레이션이 필요 없으며 기존 DB 갱신은 명시적인 적재 명령으로 실행한다.
 
 **고치지 않고 표시만 하는 것** (원인을 확인했지만 일괄 보정 근거가 없음):
 - `sat_fat_exceeds_fat` 144건: 142건이 제품 표시에서 옮긴 수집값(대부분 빵·과자)이고 포화지방/지방 배율이 제각각(1.2배 이하 9건, 1.2~10배 111건, 10배 초과 20건, 지방 0 4건)이라 단위 실수 하나로 설명되지 않는다. 화면에서 이 행의 포화지방은 "자료 확인 필요"로 보여 주기를 권장한다.
@@ -175,7 +180,7 @@ match_ingredient("다진 마늘", ingredient_index)       # → MatchResult(stat
 | `computed` | 분량 단위(g·mL)가 기준량 단위와 같아 그대로 계산 | 값 |
 | `approx_ml` | g↔mL가 달라 **1mL≈1g 근사**로 계산(밀도 근거 없음). 화면에 "근사" 표시 | 값 |
 | `unconvertible` | 인분인데 원천 1인분 중량이 없음 / 개수 단위 / 단위 없음 → g·mL로 다시 입력받기 | null |
-| `invalid` | 분량이 0 이하·숫자 아님, 또는 식품 기준량을 읽을 수 없음(`invalid_basis`) | null |
+| `invalid` | 분량이 0 이하·숫자 아님·숫자 범위 초과, 식품 기준량 오류, 환산량·성분 계산이 비유한 값인 경우 | null |
 
 | 필드 | 설명 |
 |---|---|
@@ -199,6 +204,8 @@ match_ingredient("다진 마늘", ingredient_index)       # → MatchResult(stat
 | `approx_ml_items` | 1mL≈1g 근사로 계산된 음식 수 |
 | `nutrients` | 성분별 합계. 값이 있는 음식만 더하며, 모든 음식에 값이 없으면 null |
 | `missing_items` | 성분별로 값이 없어 합계에서 빠진 음식 수 (예: `{"sugars_g": 1}`) |
+
+인분 근거는 올바른 숫자 형식의 유한한 양수만 사용한다. 앞선 근거가 `0g`·잘못된 쉼표·범위 초과이면 다음 근거를 확인하고, 모두 유효하지 않으면 `unconvertible`이다. 분량과 개별 영양값의 범위 초과는 `invalid`이며, 개별 음식은 유한해도 한 끼 합계가 표현 범위를 넘으면 `meal_total`이 명시적인 `ValueError`를 반환하므로 API에서 입력 오류로 처리한다.
 
 ### 7.6 데이터에서 확인한 주의점 (10/31 수집본)
 

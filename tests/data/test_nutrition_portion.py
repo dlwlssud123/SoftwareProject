@@ -1,9 +1,13 @@
+import math
 from dataclasses import replace
 
 import pytest
-
 from agetech_data.nutrition.fields import SUM_NUTRIENTS
-from agetech_data.nutrition.portion import meal_total, portion_nutrients, serving_reference
+from agetech_data.nutrition.portion import (
+    meal_total,
+    portion_nutrients,
+    serving_reference,
+)
 
 G_ROW = "D101-006000000-0001"    # 기장밥, 100g 기준 (분석)
 ML_ROW = "D401-006000000-0001"   # 기장밥, 100mL 기준 (산출)
@@ -118,3 +122,48 @@ def test_meal_total_all_missing_and_empty(foods):
     assert t["nutrients"]["fiber_g"] is None and t["missing_items"] == {"fiber_g": 1} and t["complete"]
     empty = meal_total([])
     assert empty["complete"] is False and empty["nutrients"]["energy_kcal"] is None
+
+
+@pytest.mark.parametrize("amount,unit", [("1e308", "kg"), (10**399, "g")])
+def test_unrepresentable_amount_returns_invalid(foods, amount, unit):
+    p = portion_nutrients(foods[G_ROW], amount, unit)
+    assert p.status == "invalid" and p.nutrients is None and p.amount is None
+
+
+def test_nonfinite_source_or_calculated_nutrient_returns_invalid(foods):
+    f = foods[G_ROW]
+    for value, amount in [(float("inf"), 100), (1e308, 1e308)]:
+        bad = replace(f, nutrients={**f.nutrients, "energy_kcal": value})
+        p = portion_nutrients(bad, amount, "g")
+        assert p.status == "invalid" and p.nutrients is None
+    assert portion_nutrients(replace(f, basis_amount=float("inf")), 100, "g").status == "invalid"
+
+
+def test_finite_result_avoids_intermediate_multiply_overflow(foods):
+    f = replace(foods[G_ROW], nutrients={k: 100.0 for k in SUM_NUTRIENTS})
+    p = portion_nutrients(f, 1e308, "g")
+    assert p.status == "computed" and all(math.isfinite(v) for v in p.nutrients.values())
+    assert p.nutrients["energy_kcal"] == pytest.approx(1e308)
+
+
+@pytest.mark.parametrize("text", ["0g", ",g", "1,,0g", "1,00g", "9" * 400 + "kg"])
+def test_invalid_serving_reference_is_not_calculated(foods, text):
+    f = replace(foods[G_ROW], dish_serving_text=text, serving_ref_text=None)
+    p = portion_nutrients(f, 1, "인분")
+    assert p.status == "unconvertible" and p.nutrients is None
+
+
+@pytest.mark.parametrize("text", ["0g", ",g", "1,,0g", "9" * 400 + "kg"])
+def test_invalid_preferred_serving_uses_valid_fallback(foods, text):
+    f = replace(foods[G_ROW], dish_serving_text=text, serving_ref_text="200g")
+    p = portion_nutrients(f, 1, "인분")
+    assert p.status == "computed" and p.amount == 200
+    assert p.serving["field"] == "NUTRI_AMOUNT_SERVING"
+
+
+def test_meal_total_rejects_unrepresentable_sum(foods):
+    f = replace(foods[G_ROW], nutrients={**foods[G_ROW].nutrients, "energy_kcal": 1e308})
+    p = portion_nutrients(f, 100, "g")
+    assert p.calculated and math.isfinite(p.nutrients["energy_kcal"])
+    with pytest.raises(ValueError, match="합계"):
+        meal_total([p, p])

@@ -37,7 +37,7 @@ SERVING_UNITS = ("인분", "그릇", "공기", "접시", "대접", "회분")
 # 1인분 환산 근거로 쓰는 원천 필드 (앞에 있는 것을 먼저 쓴다)
 SERVING_FIELDS = (("dish_serving_text", "DISH_ONE_SERVING", "1회분량 참고량"),
                   ("serving_ref_text", "NUTRI_AMOUNT_SERVING", "1회 섭취참고량"))
-_SERVING = re.compile(r"^\s*([\d,]+(?:\.\d+)?)\s*(g|kg|mL|ml|L)\s*$")
+_SERVING = re.compile(r"^\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s*(g|kg|mL|ml|L)\s*$")
 
 
 @dataclass
@@ -69,7 +69,7 @@ def _number(v) -> float | None:
         return None
     try:
         x = float(v)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
     return x if math.isfinite(x) and x > 0 else None
 
@@ -81,7 +81,10 @@ def serving_reference(food: FoodRecord) -> tuple[float, str, dict] | None:
         m = _SERVING.match(text or "")
         if m:
             unit, mult = MEASURE_UNITS[m.group(2)]
-            return float(m.group(1).replace(",", "")) * mult, unit, {"field": src, "label": label, "text": text}
+            value = _number(m.group(1).replace(",", ""))
+            quantity = _number(value * mult) if value is not None else None
+            if quantity is not None:
+                return quantity, unit, {"field": src, "label": label, "text": text}
     return None
 
 
@@ -89,7 +92,8 @@ def portion_nutrients(food: FoodRecord, amount, unit: str, nutrients: list[str] 
     """식품 1개 + 분량 → 영양값. 계산할 수 없으면 status 와 note 로 이유를 돌려준다(예외를 던지지 않는다)."""
     unit = (unit or "").strip()
     p = Portion("invalid", food.food_code, food.name, {"amount": amount, "unit": unit})
-    if food.basis_unit is None or not food.basis_amount or "invalid_basis" in food.quality_flags:
+    basis_amount = _number(food.basis_amount)
+    if food.basis_unit is None or basis_amount is None or "invalid_basis" in food.quality_flags:
         p.note = f"식품의 영양성분함량기준량을 읽을 수 없음 ({food.basis_text!r}) → 계산하지 않음"
         return p
     p.basis = {"amount": food.basis_amount, "unit": food.basis_unit, "text": food.basis_text}
@@ -115,12 +119,25 @@ def portion_nutrients(food: FoodRecord, amount, unit: str, nutrients: list[str] 
                   if unit else "단위가 없음 → g 또는 mL 로 입력")
         return p
 
-    p.amount, p.amount_unit = round(qty, 4), base_unit
-    p.factor = round(qty / food.basis_amount, 6)
+    quantity = _number(qty)
+    factor = _number(quantity / basis_amount) if quantity is not None else None
+    if factor is None:
+        p.note = "환산 분량이 계산 가능한 숫자 범위를 벗어남 → 분량을 확인"
+        return p
+    values = {}
+    for key in nutrients:
+        value = food.nutrients.get(key)
+        # Divide first so a finite final result is not lost to intermediate overflow.
+        scaled = value * factor if value is not None else None
+        if scaled is not None and not math.isfinite(scaled):
+            p.note = f"{key} 영양값이 계산 가능한 숫자 범위를 벗어남 → 식품·분량을 확인"
+            return p
+        values[key] = round(scaled, 2) if scaled is not None else None
+    p.amount, p.amount_unit = round(quantity, 4), base_unit
+    p.factor = round(factor, 6)
     p.approx_ml = base_unit != food.basis_unit
     p.status = "approx_ml" if p.approx_ml else "computed"
-    p.nutrients = {k: (round(food.nutrients[k] * qty / food.basis_amount, 2)
-                       if food.nutrients.get(k) is not None else None) for k in nutrients}
+    p.nutrients = values
     p.missing = [k for k, v in p.nutrients.items() if v is None]
     notes = []
     if p.serving:
@@ -140,7 +157,13 @@ def meal_total(portions: list[Portion], nutrients: list[str] = SUM_NUTRIENTS) ->
     missing_items: dict[str, int] = {}
     for k in nutrients:
         vals = [p.nutrients[k] for p in used if p.nutrients and p.nutrients.get(k) is not None]
-        totals[k] = round(sum(vals), 2) if vals else None
+        try:
+            total = math.fsum(vals) if vals else None
+        except OverflowError:
+            raise ValueError("한 끼 영양 합계가 계산 가능한 숫자 범위를 벗어났습니다.") from None
+        if total is not None and not math.isfinite(total):
+            raise ValueError("한 끼 영양 합계가 계산 가능한 숫자 범위를 벗어났습니다.")
+        totals[k] = round(total, 2) if total is not None else None
         miss = len(used) - len(vals)
         if miss:
             missing_items[k] = miss

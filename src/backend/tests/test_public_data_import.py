@@ -245,6 +245,76 @@ def test_postgres_food_units_precision_and_missing(tmp_path, pg_connection):
             assert verify_import(session, plan)["food_revisions"] == 2
 
 
+def test_food_correction_refreshes_revision_without_changing_raw(
+    tmp_path, pg_connection, monkeypatch
+):
+    from agetech_data.nutrition import corrections as food_corrections
+    from agetech_data.nutrition.foods import clean_food
+
+    raw = {
+        "FOOD_CD": "CORRECTED1",
+        "FOOD_NM_KR": "보정 검증용 분말",
+        "NUM": "100",
+        "SERVING_SIZE": "100mL",
+        "AMT_NUM1": "100",
+        "AMT_NUM13": "0.123456789123456789",
+    }
+    path = snapshot(tmp_path, "nutrition", [raw], fetched_at="2026-11-05T00:00:00Z")
+    monkeypatch.setattr(food_corrections, "load_corrections", lambda: ())
+    initial = prepare_import("nutrition", nutrition_path=path)
+    original = clean_food(raw)
+    entries = tuple(
+        {
+            "food_code": raw["FOOD_CD"],
+            "food_name": original.name,
+            "field": field,
+            "from": before,
+            "to": after,
+            "raw_sha256": original.raw_sha256,
+            "source_sha256": original.source_sha256,
+            "reason": "regression fixture",
+            "evidence": "synthetic source",
+            "by": "test",
+            "at": "2026-11-09",
+        }
+        for field, before, after in [
+            ("basis_text", "100mL", "100g"),
+            ("nutrients.sodium_mg", original.nutrients["sodium_mg"], 1.25),
+        ]
+    )
+    monkeypatch.setattr(food_corrections, "load_corrections", lambda: entries)
+    updated = prepare_import("nutrition", nutrition_path=path)
+    assert updated.fingerprint != initial.fingerprint
+    assert updated.foods[0]["fingerprint"] != initial.foods[0]["fingerprint"]
+    with Session(pg_connection) as session:
+        with session.begin():
+            apply_import(session, initial)
+            original_id = session.scalar(select(Food.active_revision_id))
+        with session.begin():
+            result = apply_import(session, updated)
+            assert result["new_food_revisions"] == 1 and result["new_foods"] == 0
+            assert total(session, FoodRevision) == 2
+            active_id = session.scalar(select(Food.active_revision_id))
+            active = session.get(FoodRevision, active_id)
+            assert active.raw == raw and active.raw_sha256 == original.raw_sha256
+            assert active.basis_unit == "g" and active.sodium_mg == Decimal("1.25")
+            assert active.nutrients["sodium_mg"] == "1.25"
+            assert len(active.normalized["corrections"]) == 2
+            previous = session.get(FoodRevision, original_id)
+            assert previous.basis_unit == "mL"
+            assert previous.sodium_mg == Decimal("0.123456789123456789")
+            assert previous.normalized == initial.foods[0]["record"]
+            assert verify_import(session, updated)["verified"] is True
+        with session.begin():
+            assert apply_import(session, updated)["already_imported"] is True
+            assert total(session, FoodRevision) == 2
+        with pytest.raises(ValueError, match="Food source"), session.begin():
+            active = session.get(FoodRevision, active_id)
+            active.normalized = {**active.normalized, "corrections": []}
+            session.flush()
+            verify_import(session, updated)
+
+
 @pytest.mark.parametrize("change", ["validator", "rules"])
 def test_validation_revision_refreshes_recipe_but_reuses_food(
     tmp_path, pg_connection, monkeypatch, change

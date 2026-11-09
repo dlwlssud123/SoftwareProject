@@ -185,5 +185,5 @@ def render_report(inputs: dict, s: dict, recipes: list[dict], dishes: dict) -> s
           "- 개수 단위(개·장·알 등)는 출처 있는 개당 중량표가 없어 환산하지 않습니다. 근거 자료가 생기면 추가합니다.",
           "- 부위·품종이 적히지 않은 재료(돼지고기·소고기 → 앞다리, 새우 → 대하 등)는 매핑표의 기본값으로 계산하며, 고른 이유는 매핑표 근거에 있습니다.",
           "- 저염 제품 항목이 없는 재료(저염된장·저염소금)는 일반 제품으로 근사해 **나트륨이 실제보다 많게** 잡힙니다.",
-          "- DB 적재는 공통 저장 구조(API·DB 담당) 확정 후 진행합니다. 필드 정의는 `docs/data/food_nutrition_contract.md`를 따릅니다."]
+          "- 원천 식품과 보정 내역의 DB 적재는 구현되어 있습니다. 재료 매핑·계산 결과의 DB 연결은 후속 작업이며, 필드 정의는 `docs/data/food_nutrition_contract.md`를 따릅니다."]
     return "\n".join(L) + "\n"
