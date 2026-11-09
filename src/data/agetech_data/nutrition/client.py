@@ -113,10 +113,14 @@ def collect(key: str, db_class: str = DEFAULT_CLASS, rows: int = PAGE_SIZE, max_
     limit = min(pages, max_pages) if max_pages else pages
     log(f"{SERVICE} {db_class}: 전체 {total}건, {pages}페이지 중 {limit}페이지 수집")
     for page in range(2, limit + 1):
-        page_items, _ = fetch_page(key, page, rows, db_class, fetch, sleep=sleep)
+        page_items, observed_total = fetch_page(key, page, rows, db_class, fetch, sleep=sleep)
+        if observed_total != total:
+            raise CollectError("수집 중 전체 건수가 변경되었습니다. 일관된 스냅샷을 위해 다시 수집하세요.")
         items.extend(page_items)
     complete = limit == pages
     codes = [it.get("FOOD_CD") for it in items]
+    if any(not isinstance(code, str) or not code.strip() for code in codes):
+        raise CollectError("식품코드가 없는 행이 있습니다. 기존 파일을 유지합니다.")
     dup = len(codes) - len(set(codes))
     if complete and len(items) != total:
         raise CollectError(f"받은 건수({len(items)})가 totalCount({total})와 다릅니다. 기존 파일을 유지합니다.")

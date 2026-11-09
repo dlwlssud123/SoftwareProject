@@ -1,0 +1,41 @@
+[project]
+name = "valueflow-backend"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "agetech",
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.30,<1",
+    "pydantic>=2.9,<3",
+    "pydantic-settings>=2.5,<3",
+    "sqlalchemy>=2.0,<2.1",
+    "psycopg[binary]>=3.2,<4",
+    "alembic>=1.13,<2",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.27,<1",
+    "pytest>=8,<10",
+    "ruff>=0.9,<1",
+]
+
+[tool.uv.sources]
+agetech = { path = "../..", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "../data"]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "BLE"]
+
+# fastapi: API 라우팅과 요청 검증
+# uvicorn: 서버 실행
+# pydantic, pydantic-settings: 요청·응답 모델과 환경설정
+# sqlalchemy, psycopg: PostgreSQL 연결
+# alembic: 이후 테이블 변경 이력 관리
+# uv.lock을 함께 커밋해서 같은 버전 사용하게

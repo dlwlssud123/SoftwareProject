@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "verified_at": "2026-11-04",
+  "verified_by": "Codex",
+  "corrections": [
+    {
+      "source_id": "33",
+      "recipe_name": "사과 새우 북엇국",
+      "field": "MANUAL01",
+      "expected_value": "",
+      "value": "1. 북어채를 잘게 손으로 찢어 찬물에 헹구어 준비한다.",
+      "kind": "official_source",
+      "source_url": "https://www.foodsafetykorea.go.kr/portal/cookrcp/cookrcpInfoDtl.do?menu_grp=MENU_NEW03&menu_no=3608&rcp_seq=33",
+      "reference_url": "https://www.foodsafetykorea.go.kr/api/openApiInfo.do?menu_grp=MENU_GRP31&menu_no=661&show_cnt=10&start_idx=1&svc_no=COOKRCP01",
+      "reason": "공식 상세 조리법과 COOKRCP01 데이터 활용 표의 1단계를 대조해 복구",
+      "source_document_sha256": "c55ae2e2a05fd6fe6300259b3c40643600cf6c6da4ab998fb463aeb6379c8cb9"
+    },
+    {
+      "source_id": "33",
+      "recipe_name": "사과 새우 북엇국",
+      "field": "MANUAL04",
+      "expected_value": "",
+      "value": "4. 사과를 넣어 북어의 씁쓸한 맛을 없앤다.",
+      "kind": "official_source",
+      "source_url": "https://www.foodsafetykorea.go.kr/portal/cookrcp/cookrcpInfoDtl.do?menu_grp=MENU_NEW03&menu_no=3608&rcp_seq=33",
+      "reference_url": "https://www.foodsafetykorea.go.kr/api/openApiInfo.do?menu_grp=MENU_GRP31&menu_no=661&show_cnt=10&start_idx=1&svc_no=COOKRCP01",
+      "reason": "공식 상세 조리법과 COOKRCP01 데이터 활용 표의 4단계를 대조해 복구",
+      "source_document_sha256": "c55ae2e2a05fd6fe6300259b3c40643600cf6c6da4ab998fb463aeb6379c8cb9"
+    },
+    {
+      "source_id": "36",
+      "recipe_name": "저염 된장으로 맛을 낸 황태해장국",
+      "field": "MANUAL01",
+      "expected_value": "",
+      "value": "1. 황태는 손질하여 물에 헹궈 건져 놓는다.",
+      "kind": "official_source",
+      "source_url": "https://www.foodsafetykorea.go.kr/portal/cookrcp/cookrcpInfoDtl.do?menu_grp=MENU_NEW03&menu_no=3608&rcp_seq=36",
+      "reference_url": "https://www.foodsafetykorea.go.kr/api/openApiInfo.do?menu_grp=MENU_GRP31&menu_no=661&show_cnt=10&start_idx=1&svc_no=COOKRCP01",
+      "reason": "공식 상세 조리법과 COOKRCP01 데이터 활용 표의 1단계를 대조해 복구",
+      "source_document_sha256": "dbf9b625b413e105e37e5e147327a6ecdd9d7f5da674afc32e0b32fa47a355fa"
+    },
+    {
+      "source_id": "36",
+      "recipe_name": "저염 된장으로 맛을 낸 황태해장국",
+      "field": "MANUAL02",
+      "expected_value": "",
+      "value": "2. 콩나물은 다듬어 씻고 청양고추는 어슷썰기 한다.",
+      "kind": "official_source",
+      "source_url": "https://www.foodsafetykorea.go.kr/portal/cookrcp/cookrcpInfoDtl.do?menu_grp=MENU_NEW03&menu_no=3608&rcp_seq=36",
+      "reference_url": "https://www.foodsafetykorea.go.kr/api/openApiInfo.do?menu_grp=MENU_GRP31&menu_no=661&show_cnt=10&start_idx=1&svc_no=COOKRCP01",
+      "reason": "공식 상세 조리법과 COOKRCP01 데이터 활용 표의 2단계를 대조해 복구",
+      "source_document_sha256": "dbf9b625b413e105e37e5e147327a6ecdd9d7f5da674afc32e0b32fa47a355fa"
+    },
+    {
+      "source_id": "642",
+      "recipe_name": "훈제오리가슴살크러스트",
+      "field": "RCP_PARTS_DTLS",
+      "expected_value": "오리고기(훈제오리 가슴살, 150g), 로즈마리(2g), 오렌지(1개),\n새송이버섯(1개), 파슬리(5g), 땅콩(50g), 올리브오일(20g),\n유자청(20g), 후춧가루(0.5g",
+      "value": "오리고기(훈제오리 가슴살, 150g), 로즈마리(2g), 오렌지(1개),\n새송이버섯(1개), 파슬리(5g), 땅콩(50g), 올리브오일(20g),\n유자청(20g), 후춧가루(0.5g)",
+      "kind": "format_only",
+      "source_url": "https://www.foodsafetykorea.go.kr/portal/cookrcp/cookrcpInfoDtl.do?menu_grp=MENU_NEW03&menu_no=3608&rcp_seq=642",
+      "reason": "Close one unmatched terminal parenthesis; original ingredient names and quantities are unchanged.",
+      "source_document_sha256": "02da94591db47ab3e2ce80a08268c059572349a661378db18abee4e26a59681f"
+    },
+    {
+      "source_id": "276",
+      "recipe_name": "맑은부대찌개",
+      "field": "RCP_PARTS_DTLS",
+      "expected_value": "재료 느타리버섯(10g), 두부(50g), 콩나물(10g)\n배추(40g), 미나리(20g), 돼지고기(50g)\n쇠고기(50g), 불린 당면(10g), 조랭이떡(30g)\n다시마육수 다시마(3g), 양파(30g), 대파(20g)\n무(30g), 마른 고추(5g)\n고기완자양념 생강즙(2g), 다진 파(10g)\n다진 마늘(5g), 후춧가루(0.1g), 소금(0.1g",
+      "value": "재료 느타리버섯(10g), 두부(50g), 콩나물(10g)\n배추(40g), 미나리(20g), 돼지고기(50g)\n쇠고기(50g), 불린 당면(10g), 조랭이떡(30g)\n다시마육수 다시마(3g), 양파(30g), 대파(20g)\n무(30g), 마른 고추(5g)\n고기완자양념 생강즙(2g), 다진 파(10g)\n다진 마늘(5g), 후춧가루(0.1g), 소금(0.1g)",
+      "kind": "format_only",
+      "source_url": "https://www.foodsafetykorea.go.kr/portal/cookrcp/cookrcpInfoDtl.do?menu_grp=MENU_NEW03&menu_no=3608&rcp_seq=276",
+      "reason": "Close one unmatched terminal parenthesis; original ingredient names and quantities are unchanged.",
+      "source_document_sha256": "ba06fdf85da8513717a5f55478c22809830a0725510d6b96dc2051c1e12f6330"
+    }
+  ]
+}
