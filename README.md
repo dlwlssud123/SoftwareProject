@@ -6,6 +6,8 @@
 
 오늘동행은 어르신이 큰 글씨·큰 버튼·음성 안내로 식단 추천과 조리 안내를 받고, 자신에게 관련 있는 복지 서비스를 확인할 수 있도록 돕는 Android 앱이다. 공공데이터(식품안전나라 레시피, 식품영양성분DB, 복지로 중앙부처·지자체 복지서비스)를 수집·검증해 사용한다.
 
+개발 기준과 최종 산출물은 [문서 안내](docs/README.md)에서 확인한다. 로컬 실행은 [백엔드·DB 안내](src/backend/README.md)와 [Flutter 앱 안내](src/frontend/README.md)를 따른다.
+
 ---
 
 ## 팀원 소개 및 역할 분담 (Team Members & Roles)
@@ -28,8 +30,9 @@
 | --- | --- | --- |
 | 앱 | Flutter (Dart SDK 3.12 이상) · Android, 기기 TTS, image_picker, shared_preferences | 현재 |
 | 데이터 수집·검증 | Python 3.12 이상 · uv · pytest (표준 라이브러리 중심) | 현재 |
-| 백엔드 API | Python · FastAPI, 별도 작업 프로세스(worker) | 예정 |
-| DB·검색 | PostgreSQL + pgvector, 임베딩 KURE-v1 | 예정 |
+| 백엔드 API | Python 3.12 · FastAPI, 게스트 인증·레시피 조회·동의 프로필 | 현재 |
+| DB | PostgreSQL 16 + pgvector 확장, Alembic·원천 판본 적재 | 현재 |
+| 작업·검색 | 별도 worker, KURE-v1 임베딩·RAG 검색 연결 | 예정 |
 | 관리자 웹 | React | 예정 |
 | 협업 | GitHub(PR·Squash merge), Asana | 현재 |
 
@@ -50,7 +53,7 @@ SoftwareProject/
 ├── src/
 │   ├── frontend/               # Flutter Android 앱 (오늘동행) — 실행 방법은 src/frontend/README.md
 │   ├── data/agetech_data/      # 공공데이터 수집·검증·영양 매핑·자동 갱신
-│   ├── backend/                # 백엔드 API (예정)
+│   ├── backend/                # FastAPI·원천 DB 적재·레시피 조회·프로필
 │   └── ai/                     # AI·RAG (예정)
 ├── tests/                      # Python 테스트
 ├── pyproject.toml              # Python 프로젝트 설정 (uv)
