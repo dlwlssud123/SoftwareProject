@@ -1,4 +1,4 @@
--- RAG 검색 청크 표 초안 v2 (2026-11-07, 최재영)
+-- RAG 검색 청크 표 초안 v3 (2026-11-09, v2 최재영 작성 / 롤백·판본 대조 보완)
 -- 저장 구조 작업(이진녕, 11/08~11/10)에서 표·칸 이름과 원본 표 연결 방식을 확정한다.
 -- 결정 근거·검색 순서는 docs/data/rag_embedding_decision.md
 --
@@ -67,7 +67,7 @@ CREATE TABLE rag_chunk (
                       CHECK (status IN ('active', 'retracted')),
                                                   -- 다음 판본을 기다리지 않고 바로 숨길 때만 retracted
     data_version      text         NOT NULL,      -- 청크를 만든 원천 판본
-    source_record_sha256 char(64)  NOT NULL,      -- 원본 레코드 해시(복지 raw_sha256, 레시피 source.raw_sha256)
+    source_record_sha256 char(64)  NOT NULL,      -- 게시 DB 판본 fingerprint(원문·보완·정규화/검증 버전 포함)
                                                   -- → rag_source_active.record_sha256 과 같을 때만 검색
     embedding_model   text         NOT NULL,      -- 'nlpai-lab/KURE-v1@<revision>'. 모델이 다르면 섞어 쓰지 않음
     embedding         vector(1024) NOT NULL,
@@ -80,6 +80,41 @@ CREATE TABLE rag_chunk (
 
 CREATE INDEX rag_chunk_source_idx ON rag_chunk (index_version, source_type, source_id);
 CREATE INDEX rag_chunk_region_idx ON rag_chunk (index_version, ctpv, sgg) WHERE status = 'active';
+
+-- 되돌릴 판본을 모두 검증한 뒤 전환한다. 예외가 나면 현재 active는 유지된다.
+-- 검색 SELECT는 허용하며 적재·정리·동시 롤백의 쓰기를 트랜잭션 종료까지 직렬화한다.
+CREATE FUNCTION rag_rollback_index(previous_version text) RETURNS void
+LANGUAGE plpgsql AS $$
+DECLARE
+    target rag_index_version%ROWTYPE;
+    actual_count bigint;
+    mixed_models boolean;
+BEGIN
+    LOCK TABLE rag_index_version, rag_chunk IN EXCLUSIVE MODE;
+    SELECT * INTO target FROM rag_index_version WHERE index_version = previous_version;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Rollback index version does not exist: %', previous_version
+            USING ERRCODE = '22023';
+    END IF;
+    IF target.status NOT IN ('active', 'retired') OR target.activated_at IS NULL THEN
+        RAISE EXCEPTION 'Rollback requires a previously activated version: %', previous_version
+            USING ERRCODE = '22023';
+    END IF;
+    SELECT count(*), bool_or(embedding_model IS DISTINCT FROM target.embedding_model)
+      INTO actual_count, mixed_models
+      FROM rag_chunk WHERE index_version = previous_version;
+    IF actual_count <> target.chunk_count OR coalesce(mixed_models, false) THEN
+        RAISE EXCEPTION 'Rollback index count or model is invalid: %', previous_version
+            USING ERRCODE = '23514';
+    END IF;
+    IF target.status = 'active' THEN
+        RETURN;
+    END IF;
+    UPDATE rag_index_version SET status = 'retired' WHERE status = 'active';
+    UPDATE rag_index_version SET status = 'active', activated_at = now()
+      WHERE index_version = previous_version;
+END;
+$$;
 
 -- 벡터 색인은 일부러 만들지 않는다.
 --   판본 하나가 청크 약 3천 건이라 색인 없이 전부 비교해도(정확 검색) 약 11ms이고, 지역 조건과 충돌하지 않는다.
@@ -97,24 +132,31 @@ CREATE INDEX rag_chunk_region_idx ON rag_chunk (index_version, ctpv, sgg) WHERE 
 --
 -- ── 원본 표와 맞추기 (결정: 한 트랜잭션으로 묶지 않음) ────────────────────
 -- 원본 표(복지 하루 1회·레시피 주 1회)와 RAG 판본은 따로 전환한다. 묶으면 임베딩 실패가 복지 정보 갱신까지
--- 막고, 갱신 주기도 다르다. 대신 검색이 원본 표의 '지금 게시 중인 레코드'와 레코드 해시를 대조한다.
+-- 막고, 갱신 주기도 다르다. 대신 검색이 원본 표의 '지금 게시 중인 판본 fingerprint'를 대조한다.
+-- raw_sha256만 비교하면 원문이 같고 보완·정규화 코드만 바뀐 이전 청크가 남을 수 있다.
+-- exporter는 실제 게시 DB 판본의 fingerprint를 청크에 복사한다. 기존 raw 해시 청크는 다시 내보낸다.
 --   순서: ① 원본 수집·정제 → ② 원본 표 적재·전환 → ③ rag.index(바뀐 청크만 임베딩) → ④ load_index.sql
 --   ②~④ 사이: 원본에서 내려간 사업·내용이 바뀐 사업은 해시가 달라 검색에서 바로 빠진다(틀린 근거 대신 '없음').
 --             새로 생긴 사업은 ④ 뒤부터 검색된다. RAG가 실패해도 원본 표 갱신은 그대로 진행된다.
 -- rag_source_active 는 원본 표에 맞춰 이진녕이 정의하는 뷰(이름·칸만 지키면 됨). 예:
 -- CREATE VIEW rag_source_active (source_type, source_id, record_sha256) AS
---   SELECT 'welfare_' || w.source, w.serv_id, w.raw_sha256 FROM welfare_service w WHERE <활성 판본·게시 조건>
+--   SELECT 'welfare_central', w.source_id, v.fingerprint
+--     FROM welfare_services w JOIN welfare_revisions v ON v.id = w.active_revision_id AND v.service_id = w.id
+--    WHERE w.scope = 'central_nationwide' AND w.publication_status = 'published'
+--      AND v.detail_state = 'ready' AND v.quality_status <> 'hold'
 --   UNION ALL
---   SELECT 'recipe', r.recipe_id, r.raw_sha256 FROM recipe r WHERE <게시 조건 — hold 제외>;
+--   SELECT 'recipe', r.source_id, v.fingerprint
+--     FROM recipes r JOIN recipe_revisions v ON v.id = r.active_revision_id AND v.recipe_id = r.id
+--    WHERE r.provider = 'foodsafetykorea:COOKRCP01' AND v.quality_status <> 'hold';
+-- 지자체 DB 적재와 공고 저장을 연결할 때 해당 원본의 게시·마감·철회 조건도 뷰에 반영한다.
 -- 원본 표가 생기기 전 시험용(청크에서 채움):
 -- CREATE TABLE rag_source_active (source_type text, source_id text, record_sha256 char(64),
 --                                 PRIMARY KEY (source_type, source_id));
 --
 -- 되돌리기 (:previous = 되돌릴 판본):
--- BEGIN;
--- UPDATE rag_index_version SET status = 'retired' WHERE status = 'active';
--- UPDATE rag_index_version SET status = 'active', activated_at = now() WHERE index_version = :previous;
--- COMMIT;
+-- SELECT rag_rollback_index(:previous);
+-- missing/loading/failed/활성화 이력 없음/건수·모델 불일치는 오류로 거부한다.
+-- 현재 active를 다시 지정하면 검증 후 같은 상태로 끝나며, 부분 전환은 커밋되지 않는다.
 --
 -- 정리 (활성 + 바로 전 판본 하나만 남김, 청크는 ON DELETE CASCADE):
 -- DELETE FROM rag_index_version
