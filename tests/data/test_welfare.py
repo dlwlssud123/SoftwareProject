@@ -198,6 +198,45 @@ def test_services_for_unknown_inputs():
     assert {x["match"] for x in m} == {"province", "national"}
 
 
+def test_services_for_rechecks_expiry_after_snapshot_collection():
+    item = _local("WLF00000091", "서울특별시", "중구", status="fresh",
+                  detail={"enfcEndYmd": "20000101"})
+    records = normalize_payload({"meta": {"fetched_at": "1999-01-01T00:00:00Z"}, "items": [item]}, "local")
+    assert "period_ended" not in records[0].quality_flags
+    assert services_for(records, "서울", "중구")[1] == []
+    assert len(services_for(records, "서울", "중구", include_ended=True)[1]) == 1
+
+
+@pytest.mark.parametrize("as_of, expected", [(date(2000, 1, 1), 1), (date(2000, 1, 2), 0)])
+def test_services_for_explicit_date_keeps_end_day_inclusive(as_of, expected):
+    item = _local("WLF00000093", "서울특별시", "중구", status="fresh",
+                  detail={"enfcEndYmd": "20000101"})
+    record = normalize_item(item, "local", None, date(2001, 1, 1))
+    assert "period_ended" in record.quality_flags
+    assert len(services_for([record], "서울", "중구", as_of=as_of)[1]) == expected
+
+
+def test_stale_detail_keeps_latest_list_region_and_period():
+    item = _local("WLF00000092", "서울특별시", "중구", "현재 사업", status="stale",
+                  detail={"ctpvNm": "경상북도", "sggNm": "경산시", "servNm": "이전 사업", "enfcEndYmd": "20251231"})
+    item["list"]["enfcEndYmd"] = "29991231"
+    record = normalize_item(item, "local", None, AS_OF)
+    assert (record.ctpv, record.sgg, record.name, record.period_end) == ("서울특별시", "중구", "현재 사업", "2999-12-31")
+    assert "detail_stale" in record.quality_flags
+    assert len(services_for([record], "서울", "중구")[1]) == 1
+    assert services_for([record], "경상북도", "경산시")[1] == []
+
+
+@pytest.mark.parametrize("latest_sgg", ["", None, "-"])
+def test_stale_detail_does_not_restore_fields_cleared_by_list(latest_sgg):
+    item = _local("WLF00000094", "서울특별시", latest_sgg, status="stale",
+                  detail={"ctpvNm": "서울특별시", "sggNm": "중구", "enfcEndYmd": "20251231"})
+    item["list"]["enfcEndYmd"] = ""
+    record = normalize_item(item, "local", None, AS_OF)
+    assert (record.scope, record.sgg, record.period_end) == ("province", None, None)
+    assert len(services_for([record], "서울")[1]) == 1
+
+
 # --- CLI ------------------------------------------------------------------
 def test_build_main_end_to_end(tmp_path):
     meta = {"fetched_at": "2026-11-01T00:00:00+00:00", "item_count": 1, "details": {"counts": {"fresh": 1}}}

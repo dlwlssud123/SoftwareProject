@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, datetime, timedelta, timezone
 
 from agetech_data.welfare.normalize import WelfareRecord
 from agetech_data.welfare.regions import FORMER_GWANGJU_DISTRICTS, MERGED, match_sgg, normalize_ctpv
@@ -42,12 +43,17 @@ def resolve_region(records: list[WelfareRecord], ctpv_input: str | None, sgg_inp
 
 
 def services_for(records: list[WelfareRecord], ctpv_input: str | None, sgg_input: str | None = None, *,
-                 include_national: bool = True, include_ended: bool = False) -> tuple[RegionQuery, list[dict]]:
+                 include_national: bool = True, include_ended: bool = False,
+                 as_of: date | None = None) -> tuple[RegionQuery, list[dict]]:
     """(해석한 지역, [{record, match, reason}]). 순서: 내 시군구 → 내 시도 전체 → 전국."""
     q = resolve_region(records, ctpv_input, sgg_input)
+    if as_of is None:
+        as_of = datetime.now(timezone(timedelta(hours=9))).date()
+    query_date = as_of.isoformat()
     out = []
     for r in records:
-        if not include_ended and "period_ended" in r.quality_flags:
+        period_ended = r.period_end < query_date if r.period_end else "period_ended" in r.quality_flags
+        if not include_ended and period_ended:
             continue
         if r.scope == "national":
             if include_national:
