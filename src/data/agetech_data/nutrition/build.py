@@ -28,6 +28,7 @@ from agetech_data.nutrition.fields import NUTRIENT_FIELDS
 from agetech_data.nutrition.foods import FoodRecord, clean_foods
 from agetech_data.nutrition.match import FoodIndex, load_ingredient_map, match_ingredient, search_dishes
 from agetech_data.nutrition.units import CONVERTED, to_grams
+from agetech_data.recipes.correct import apply_corrections
 from agetech_data.recipes.validate import check_recipe, load_rows
 
 SCHEMA_VERSION = 1
@@ -151,6 +152,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="식품영양성분 정제·레시피 재료 매핑·보고서")
     ap.add_argument("--nutrition-raw", type=Path, default=paths.NUTRITION_RAW)
     ap.add_argument("--recipes", type=Path, default=paths.RECIPES_RAW)
+    ap.add_argument("--corrections", type=Path, default=paths.RECIPE_CORRECTIONS)
     ap.add_argument("--foods-out", type=Path, default=paths.FOODS_PROCESSED)
     ap.add_argument("--recipes-out", type=Path, default=paths.RECIPE_NUTRITION)
     ap.add_argument("--report", type=Path, default=paths.NUTRITION_MAPPING_REPORT)
@@ -166,6 +168,8 @@ def main(argv: list[str] | None = None) -> int:
     foods = clean_foods(raw["items"])
     entries = load_ingredient_map()
     rows = load_rows(args.recipes)
+    correction_bytes = args.corrections.read_bytes()
+    rows, corrections = apply_corrections(rows, json.loads(correction_bytes))
     recipes = build_recipe_nutrition(rows, foods, entries)
     summary = summarize(recipes, foods, entries)
     dish_index = FoodIndex(foods, ("음식",))
@@ -174,7 +178,13 @@ def main(argv: list[str] | None = None) -> int:
     inputs = {
         "nutrition_raw": {"path": _rel(args.nutrition_raw), "sha256": hashlib.sha256(raw_bytes).hexdigest(),
                           "meta": raw.get("meta")},
-        "recipes": {"path": _rel(args.recipes), "sha256": hashlib.sha256(args.recipes.read_bytes()).hexdigest()},
+        "recipes": {
+            "path": _rel(args.recipes),
+            "sha256": hashlib.sha256(args.recipes.read_bytes()).hexdigest(),
+            "corrections_path": _rel(args.corrections),
+            "corrections_sha256": hashlib.sha256(correction_bytes).hexdigest(),
+            "correction_count": len(corrections),
+        },
     }
     nutrient_spec = {k: {"field": f, "label": label} for k, (f, label) in NUTRIENT_FIELDS.items()}
     _write(args.foods_out, {"schema_version": SCHEMA_VERSION, "input": inputs["nutrition_raw"],
