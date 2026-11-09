@@ -2,9 +2,12 @@ import json
 from collections import Counter
 
 import pytest
-
 from agetech_data import paths
-from agetech_data.nutrition.corrections import apply_corrections, check_field, load_corrections
+from agetech_data.nutrition.corrections import (
+    apply_corrections,
+    check_field,
+    load_corrections,
+)
 from agetech_data.nutrition.foods import clean_foods
 
 BAD_BASIS = "D117-707000000-0001"   # 픽스처: 기준량 '4㎍ RAE' → invalid_basis
@@ -75,6 +78,29 @@ def test_corrections_file_shape():
     keys = Counter((c["food_code"], c["field"]) for c in entries)
     assert max(keys.values()) == 1                     # 같은 식품·필드에 보정이 둘이면 안 됨
     assert all(c["from"] != c["to"] for c in entries)
+
+
+def test_source_identity_ignores_only_response_sequence(nutrition_sample):
+    raw = dict(nutrition_sample["items"][0], NUM="100")
+    original = clean_foods([raw], corrections=())[0]
+    correction = _c(original, "basis_text", original.basis_text, "200g",
+                    source_sha256=original.source_sha256)
+    reordered = clean_foods([{**raw, "NUM": "101"}], corrections=())[0]
+    assert reordered.raw_sha256 != original.raw_sha256
+    assert reordered.source_sha256 == original.source_sha256
+    assert apply_corrections([reordered], [correction])[0]["status"] == "applied"
+    assert reordered.basis_text == "200g" and reordered.corrections[0]["source_sha256"] == original.source_sha256
+
+
+@pytest.mark.parametrize("change", [{"AMT_NUM1": "999"}, {"FOOD_NM_KR": "changed name"}, {"NEW_FIELD": "value"}])
+def test_source_identity_still_rejects_content_or_schema_change(nutrition_sample, change):
+    raw = nutrition_sample["items"][0]
+    original = clean_foods([raw], corrections=())[0]
+    correction = _c(original, "basis_text", original.basis_text, "200g",
+                    source_sha256=original.source_sha256)
+    changed = clean_foods([{**raw, "NUM": "101", **change}], corrections=())[0]
+    assert apply_corrections([changed], [correction])[0]["status"] == "stale"
+    assert changed.corrections == [] and changed.basis_text == original.basis_text
 
 
 @pytest.mark.skipif(not paths.NUTRITION_RAW.is_file(), reason="수집 원본 없음 (client 실행 필요)")

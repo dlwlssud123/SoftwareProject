@@ -34,7 +34,8 @@ def _ratio(calc, src) -> str:
     return f"{calc / s:.2f}" if s else "-"
 
 
-def render_report(inputs: dict, s: dict, recipes: list[dict], dishes: dict[str, list[dict]]) -> str:
+def render_report(inputs: dict, s: dict, recipes: list[dict], dishes: dict) -> str:
+    """dishes = dish_eval.evaluate() 결과 (음식명 검색 정답 표본 평가)."""
     meta = (inputs["nutrition_raw"].get("meta") or {})
     L: list[str] = ["# 레시피 재료 → 식품영양성분DB 매핑 보고서", "",
                     "> 이 파일은 `uv run python -m agetech_data.nutrition.build`로 생성됩니다. 직접 고치지 마세요.", ""]
@@ -150,18 +151,39 @@ def render_report(inputs: dict, s: dict, recipes: list[dict], dishes: dict[str, 
     L += [""]
     L += _table(["성분", "결측률"], [[NUTRIENT_LABEL.get(k, k), f"{v}%"] for k, v in f["missing_pct"].items()])
 
-    L += ["", "## 7. 음식명 검색 예시 (사진 분석 연계)", "",
-          "`search_dishes()`가 돌려주는 DB군 '음식' 상위 후보입니다. 같은 음식명이 식품코드 계열별로 여러 행(100g/100mL 기준)이 있어 "
-          "점수가 같으면 100g 기준 행을 앞에 둡니다. 최종 선택은 사용자 확인을 거칩니다.", ""]
-    L += _table(["입력", "후보 1", "후보 2", "후보 3"], [
-        [q] + [f"{c['name']} ({c['basis_unit']}, {c['score']:.2f})" for c in cands] + ["-"] * (3 - len(cands))
-        for q, cands in dishes.items()
+    d = dishes
+    L += ["", "## 7. 음식명 검색 정답 표본 (사진 분석 연계)", "",
+          "사진 분석이 돌려줄 음식명으로 `search_dishes()`(음식 DB군 + 원재료성 보조 후보)를 돌린 결과입니다. "
+          "정답은 `src/data/agetech_data/resources/dish_search_gold.json`"
+          + (f"({d['checked_by']}, {d['checked_at']} 확인)" if d["checked_by"] else "(**사람 확인 전 초안**)")
+          + "이며, 기준량 단위를 적은 항목은 1순위 후보의 단위까지 맞아야 일치로 셉니다. "
+          "같은 음식명이 식품코드 계열별로 여러 행(100g 분석 / 100mL 산출)이라 점수가 같으면 100g 기준 행을 앞에 둡니다. "
+          "최종 선택은 사용자 확인을 거칩니다.", "",
+          f"- 정답 표본 {d['total']}건: **1순위 일치 {d['top1']}건**, 3순위 안 {d['top3']}건"
+          + (f" (알려진 미해결 {d['known_miss']}건 포함 — 이유는 표 아래 목록)" if d["known_miss"] else "")
+          + (f", **예상 밖 불일치: {', '.join(d['unexpected'])}**" if d["unexpected"] else ""),
+          "- 정답이 '(후보 없음)'인 항목은 DB에 없는 음식·인식 실패 문구로, 후보를 내지 않아야 맞습니다(화면에서 음식명 직접 수정).",
+          "- 찾은 방식: `name` 음식명 일치 · `family` 대표 음식명만 일치(세부 종류 확인) · `partial` 일부 일치 · "
+          "`alias_code` 별칭표가 식품 지정 · `ingredient` 원재료성 보조 후보", ""]
+
+    def _c(c):
+        return f"{c['name']} ({c['basis_unit']}, {c['match']}, {c['score']:.2f})"
+
+    L += _table(["입력", "1순위", "일치", "후보 2", "후보 3"], [
+        [r["query"], _c(r["candidates"][0]) if r["candidates"] else "(후보 없음)",
+         "O" if r["top1"] else ("3위 안" if r["top3"] else "X")]
+        + [_c(c) for c in r["candidates"][1:3]] + ["-"] * (2 - len(r["candidates"][1:3]))
+        for r in d["rows"]
     ])
+    misses = [r for r in d["rows"] if r["known_miss"]]
+    if misses:
+        L += ["", "알려진 미해결 (사용자에게 음식명을 다시 묻거나 데이터를 더 찾아야 하는 항목):", ""]
+        L += [f"- **{r['query']}** — {r['known_miss']}" for r in misses]
 
     L += ["", "## 8. 원칙과 제한", "",
           "- 원문 분량(`amount_text`)과 재료명은 바꾸지 않습니다. g 환산·매핑 결과는 근거와 함께 별도 필드로 둡니다.",
           "- 개수 단위(개·장·알 등)는 출처 있는 개당 중량표가 없어 환산하지 않습니다. 근거 자료가 생기면 추가합니다.",
           "- 부위·품종이 적히지 않은 재료(돼지고기·소고기 → 앞다리, 새우 → 대하 등)는 매핑표의 기본값으로 계산하며, 고른 이유는 매핑표 근거에 있습니다.",
           "- 저염 제품 항목이 없는 재료(저염된장·저염소금)는 일반 제품으로 근사해 **나트륨이 실제보다 많게** 잡힙니다.",
-          "- DB 적재는 공통 저장 구조(API·DB 담당) 확정 후 진행합니다. 필드 정의는 `docs/data/food_nutrition_contract.md`를 따릅니다."]
+          "- 원천 식품과 보정 내역의 DB 적재는 구현되어 있습니다. 재료 매핑·계산 결과의 DB 연결은 후속 작업이며, 필드 정의는 `docs/data/food_nutrition_contract.md`를 따릅니다."]
     return "\n".join(L) + "\n"

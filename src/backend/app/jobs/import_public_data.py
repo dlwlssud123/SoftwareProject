@@ -70,6 +70,19 @@ def decimal_value(value) -> Decimal | None:
     return number if number.is_finite() else None
 
 
+def food_nutrient_values(entry: dict) -> dict[str, Decimal | None]:
+    # Preserve untouched source precision while applying only verified nutrient corrections.
+    values = {
+        key: decimal_value(entry["raw"].get(source))
+        for key, (source, _) in NUTRIENT_FIELDS.items()
+    }
+    for correction in entry["record"].get("corrections", []):
+        if correction["field"].startswith("nutrients."):
+            key = correction["field"].split(".", 1)[1]
+            values[key] = decimal_value(correction["to"])
+    return values
+
+
 def snapshot_time(meta: dict) -> datetime | None:
     value = meta.get("fetched_at", meta.get("fetchedAt"))
     if value is None:
@@ -187,10 +200,17 @@ def prepare_import(
                     "raw": raw,
                     "record": record,
                     "fingerprint": sha256_json(
-                        {"raw": sha256_json(raw), "parser": PARSER_VERSION}
+                        {
+                            "raw": sha256_json(raw),
+                            "normalized": record,
+                            "parser": PARSER_VERSION,
+                        }
                     ),
                 }
             )
+        inputs["nutrition_normalization_sha256"] = sha256_json(
+            [entry["fingerprint"] for entry in foods]
+        )
     status = Counter(entry["check"]["status"] for entry in recipes)
     counts = {
         "recipes": len(recipes),
@@ -359,10 +379,7 @@ def apply_import(session: Session, plan: ImportPlan) -> dict:
             )
         )
         if revision is None:
-            exact = {
-                key: decimal_value(raw.get(source))
-                for key, (source, _) in NUTRIENT_FIELDS.items()
-            }
+            exact = food_nutrient_values(entry)
             basis = decimal_value(record["basis_amount"])
             if basis is not None and basis <= 0:
                 raise ValueError("nutrition: basis amount must be positive")
@@ -446,10 +463,7 @@ def verify_import(session: Session, plan: ImportPlan) -> dict:
                 raise ValueError("Recipe nutrition differs from the source value")
     for entry in plan.foods:
         revision = foods[entry["fingerprint"]]
-        exact = {
-            key: decimal_value(entry["raw"].get(source))
-            for key, (source, _) in NUTRIENT_FIELDS.items()
-        }
+        exact = food_nutrient_values(entry)
         expected_nutrients = {
             key: str(value) if value is not None else None
             for key, value in exact.items()
@@ -457,6 +471,7 @@ def verify_import(session: Session, plan: ImportPlan) -> dict:
         if (
             revision.raw != entry["raw"]
             or revision.raw_sha256 != sha256_json(entry["raw"])
+            or revision.normalized != entry["record"]
             or revision.nutrients != expected_nutrients
             or revision.basis_unit != entry["record"]["basis_unit"]
         ):

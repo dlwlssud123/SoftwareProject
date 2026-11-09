@@ -95,6 +95,8 @@ class FoodRecord:
     raw_sha256: str
     corrections: list[dict] = field(default_factory=list)   # 보정 기록 {field, from, to, reason, evidence, by, at}
     quality_flags: list[str] = field(default_factory=list)
+    dish_serving_text: str | None = None  # 1회분량 참고량 원문 (DISH_ONE_SERVING)
+    source_sha256: str | None = None  # 응답 순번 NUM만 제외한 원천 내용 해시(보정 검증용)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -119,6 +121,8 @@ def clean_food(row: dict) -> FoodRecord:
         serving_ref_text=t["serving_ref_text"], source_name=t["source_name"], create_method=t["create_method"],
         research_date=t["research_date"], update_date=t["update_date"],
         nutrients=nutrients, raw_sha256=sha256_json(row), quality_flags=flags,
+        dish_serving_text=t["dish_serving_text"],
+        source_sha256=sha256_json({key: value for key, value in row.items() if key != "NUM"}),
     )
     rec.quality_flags += food_flags(rec)
     return rec

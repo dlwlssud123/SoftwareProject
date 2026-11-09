@@ -3,7 +3,8 @@
 원칙 (docs/data/food_nutrition_contract.md 1절 5번)
 - 수집 원본은 고치지 않는다. 정제 단계(clean_foods)에서 보정표를 적용한다.
 - 근거가 있는 보정만 넣는다. 항목마다 원래 값(from)·바꾼 값(to)·이유·근거·확인자·확인일을 적는다.
-- 원본 행 해시(raw_sha256)와 원래 값(from)이 둘 다 맞을 때만 적용한다. 원천이 바뀌면(식약처 수정·재수집)
+- 원천 내용 해시(source_sha256, NUM 제외)와 원래 값(from)이 둘 다 맞을 때만 적용한다.
+  구형 보정표는 원본 행 해시(raw_sha256)로 검증한다. 원천이 바뀌면(식약처 수정·재수집)
   적용하지 않고 레코드에 'correction_stale'을 붙여 다시 확인하게 한다.
 - 보정한 레코드는 corrections[]에 원래 값과 함께 기록하고 quality_flags 에 'corrected'를 붙인다.
   품질 표시는 보정한 값으로 다시 계산한다(예: 기준량을 고치면 invalid_basis 등이 다시 판정됨).
@@ -16,6 +17,7 @@
 from __future__ import annotations
 
 import json
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -24,7 +26,7 @@ from agetech_data.nutrition.fields import NUTRIENT_FIELDS
 RESOURCES = Path(__file__).resolve().parents[1] / "resources"
 CORRECTIONS_FILE = RESOURCES / "food_corrections.json"
 REQUIRED = ("food_code", "food_name", "field", "from", "to", "reason", "evidence", "raw_sha256", "by", "at")
-RECORD_KEYS = ("field", "from", "to", "reason", "evidence", "by", "at")
+RECORD_KEYS = ("field", "from", "to", "reason", "evidence", "by", "at", "source_sha256")
 
 
 @lru_cache
@@ -37,6 +39,8 @@ def load_corrections(path: Path = CORRECTIONS_FILE) -> tuple[dict, ...]:
         if missing:
             raise ValueError(f"보정표 항목에 빈 칸: {c.get('food_code')} {missing}")
         check_field(c["field"])
+        if "source_sha256" in c and not re.fullmatch(r"[0-9a-f]{64}", str(c["source_sha256"])):
+            raise ValueError(f"보정표 원천 내용 해시가 잘못됨: {c.get('food_code')}")
     return entries
 
 
@@ -79,13 +83,15 @@ def apply_corrections(recs, corrections) -> list[dict]:
         if r is None:
             results.append({"food_code": c["food_code"], "field": c["field"], "status": "missing"})
             continue
-        if r.raw_sha256 != c["raw_sha256"] or current_value(r, c["field"]) != c["from"]:
+        same_source = (r.source_sha256 == c["source_sha256"] if c.get("source_sha256")
+                       else r.raw_sha256 == c["raw_sha256"])
+        if not same_source or current_value(r, c["field"]) != c["from"]:
             if "correction_stale" not in r.quality_flags:
                 r.quality_flags.append("correction_stale")
             results.append({"food_code": c["food_code"], "field": c["field"], "status": "stale"})
             continue
         _set(r, c["field"], c["to"])
-        r.corrections.append({k: c[k] for k in RECORD_KEYS})
+        r.corrections.append({k: c[k] for k in RECORD_KEYS if k in c})
         touched.add(r.food_code)
         results.append({"food_code": c["food_code"], "field": c["field"], "status": "applied"})
     for code in touched:

@@ -52,6 +52,7 @@ WELFARE_REGIONAL_REPORT = REPORTS_DIR / "welfare_regional_report.md"
 FOODS_PROCESSED = PROCESSED_DIR / "foods_v03.json"
 RECIPE_NUTRITION = PROCESSED_DIR / "recipe_ingredient_nutrition.json"
 NUTRITION_MAPPING_REPORT = REPORTS_DIR / "nutrition_mapping_report.md"
+NUTRITION_API_SAMPLE = REPORTS_DIR / "samples" / "nutrition_api_sample.json"
 
 RECIPES_API = PROCESSED_DIR / "recipes_api.json"
 RECIPE_API_SAMPLE = REPORTS_DIR / "samples" / "recipe_api_sample.json"

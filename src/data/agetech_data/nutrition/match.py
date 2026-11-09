@@ -210,12 +210,55 @@ def match_ingredient(name: str, index: FoodIndex, paren_texts: list[str] | None 
 
 
 # --- 음식명 (사진 분석 등) ------------------------------------------------
+# 후보가 어떻게 찾아졌는지 (화면에서 '확인 필요' 정도를 정할 때 쓴다)
+#   alias_code : 별칭표가 식품코드를 직접 지정 (예: 배추김치 → 원재료성 '김치, 배추 김치')
+#   name       : 음식명 일치 (대표_세부 순서를 바꾼 이름 포함)
+#   family     : 대표 음식명만 일치 — 세부 종류 확인 필요 (예: 순두부찌개 → 순두부찌개_김치)
+#   partial    : 이름 일부·유사 일치
+#   ingredient : 음식 DB군에 맞는 이름이 없어 원재료성 식품에서 찾음 (예: 사과 → 사과, 생것)
+#   category   : 이름이 너무 넓어 종류를 골라야 함 (예: 떡 → 가래떡·백설기·절편…). 별칭표 broad 목록 순서대로
+FAMILY_SCORE = 0.9
+RAW_FALLBACK_MIN = 0.8
+
+
 @lru_cache
-def load_dish_aliases(path: Path = DISH_ALIAS_FILE) -> dict[str, str]:
+def load_dish_aliases(path: Path = DISH_ALIAS_FILE) -> dict[str, dict]:
+    """정규화한 별칭 → {name?, food_code?}. name 은 검색할 음식명, food_code 는 직접 지정할 식품."""
     if not path.is_file():
         return {}
     data = json.loads(path.read_text(encoding="utf-8"))
-    return {norm(a["alias"]): a["name"] for a in data["aliases"]}
+    return {norm(a["alias"]): {k: a[k] for k in ("name", "food_code") if a.get(k)} for a in data["aliases"]}
+
+
+@lru_cache
+def load_broad_names(path: Path = DISH_ALIAS_FILE) -> dict[str, dict]:
+    """정규화한 넓은 이름 → {ask, choices}. choices 는 자주 먹는 종류의 음식명(검색어)이다."""
+    if not path.is_file():
+        return {}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return {norm(n): {"ask": b["ask"], "choices": b["choices"]} for b in data.get("broad", []) for n in b["names"]}
+
+
+def dish_choice_question(query: str, aliases: dict | None = None, broad: dict | None = None) -> str | None:
+    """넓은 이름이면 화면에 띄울 질문 (예: '어떤 떡인가요?'), 아니면 None."""
+    broad = load_broad_names() if broad is None else broad
+    q, code = normalize_dish_query(query, aliases)
+    b = None if code else broad.get(q)
+    return b["ask"] if b else None
+
+
+def normalize_dish_query(query: str, aliases: dict | None = None) -> tuple[str, str | None]:
+    """(검색어, 별칭표가 지정한 식품코드). 별칭 → 이름 치환 뒤 '계란'을 '달걀'로 바꾼다."""
+    aliases = load_dish_aliases() if aliases is None else aliases
+    q = norm(query)
+    a = aliases.get(q)
+    code = None
+    # 별칭의 name 은 DB 음식명 그대로 적는다('갈비찜_고춧가루'). 검색 키는 '_'를 뺀 형태라 맞춰 준다
+    if isinstance(a, str):
+        q = norm(a).replace("_", "")
+    elif isinstance(a, dict):
+        q, code = norm(a.get("name") or q).replace("_", ""), a.get("food_code")
+    return q.replace("계란", "달걀"), code
 
 
 def _dish_keys(r: FoodRef) -> dict[str, float]:
@@ -229,28 +272,92 @@ def _dish_keys(r: FoodRef) -> dict[str, float]:
     return keys
 
 
-def search_dishes(query: str, foods, limit: int = 5, aliases: dict[str, str] | None = None) -> list[dict]:
-    """음식명 → 음식(DB군 '음식') 후보. 점수가 같으면 100g 기준 행을 앞에 둔다. 확정은 사용자·서버가 한다."""
-    aliases = load_dish_aliases() if aliases is None else aliases
-    q = norm(query)
-    q = norm(aliases.get(q, q))
-    q = q.replace("계란", "달걀")
+def _dish_score(q: str, r: FoodRef) -> tuple[float, str]:
+    best = 0.0
+    for k, w in _dish_keys(r).items():
+        if q == k:
+            s = w
+        elif len(q) >= 2 and (q in k or k in q):
+            s = 0.5 + 0.3 * min(len(q), len(k)) / max(len(q), len(k))
+        else:
+            s = 0.7 * SequenceMatcher(None, q, k).ratio()
+        best = max(best, s * (1 if w >= 0.95 else w / 0.7 * 0.85))
+    if best >= 0.95:
+        return best, "name"
+    # '대표_세부' 이름의 대표 부분이 검색어와 같으면 같은 음식의 세부 종류다.
+    # (순두부찌개 → 순두부찌개_김치 가 '두부찌개'보다 앞에 와야 한다)
+    if "_" in r.name and norm(r.name.split("_")[0]) == q and best < FAMILY_SCORE:
+        return FAMILY_SCORE, "family"
+    return best, "partial"
+
+
+def _raw_fallback(q: str, raw_index: FoodIndex, limit: int) -> list[dict]:
+    """음식 DB군에 맞는 이름이 없을 때 원재료성 후보. 같은 점수면 '생것'을 앞에 둔다(사진 속 과일 등)."""
+    cands = raw_index.candidates(q, limit=limit * 4, min_score=RAW_FALLBACK_MIN)
+    cands = [c for c in cands if c["db_group"] == "원재료성"]
+    if len(q) == 1:
+        # 한 글자는 부분 일치가 너무 넓다 (떡 → 떡조개, 전 → 전어). 첫 토큰이 같을 때만 (귤 → 귤, 온주밀감, 생것)
+        cands = [c for c in cands if norm(c["name"].split(",")[0]) == q]
+    cands.sort(key=lambda c: (-c["score"], RAW_STATE not in c["name"].split(", "), len(c["name"]), c["food_code"]))
+    return cands[:limit]
+
+
+def _rank_dishes(q: str, refs: list[FoodRef], skip_code: str | None = None) -> list[tuple[float, str, FoodRef]]:
+    scored = []
+    for r in refs:
+        if r.food_code == skip_code:
+            continue
+        s, how = _dish_score(q, r)
+        if s >= 0.5:
+            scored.append((round(s, 3), how, r))
+    # 음식명 일치(0.95 이상, 이름 순서만 바뀐 '무국_소고기' 포함)끼리는 100g 기준 행을 먼저 둔다
+    scored.sort(key=lambda x: (-1.0 if x[0] >= 0.95 else -x[0], x[2].basis_unit != "g", -x[0], x[2].food_code))
+    return scored
+
+
+def search_dishes(query: str, foods, limit: int = 5, aliases: dict | None = None,
+                  raw_index: FoodIndex | None = None, broad: dict | None = None) -> list[dict]:
+    """음식명 → 식품 후보 목록. 확정은 사용자·서버가 한다.
+
+    - 기본은 DB군 '음식'에서 찾는다. 점수가 같으면 100g 기준 행을 앞에 둔다.
+    - raw_index(원재료성 FoodIndex)를 주면, 별칭표가 지정한 원재료성 식품코드와
+      음식명 일치(0.95 이상)가 없을 때의 원재료성 후보를 함께 돌려준다.
+    - 넓은 이름(떡·전·생선구이 등, 별칭표 broad)이면 종류마다 대표 행 하나씩을 `category`로 돌려준다.
+      이때는 limit 와 상관없이 종류를 모두 돌려준다(화면에서 고르게 함). 질문 문구는 dish_choice_question().
+    """
+    q, code = normalize_dish_query(query, aliases)
     if not q:
         return []
     refs = foods.refs if isinstance(foods, FoodIndex) else FoodIndex(foods, ("음식",)).refs
-    out = []
-    for r in refs:
-        best = 0.0
-        for k, w in _dish_keys(r).items():
-            if q == k:
-                s = w
-            elif len(q) >= 2 and (q in k or k in q):
-                s = 0.5 + 0.3 * min(len(q), len(k)) / max(len(q), len(k))
-            else:
-                s = 0.7 * SequenceMatcher(None, q, k).ratio()
-            best = max(best, s * (1 if w >= 0.95 else w / 0.7 * 0.85))
-        if best >= 0.5:
-            out.append((round(best, 3), r))
-    out.sort(key=lambda x: (-x[0], x[1].basis_unit != "g", x[1].food_code))
-    return [{"food_code": r.food_code, "name": r.name, "basis_unit": r.basis_unit, "score": s}
-            for s, r in out[:limit]]
+    b = None if code else (load_broad_names() if broad is None else broad).get(q)
+    if b:
+        picks = []
+        for choice in b["choices"]:
+            # 선택지는 DB 음식명 그대로 적는다 ('수육_소고기'). 검색 키는 '_'를 뺀 형태라 맞춰 준다
+            ranked = _rank_dishes(normalize_dish_query(choice, {})[0].replace("_", ""), refs)
+            if ranked and ranked[0][1] in ("name", "family"):
+                picks.append(_candidate(ranked[0][2], ranked[0][0], "category"))
+        if picks:  # 수집본이 바뀌어 종류를 하나도 못 찾으면 일반 검색으로 넘어간다
+            return picks
+    out: list[dict] = []
+    pinned = None
+    if code:
+        pinned = next((r for r in refs if r.food_code == code), None)
+        if pinned is None and raw_index is not None:
+            pinned = raw_index.by_code.get(code)
+        if pinned is not None:
+            out.append(_candidate(pinned, 1.0, "alias_code"))
+    dishes = [_candidate(r, s, how) for s, how, r in _rank_dishes(q, refs, pinned.food_code if pinned else None)]
+    if raw_index is not None and pinned is None and not (dishes and dishes[0]["score"] >= 0.95):
+        raws = [_candidate(raw_index.by_code[c["food_code"]], c["score"], "ingredient")
+                for c in _raw_fallback(q, raw_index, limit)]
+        # 두 점수 체계가 달라 섞어 정렬하지 않는다. 원재료성 이름 토큰이 검색어와 같을 때(사과 → 사과, 생것)만
+        # 음식 후보보다 앞에 두고, 나머지 원재료성 후보는 음식 후보 뒤에 붙인다(불고기 → 소불고기 먼저).
+        strong = [c for c in raws if c["score"] >= 0.95]
+        dishes = strong + dishes + [c for c in raws if c["score"] < 0.95]
+    return (out + dishes)[:limit]
+
+
+def _candidate(r: FoodRef, score: float, how: str) -> dict:
+    return {"food_code": r.food_code, "name": r.name, "db_group": r.db_group, "basis_unit": r.basis_unit,
+            "score": score, "match": how}
