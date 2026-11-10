@@ -98,7 +98,7 @@ def test_dedupe_keeps_best_chunk_per_source(tmp_path):
 def test_export_csv_matches_table_columns(tmp_path):
     import csv
 
-    from agetech_data.rag.export import COLUMNS, pg_array, pg_vector, write_csv
+    from agetech_data.rag.export import COLUMNS, CSV_COLUMNS, pg_array, pg_vector, write_csv
 
     assert pg_array([]) == "{}" and pg_array(['a"b', "c,d"]) == '{"a\\"b","c,d"}'
     assert pg_vector([0.5, -0.25]) == "[0.5,-0.25]"
@@ -107,7 +107,12 @@ def test_export_csv_matches_table_columns(tmp_path):
     n = write_csv(manifest, chunks, vectors, tmp_path / "rag_chunk.csv")
     with (tmp_path / "rag_chunk.csv").open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
-    assert n == len(rows) == 7 and list(rows[0]) == COLUMNS
+    assert n == len(rows) == 7 and list(rows[0]) == CSV_COLUMNS
+    # CSV 에는 게시 판본 지문 대신 원본 행 해시 — 나머지 칸은 표와 같은 순서
+    assert "source_record_sha256" in COLUMNS and "source_record_sha256" not in CSV_COLUMNS
+    assert [c for c in CSV_COLUMNS if c != "source_row_sha256"] == [c for c in COLUMNS if c != "source_record_sha256"]
+    by_id = {c["chunk_id"]: c for c in chunks}
+    assert all(r["source_row_sha256"] == by_id[r["chunk_id"]]["source_record_sha256"] for r in rows)
     assert {r["index_version"] for r in rows} == {manifest["index_version"]}
     nat = next(r for r in rows if r["source_id"] == "WLF00001164")
     assert nat["ctpv"] == "" and nat["region_scope"] == "national" and nat["embedding_model"] == "fake@1"
@@ -115,19 +120,34 @@ def test_export_csv_matches_table_columns(tmp_path):
     assert next(r for r in rows if r["source_id"] == "28")["allergens"] == '{"대두","알류"}'
 
 
-def test_load_script_registers_loading_then_switches_only_when_counts_match(tmp_path):
-    from agetech_data.rag.export import load_script
+def test_load_script_binds_published_fingerprint_then_switches_only_when_counts_match(tmp_path):
+    from agetech_data.rag.export import COLUMNS, load_script
 
     build_index(*payloads(), FakeEmbedder(), index_dir=tmp_path)
     manifest, _, _ = load_index(tmp_path)
     sql = load_script(manifest, "a" * 64)
     v = manifest["index_version"]
     assert f"WHERE index_version = '{v}') AS already" in sql                     # 같은 판본이면 건너뜀
-    assert sql.index("'loading'") < sql.index("\\copy rag_chunk (index_version, chunk_id") < sql.index("AS ok")
-    assert "count(*) = 7 AND coalesce(bool_and(embedding_model = 'fake@1'), false) AS ok" in sql
+    # 순서: 잠금 → 임시 표에 받기 → 파일 건수·모델 확인 → 지문 붙이기 → loading 등록·넣기 → 전환
+    order = ["LOCK TABLE rag_index_version, rag_chunk IN EXCLUSIVE MODE", "\\copy rag_chunk_stage (index_version",
+             f"count(*) = 7 AND coalesce(bool_and(index_version = '{v}' AND embedding_model = 'fake@1'), false)"
+             " AS staged_ok",
+             "SET source_record_sha256 = v.fingerprint", "'loading'", "INSERT INTO rag_chunk (", "AS ok"]
+    assert [sql.index(s) for s in order] == sorted(sql.index(s) for s in order)
+    assert "source_row_sha256 char(64) NOT NULL" in sql and "ON COMMIT DROP" in sql
+    # 레시피는 원문·보완 후 해시가 둘 다 같을 때만, 복지는 붙이지 않음(지문 없는 청크는 넣지 않음)
+    bind = sql[sql.index("SET source_record_sha256 = v.fingerprint"):sql.index("SELECT source_type")]
+    assert "s.source_type = 'recipe'" in bind and "r.provider = 'foodsafetykorea:COOKRCP01'" in bind
+    assert "v.raw_sha256 = s.source_row_sha256 AND v.effective_sha256 = s.source_row_sha256" in bind
+    assert "welfare" not in bind.split("\n-- ")[0]
+    assert f"INSERT INTO rag_chunk ({', '.join(COLUMNS)})" in sql and "WHERE source_record_sha256 IS NOT NULL" in sql
+    # 판본 기록 건수 = 실제로 넣은 건수, 하나도 안 맞으면 적재하지 않음
+    assert f"VALUES ('{v}', 'fake@1', :loaded_count," in sql and "AS any_loaded" in sql
     switch = sql[sql.index("\\if :ok"):]
+    assert "count(*) = :loaded_count" in sql[:sql.index("\\if :ok")]
     assert switch.index("SET status = 'retired' WHERE status = 'active'") < switch.index("SET status = 'active'")
     assert "SET status = 'failed'" in switch and "RAISE EXCEPTION" in switch
+    assert sql.count("ROLLBACK;") == 2                     # 파일 건수 불일치·맞는 청크 없음 → 아무것도 안 남김
 
 
 def test_index_version_kept_when_unchanged_and_new_when_changed(tmp_path, monkeypatch):

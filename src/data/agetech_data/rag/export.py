@@ -1,11 +1,18 @@
-"""인덱스 → DB 적재 파일 (docs/data/sql/rag_chunk_draft.sql 표 구조).
+"""인덱스 → DB 적재 파일 (docs/data/sql/rag_chunk_draft.sql v3 표 구조).
 
     uv run python -m agetech_data.rag.export     # data/processed/rag/rag_chunk.csv + load_index.sql
     cd data/processed/rag && psql -v ON_ERROR_STOP=1 -f load_index.sql
 
-판본 전환(이진녕 확정 전 제안): 인덱스 판본(index_version) 단위로 통째로 넣고, 건수를 확인한 뒤
-한 트랜잭션에서 활성 판본만 바꾼다. 적재 중·실패한 판본은 검색되지 않고(검색은 활성 판본만 조회),
-되돌리기는 이전 판본을 다시 활성으로 바꾸면 된다.
+판본 전환: 인덱스 판본(index_version) 단위로 통째로 넣고, 건수를 확인한 뒤 한 트랜잭션에서 활성 판본만
+바꾼다. 적재 중·실패한 판본은 검색되지 않는다(검색은 활성 판본만 조회). 되돌리기는 SQL 초안의
+rag_rollback_index(판본) 함수.
+
+게시 판본 지문(v3): rag_chunk.source_record_sha256 은 원본 표의 게시 판본 fingerprint 다. 인덱스 파일에는
+청크를 만든 원본 행 해시만 있으므로(CSV 의 source_row_sha256), load_index.sql 이 적재할 때 원본 표의
+활성 판본과 맞춰 fingerprint 를 붙이고, 맞는 판본이 없는 청크는 넣지 않는다.
+  - 레시피: recipes·recipe_revisions 의 활성 판본에서 raw_sha256 과 effective_sha256(보완 후 행) 이 둘 다
+    청크 원본 행 해시와 같을 때만. 보완표로 고친 레시피는 DB 내용이 청크와 달라서 빠진다.
+  - 복지: 아직 맞출 기준이 없다(DB 적재본과 청크가 서로 다른 수집본) → 적재하지 않는다.
 
 CSV: 빈 칸(따옴표 없는 빈 값)은 NULL, 배열은 '{...}', 벡터는 '[...]' 문자열.
 """
@@ -19,12 +26,16 @@ from pathlib import Path
 
 from agetech_data import paths
 
+# rag_chunk 표 칸 (DB)
 COLUMNS = [
     "index_version", "chunk_id", "source_type", "source_id", "section", "chunk_no", "title", "content",
     "content_sha256", "region_scope", "ctpv", "sgg", "source_url", "source_checked_at", "source_modified",
     "period_end", "quality_status", "quality_flags", "allergens", "status", "data_version",
     "source_record_sha256", "embedding_model", "embedding", "embedded_at",
 ]
+# CSV 칸: 게시 판본 지문 대신 청크를 만든 원본 행 해시를 싣는다 — 적재 때 지문으로 바꾼다
+CSV_COLUMNS = ["source_row_sha256" if c == "source_record_sha256" else c for c in COLUMNS]
+RECIPE_PROVIDER = "foodsafetykorea:COOKRCP01"   # 백엔드 recipes.provider (import_public_data.RECIPE_PROVIDER)
 
 
 def pg_array(items: list[str]) -> str:
@@ -45,49 +56,91 @@ def write_csv(manifest: dict, chunks: list[dict], vectors, out: Path) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
-        w.writerow(COLUMNS)
+        w.writerow(CSV_COLUMNS)
         for c, v in zip(chunks, vectors):
             row = {**c, "index_version": manifest["index_version"],
                    "quality_flags": pg_array(c["quality_flags"]), "allergens": pg_array(c["allergens"]),
+                   "source_row_sha256": c["source_record_sha256"],   # 인덱스 파일 = 원본 행 해시
                    "embedding_model": manifest["model_id"], "embedding": pg_vector(v),
                    "embedded_at": manifest["built_at"]}
-            w.writerow(["" if row[k] is None else row[k] for k in COLUMNS])
+            w.writerow(["" if row[k] is None else row[k] for k in CSV_COLUMNS])
     return len(chunks)
 
 
 def load_script(manifest: dict, manifest_sha256: str, csv_name: str = "rag_chunk.csv") -> str:
-    """psql 적재·전환 스크립트. 같은 판본이 이미 있으면 아무것도 하지 않는다."""
-    v, n, model = _sql_str(manifest["index_version"]), int(manifest["count"]), _sql_str(manifest["model_id"])
+    """psql 적재·전환 스크립트. 같은 판본이 이미 있으면 아무것도 하지 않는다.
+
+    백엔드 마이그레이션의 원본 표(recipes·recipe_revisions)와 SQL 초안 v3 표가 있는 DB 에서 실행한다.
+    """
+    name, model_id = manifest["index_version"], manifest["model_id"]
+    v, n, model = _sql_str(name), int(manifest["count"]), _sql_str(model_id)
     versions = _sql_str(json.dumps(manifest["data_versions"], ensure_ascii=False))
-    return f"""-- 생성: agetech_data.rag.export — 판본 {manifest['index_version']}, 청크 {n}, 모델 {manifest['model_id']}
+    cols = ", ".join(COLUMNS)
+    return f"""-- 생성: agetech_data.rag.export — 판본 {name}, 청크 {n}, 모델 {model_id}
 -- 실행: 이 파일이 있는 폴더에서  psql -v ON_ERROR_STOP=1 -f load_index.sql
+-- 필요: SQL 초안 v3 표(rag_index_version·rag_chunk)와 백엔드 원본 표(recipes·recipe_revisions)
 \\set ON_ERROR_STOP on
 
 SELECT EXISTS (SELECT 1 FROM rag_index_version WHERE index_version = {v}) AS already \\gset
 \\if :already
-  \\echo '판본 {manifest['index_version']} 이미 있음 — 적재·전환하지 않음'
+  \\echo '판본 {name} 이미 있음 — 적재·전환하지 않음'
   \\quit
 \\endif
 
--- 1) 새 판본을 loading 으로 등록하고 청크를 넣는다 (아직 검색되지 않음)
+-- 1) 인덱스 파일을 임시 표에 받고, 원본 표의 게시 판본 지문을 붙여서 맞는 청크만 loading 판본으로 넣는다
 BEGIN;
+LOCK TABLE rag_index_version, rag_chunk IN EXCLUSIVE MODE;   -- rag_rollback_index 와 같은 잠금 (검색 SELECT 는 됨)
+CREATE TEMP TABLE rag_chunk_stage (LIKE rag_chunk INCLUDING DEFAULTS) ON COMMIT DROP;
+ALTER TABLE rag_chunk_stage ALTER COLUMN source_record_sha256 DROP NOT NULL,
+                            ADD COLUMN source_row_sha256 char(64) NOT NULL;
+\\copy rag_chunk_stage ({', '.join(CSV_COLUMNS)}) FROM '{csv_name}' WITH (FORMAT csv, HEADER true)
+
+-- 같은 실행에서 나온 CSV 인지: 행 수·판본 이름·모델이 모두 manifest 와 같아야 한다
+SELECT count(*) = {n} AND coalesce(bool_and(index_version = {v} AND embedding_model = {model}), false) AS staged_ok
+FROM rag_chunk_stage \\gset
+\\if :staged_ok
+\\else
+  ROLLBACK;
+  DO $$ BEGIN RAISE EXCEPTION 'CSV 행 수·판본·모델이 manifest와 다름 — 적재하지 않음 (이전 판본 그대로)'; END $$;
+\\endif
+
+-- 레시피: 활성 판본의 원문(raw)·보완 후(effective) 해시가 둘 다 청크 원본 행 해시와 같을 때만 지문을 붙인다
+UPDATE rag_chunk_stage s SET source_record_sha256 = v.fingerprint
+  FROM recipes r JOIN recipe_revisions v ON v.id = r.active_revision_id AND v.recipe_id = r.id
+ WHERE s.source_type = 'recipe' AND r.provider = '{RECIPE_PROVIDER}' AND r.source_id = s.source_id
+   AND v.raw_sha256 = s.source_row_sha256 AND v.effective_sha256 = s.source_row_sha256;
+-- 복지(welfare_central·welfare_local): 아직 맞출 기준이 없어 지문 없음 → 넣지 않는다
+
+SELECT source_type, count(*) AS in_index, count(source_record_sha256) AS loaded
+FROM rag_chunk_stage GROUP BY source_type ORDER BY source_type;
+SELECT count(source_record_sha256) AS loaded_count, count(source_record_sha256) > 0 AS any_loaded
+FROM rag_chunk_stage \\gset
+\\if :any_loaded
+\\else
+  ROLLBACK;
+  DO $$ BEGIN RAISE EXCEPTION '게시 판본과 맞는 청크가 없음 — 적재하지 않음 (이전 판본 그대로)'; END $$;
+\\endif
+
 INSERT INTO rag_index_version (index_version, embedding_model, chunk_count, manifest_sha256, data_versions, status)
-VALUES ({v}, {model}, {n}, '{manifest_sha256}', {versions}::jsonb, 'loading');
-\\copy rag_chunk ({', '.join(COLUMNS)}) FROM '{csv_name}' WITH (FORMAT csv, HEADER true)
+VALUES ({v}, {model}, :loaded_count, '{manifest_sha256}', {versions}::jsonb, 'loading');
+INSERT INTO rag_chunk ({cols})
+SELECT {cols} FROM rag_chunk_stage WHERE source_record_sha256 IS NOT NULL;
 COMMIT;
 
--- 2) 건수·모델이 맞으면 한 트랜잭션에서 활성 판본을 바꾼다. 안 맞으면 failed 로 남기고 이전 판본 유지
-SELECT count(*) = {n} AND coalesce(bool_and(embedding_model = {model}), false) AS ok
+-- 2) 넣은 행 수·모델이 맞으면 한 트랜잭션에서 활성 판본을 바꾼다. 안 맞으면 failed 로 남기고 이전 판본 유지
+BEGIN;
+LOCK TABLE rag_index_version, rag_chunk IN EXCLUSIVE MODE;
+SELECT count(*) = :loaded_count AND coalesce(bool_and(embedding_model = {model}), false) AS ok
 FROM rag_chunk WHERE index_version = {v} \\gset
 \\if :ok
-  BEGIN;
   UPDATE rag_index_version SET status = 'retired' WHERE status = 'active';
   UPDATE rag_index_version SET status = 'active', activated_at = now() WHERE index_version = {v};
   COMMIT;
-  \\echo '판본 {manifest['index_version']} 활성'
+  \\echo '판본 {name} 활성 (청크 ' :loaded_count '개)'
 \\else
   UPDATE rag_index_version SET status = 'failed' WHERE index_version = {v};
-  DO $$ BEGIN RAISE EXCEPTION '청크 수·모델이 manifest와 다름 — 전환하지 않음 (이전 판본 그대로)'; END $$;
+  COMMIT;
+  DO $$ BEGIN RAISE EXCEPTION '청크 수·모델이 적재 기록과 다름 — 전환하지 않음 (이전 판본 그대로)'; END $$;
 \\endif
 """
 
@@ -106,7 +159,8 @@ def main(argv: list[str] | None = None) -> int:
     script.write_text(load_script(manifest, _sha256_file(args.index / "manifest.json"), out.name),
                       encoding="utf-8", newline="\n")
     print(f"판본 {manifest['index_version']}: {n}행 → {out}")
-    print(f"적재·전환: cd {out.parent} && psql -v ON_ERROR_STOP=1 -f {script.name}")
+    print(f"적재·전환: cd {out.parent} && psql -v ON_ERROR_STOP=1 -f {script.name}"
+          " (게시 판본과 맞는 청크만 들어감 — 지금은 레시피만, 복지는 연결 기준 확정 뒤)")
     return 0
 
 
