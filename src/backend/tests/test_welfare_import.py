@@ -4,6 +4,8 @@ from xml.etree import ElementTree as ET
 
 import pytest
 from agetech_data.textutil import sha256_json
+from agetech_data.welfare.normalize import normalize_payload
+from agetech_data.welfare.revision import content_sha256
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -18,6 +20,10 @@ from app.jobs.import_welfare import (
 from app.models import DataImportRun, WelfareNotice, WelfareRevision, WelfareService
 
 START = datetime(2026, 1, 1, tzinfo=UTC)
+SERVICES = {
+    "central": "중앙부처 복지서비스 (NationalWelfareInformationsV001)",
+    "local": "지자체 복지서비스 (LocalGovernmentWelfareInformations)",
+}
 
 
 def node(tag, fields):
@@ -27,41 +33,50 @@ def node(tag, fields):
     return ET.tostring(root, encoding="unicode")
 
 
-def snapshot(tmp_path, day=0, ids=("WLF1", "WLF2"), changed=False, view_count="1"):
+def snapshot(
+    tmp_path,
+    day=0,
+    ids=("WLF1", "WLF2"),
+    changed=False,
+    view_count="1",
+    source="central",
+):
+    """Refresh collector output (agetech_data.collect.welfare) for one source."""
     checked = (START + timedelta(days=day)).isoformat()
-    rows = [
-        {
-            "service_id": key,
-            "checked_at": checked,
-            "list_xml": node(
-                "servList",
-                {
-                    "servId": key,
-                    "servNm": "사업",
-                    "inqNum": view_count,
-                    "servDtlLink": f"https://www.bokjiro.go.kr/ssis?wlfareInfoId={key}",
-                },
-            ),
-            "detail_xml": node(
-                "wantedDtl",
-                {
-                    "servId": key,
-                    "servNm": "사업",
-                    "resultCode": "0",
-                    "tgtrDtlCn": "대상 안내",
-                    "alwServCn": "변경된 지원"
-                    if changed and key == "WLF1"
-                    else "지원 안내",
-                    "sprtCycNm": "수시",
-                },
-            ),
+    rows = []
+    for key in ids:
+        listing = {
+            "servId": key,
+            "servNm": "사업",
+            "inqNum": view_count,
+            "servDtlLink": f"https://www.bokjiro.go.kr/ssis?wlfareInfoId={key}",
         }
-        for key in ids
-    ]
+        if source == "local":
+            listing.update(ctpvNm="대구광역시", sggNm="남구")
+        detail = {
+            "servId": key,
+            "servNm": "사업",
+            "tgtrDtlCn": "대상 안내",
+            "alwServCn": "변경된 지원" if changed and key == "WLF1" else "지원 안내",
+            "sprtCycNm": "수시",
+        }
+        rows.append(
+            {
+                "servId": key,
+                "list": listing,
+                "detail": detail,
+                "detail_xml": node(
+                    "wantedDtl", {**detail, "resultCode": "0", "inqNum": view_count}
+                ),
+                "detail_status": "fresh",
+                "detail_fetched_at": checked,
+            }
+        )
     data = {
         "meta": {
-            "service": "NationalWelfareInformationsV001",
-            "scope": "central_nationwide",
+            "provider": "한국사회보장정보원",
+            "service": SERVICES[source],
+            "kind": source,
             "complete": True,
             "total_count": len(rows),
             "item_count": len(rows),
@@ -70,7 +85,7 @@ def snapshot(tmp_path, day=0, ids=("WLF1", "WLF2"), changed=False, view_count="1
         },
         "items": rows,
     }
-    path = tmp_path / f"welfare_{day}.json"
+    path = tmp_path / f"welfare_{source}_{day}.json"
     path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     return path
 
@@ -82,13 +97,11 @@ def count(session, model):
 def partial_snapshot(tmp_path, day=1, ids=("WLF1", "WLF2")):
     path = snapshot(tmp_path, day=day, ids=ids)
     data = json.loads(path.read_text(encoding="utf-8"))
-    data["items"][0]["detail_xml"] = None
-    data["meta"].update(
-        complete=False,
-        catalog_complete=True,
-        detail_count=len(ids) - 1,
-        items_sha256=sha256_json(data["items"]),
-    )
+    first = data["items"][0]
+    for key in ("detail", "detail_xml", "detail_fetched_at"):
+        first.pop(key)
+    first["detail_status"] = "pending"
+    data["meta"].update(complete=False, items_sha256=sha256_json(data["items"]))
     path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     return path
 
@@ -144,7 +157,8 @@ def test_postgres_partial_import_keeps_good_revision_and_does_not_count_missing(
     [
         {"complete": False},
         {"total_count": 99},
-        {"scope": "local"},
+        {"kind": "local"},
+        {"service": SERVICES["local"]},
         {"items_sha256": "wrong"},
     ],
 )
@@ -155,6 +169,70 @@ def test_incomplete_or_wrong_scope_rejected(tmp_path, change):
     path.write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(ValueError):
         prepare_import(path)
+
+
+def test_source_must_match_snapshot_kind(tmp_path):
+    with pytest.raises(ValueError):
+        prepare_import(snapshot(tmp_path), source="local")
+    with pytest.raises(ValueError):
+        prepare_import(snapshot(tmp_path, source="local"), source="central")
+    with pytest.raises(ValueError):
+        prepare_import(snapshot(tmp_path), source="unknown")
+
+
+def test_view_count_and_check_time_do_not_change_fingerprint(tmp_path):
+    first = prepare_import(snapshot(tmp_path))
+    later = prepare_import(snapshot(tmp_path, day=1, view_count="999"))
+    changed = prepare_import(snapshot(tmp_path, day=2, changed=True))
+    fingerprints = [
+        [row["fingerprint"] for row in plan.rows] for plan in (first, later, changed)
+    ]
+    assert fingerprints[0] == fingerprints[1]
+    assert (
+        fingerprints[2][0] != fingerprints[0][0]
+        and fingerprints[2][1] == fingerprints[0][1]
+    )
+
+
+def test_postgres_local_source_is_separate_scope_with_region(tmp_path, pg_connection):
+    local_path = snapshot(tmp_path, ids=("WLF3",), source="local")
+    with Session(pg_connection) as session:
+        with session.begin():
+            apply_import(session, prepare_import(snapshot(tmp_path)))
+            local = prepare_import(local_path, source="local")
+            assert apply_import(session, local)["new_services"] == 1
+            service = session.scalar(
+                select(WelfareService).where(WelfareService.source_id == "WLF3")
+            )
+            assert (service.provider, service.scope) == (
+                "ssis:LocalGovernmentWelfareInformations",
+                "local",
+            )
+            revision = session.get(WelfareRevision, service.active_revision_id)
+            assert (revision.normalized["ctpv"], revision.normalized["sgg"]) == (
+                "대구광역시",
+                "남구",
+            )
+            # RAG chunks bind to this value: the content hash of the same normalized record.
+            record = normalize_payload(
+                json.loads(local_path.read_text(encoding="utf-8")), "local"
+            )[0]
+            assert revision.content_sha256 == content_sha256(record.to_dict())
+        # Complete local scans without central IDs never mark central services missing.
+        for day in (1, 2):
+            with session.begin():
+                apply_import(
+                    session,
+                    prepare_import(
+                        snapshot(tmp_path, day=day, ids=("WLF3",), source="local"),
+                        source="local",
+                    ),
+                )
+        with session.begin():
+            assert set(session.scalars(select(WelfareService.publication_status))) == {
+                "published"
+            }
+            assert verify_import(session, local)["service_revisions"] == 1
 
 
 def test_postgres_welfare_idempotency_and_semantic_revisions(tmp_path, pg_connection):
