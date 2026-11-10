@@ -24,7 +24,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE rag_index_version (
     index_version     text         PRIMARY KEY,   -- manifest.index_version (UTC, 예: 20261107T070716Z)
     embedding_model   text         NOT NULL,      -- 이 판본 모든 청크의 'nlpai-lab/KURE-v1@<revision>'
-    chunk_count       integer      NOT NULL,      -- manifest.count — 적재 후 실제 행 수와 대조
+    chunk_count       integer      NOT NULL,      -- 실제로 넣은 청크 수(manifest 청크 중 게시 판본 지문이 붙은 것) — 전환·되돌리기 때 실제 행 수와 대조
     manifest_sha256   char(64)     NOT NULL,
     data_versions     jsonb        NOT NULL,      -- 원천 판본 목록 (복지·레시피 원문 sha256 앞 12자리)
     status            text         NOT NULL DEFAULT 'loading'
@@ -125,9 +125,13 @@ $$;
 
 -- ── 판본 적재·전환 ──────────────────────────────────────────────────────
 -- 적재: `uv run python -m agetech_data.rag.export` 가 rag_chunk.csv 와 load_index.sql 을 만든다.
---   load_index.sql = ① 새 판본을 loading 으로 등록 + \copy (아직 검색 안 됨)
---                    ② 행 수·모델이 manifest와 같으면 한 트랜잭션에서 이전 active → retired, 새 판본 → active
---                    ③ 다르면 failed 로 남기고 오류로 끝냄(종료 코드 3) — 이전 판본이 계속 검색됨
+--   load_index.sql = ① 임시 표에 \copy → 행 수·모델이 manifest와 같은지 확인(다르면 아무것도 안 남김)
+--                    ② 원본 표 활성 판본의 fingerprint 를 source_record_sha256 에 붙이고, 붙은 청크만 새 판본(loading)으로
+--                       넣는다(아직 검색 안 됨). 레시피는 recipe_revisions 의 raw_sha256·effective_sha256 이 둘 다 청크
+--                       원본 행 해시와 같을 때만. 복지는 맞출 기준이 정해질 때까지 넣지 않는다(rag_index_contract.md 4절)
+--                    ③ 넣은 행 수·모델이 맞으면 한 트랜잭션에서 이전 active → retired, 새 판본 → active
+--                    ④ 다르면 failed 로 남기고 오류로 끝냄(종료 코드 3) — 이전 판본이 계속 검색됨
+--   적재·전환은 rag_rollback_index 와 같은 표 잠금을 잡아 동시 실행을 막는다(검색 SELECT 는 됨).
 --   임베딩이 중간에 실패하면 manifest가 만들어지지 않아 적재할 판본 자체가 없다(이전 판본 그대로).
 --
 -- ── 원본 표와 맞추기 (결정: 한 트랜잭션으로 묶지 않음) ────────────────────

@@ -30,7 +30,7 @@
 | `embeddings.npy` | float32 `(count, 1024)`. i번째 행 = `chunks.jsonl` i번째 줄. 길이 1로 정규화됨 |
 | `changes.json` | 직전 인덱스 대비 `added`·`changed`·`removed` chunk_id **전체 목록**, `unchanged` 건수, `first_index`. 변경은 **행 전체** 기준(본문 밖 칸 — 종료일·확인 시각·품질·원본 해시 — 만 바뀌어도 `changed`, 새 판본). 임베딩은 본문이 바뀐 청크만 다시 함 |
 | `rag_chunk.csv` | `rag.export` 결과. 표 칸 순서 그대로(첫 칸 `index_version`), 벡터는 `[...]` 문자열 |
-| `load_index.sql` | `rag.export` 결과. 판본 등록(`loading`) → `\copy` → 행 수·모델 확인 → 활성 전환 (4절) |
+| `load_index.sql` | `rag.export` 결과. 임시 표에 `\copy` → 게시 판본 지문 붙이기 → 판본 등록(`loading`) → 행 수·모델 확인 → 활성 전환 (4절) |
 | `embed_cache/` | `content_sha256` → 벡터 캐시. 중간에 멈춰도 다음 실행이 이어서 함. 지금 청크에 없는 것은 끝에 정리 |
 
 - 읽을 때는 `agetech_data.rag.index.load_index()`를 쓰면 manifest의 sha256과 파일을 대조해, 쓰다가 멈춘 파일을 읽지 않는다.
@@ -70,23 +70,31 @@
 | `allergens` | `["대두", "알류"]` | 레시피 재료명 추정(법정 19종 이름), 확인 필요 종류 포함 |
 | `status` | `active` | 다음 판본을 기다리지 않고 바로 숨길 때만 `retracted`(사라진 원본은 새 판본에 없음) |
 | `data_version` | `welfare_local:3f761c00cacb` | 원천 원문 sha256 앞 12자리 |
-| `source_record_sha256` | 64자리 | 원본 레코드 해시(복지 `raw_sha256`, 레시피 `source.raw_sha256`). 검색 때 원본 표의 게시 레코드 해시와 같아야 씀(4절) |
+| `source_record_sha256` | 64자리 | **인덱스 파일**: 청크를 만든 원본 행 해시(복지 `raw_sha256`, 레시피 `source.raw_sha256`) — 파일 검색에서 대조. **DB `rag_chunk`**: 원본 표의 게시 판본 fingerprint — 적재 스크립트가 붙이고, 검색 때 `rag_source_active`와 같아야 씀(4절, SQL 초안 v3) |
 
 청크 본문 규칙:
 - 복지: 머리말 `[복지] 사업명 (전국 | 시도 전체 | 시도 시군구)` 다음에 요약·지원 대상·선정 기준·지원 내용·지원 주기·제공 방식·신청 방법·신청 안내(중앙)·문의처(최대 5개)·담당을 원문 그대로 넣음. 1,000자를 넘으면 개요 / 지원 내용 / 신청 항목 경계로 나누고, 조각마다 같은 머리말을 붙인다.
 - 레시피: 머리말 `[레시피] 이름` 다음에 분류·조리법·해시태그·재료(분량 원문)·저염 팁·영양 원문 값·만드는 법. 영양값 이상 의심(`nutrition.suspect`) 레시피는 영양 줄을 빼고 `nutrition_suspect` 표시.
 
-## 4. DB 적재와 판본 전환 (제안 — 이진녕 확정 전)
+## 4. DB 적재와 판본 전환
 
-표는 `sql/rag_chunk_draft.sql` v2: 인덱스 판본 표 `rag_index_version`(상태 `loading`/`active`/`retired`/`failed`, 활성은 하나만) + `rag_chunk`(기본 키 `index_version`, `chunk_id`).
+표는 `sql/rag_chunk_draft.sql` v3: 인덱스 판본 표 `rag_index_version`(상태 `loading`/`active`/`retired`/`failed`, 활성은 하나만) + `rag_chunk`(기본 키 `index_version`, `chunk_id`) + 되돌리기 함수 `rag_rollback_index()`.
 
-1. `rag.export` → `cd data/processed/rag && psql -v ON_ERROR_STOP=1 -f load_index.sql`
-2. 스크립트가 하는 일: 같은 판본이 이미 있으면 아무것도 안 함 → 새 판본을 `loading`으로 등록하고 `\copy`(이때는 검색 안 됨) → 행 수가 `manifest.count`와 같고 모든 행 모델이 `manifest.model_id`이면 **한 트랜잭션에서** 이전 `active` → `retired`, 새 판본 → `active` → 아니면 `failed`로 남기고 종료 코드 3(이전 판본이 계속 검색됨)
-3. 되돌리기: 이전 판본을 다시 `active`로(한 트랜잭션, SQL은 초안 파일). 정리: 활성 + 바로 전 판본 하나만 남기고 삭제(청크는 함께 지워짐)
+1. `rag.export` → `cd data/processed/rag && psql -v ON_ERROR_STOP=1 -f load_index.sql` (DB에 백엔드 원본 표 `recipes`·`recipe_revisions`가 있어야 함)
+2. 스크립트가 하는 일 (판본·청크 표는 `rag_rollback_index`와 같은 잠금으로 쓰기를 막고, 검색 SELECT는 그대로 됨):
+   1. 같은 판본이 이미 있으면 아무것도 안 함
+   2. CSV를 임시 표에 받고 행 수·모델이 manifest와 같은지 확인 → 다르면 아무것도 남기지 않고 종료 코드 3
+   3. **게시 판본 지문 붙이기(v3)**: CSV의 `source_row_sha256`(청크를 만든 원본 행 해시)로 원본 표의 활성 판본을 찾아 그 `fingerprint`를 `source_record_sha256`에 넣는다. 맞는 판본이 없는 청크는 넣지 않는다(검색에 틀린 근거 대신 '없음').
+      - 레시피: `recipes`(`provider = 'foodsafetykorea:COOKRCP01'`, `source_id`) → 활성 `recipe_revisions`의 `raw_sha256`과 `effective_sha256`(보완표 적용 후 행)이 **둘 다** 원본 행 해시와 같을 때만. 보완표로 고친 레시피(11/10 기준 4건: 33·36·642·276)는 DB 내용이 청크 원문과 달라서 빠진다 — 청크를 보완 후 행으로 만들면 들어간다(후속).
+      - 복지: **아직 넣지 않는다.** DB의 중앙 복지(`welfare_revisions`)는 백엔드 수집본(`central_all.json`, XML 원문)에서, 청크는 갱신 수집본(`central_elderly.json`·`local_elderly.json`)에서 만들어 원본 행 해시를 맞출 수 없다. 지자체 복지는 DB 적재 전이다. 어느 수집본을 기준으로 할지 정해지면 같은 방식으로 붙인다.
+      - 판본별 넣은 건수를 `source_type`별로 출력한다. 하나도 안 맞으면 아무것도 남기지 않고 종료 코드 3
+   4. 넣은 청크로 새 판본을 `loading` 등록(`chunk_count` = 실제로 넣은 수)
+   5. 넣은 행 수·모델이 맞으면 **한 트랜잭션에서** 이전 `active` → `retired`, 새 판본 → `active` → 아니면 `failed`로 남기고 종료 코드 3(이전 판본이 계속 검색됨)
+3. 되돌리기: `SELECT rag_rollback_index('<판본>');` — 없는·적재 중·실패한·한 번도 활성이 아니었던·건수나 모델이 안 맞는 판본은 오류로 거부하고 지금 활성 판본을 그대로 둔다. 정리: 활성 + 바로 전 판본 하나만 남기고 삭제(청크는 함께 지워짐, SQL은 초안 파일)
 4. **원본 표와 맞추기 — 한 트랜잭션으로 묶지 않는다(11/07 결정).** 원본 표(복지 하루 1회·레시피 주 1회)와 RAG 판본은 따로 전환한다. 묶으면 임베딩 실패가 복지 정보 갱신까지 막고, 주기도 다르다. 대신 검색이 원본 표의 지금 게시 레코드와 레코드 해시를 대조한다(`rag_source_active` 뷰 JOIN).
    - 순서: ① 원본 수집·정제 → ② 원본 표 적재·전환 → ③ `rag.index`(바뀐 청크만 임베딩) → ④ `load_index.sql`
    - ②~④ 사이: 원본에서 내려간 사업·내용이 바뀐 사업은 해시가 달라 검색에서 바로 빠진다(틀린 근거 대신 '없음'). 새 사업은 ④ 뒤부터 검색된다. RAG가 실패해도 원본 표 갱신은 그대로 진행된다.
-   - `rag_source_active (source_type, source_id, record_sha256)`는 원본 표에 맞춰 이진녕이 정의하는 뷰다(예시는 SQL 초안). 원본 표에 정제 레코드의 `raw_sha256`(복지)·`source.raw_sha256`(레시피)을 함께 넣어야 한다.
+   - `rag_source_active (source_type, source_id, record_sha256)`는 원본 표에 맞춰 이진녕이 정의하는 뷰다(예시는 SQL 초안). `record_sha256`은 게시 판본 `fingerprint`이고, 위 2-3의 지문 붙이기와 같은 값이다.
 
 - 판본마다 청크 전부(약 2,880행, CSV 39MB)를 넣는다. 임베딩은 바뀐 청크만 하므로 DB 적재만 통째로 하는 셈이고, 적재는 수 초다.
 - `changes.json`은 DB 적재에는 쓰지 않고 관리자 화면·기록용(추가·변경·삭제 건수)으로 남긴다.
