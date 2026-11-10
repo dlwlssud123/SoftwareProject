@@ -139,7 +139,12 @@ def test_load_script_binds_published_fingerprint_then_switches_only_when_counts_
     bind = sql[sql.index("SET source_record_sha256 = v.fingerprint"):sql.index("SELECT source_type")]
     assert "s.source_type = 'recipe'" in bind and "r.provider = 'foodsafetykorea:COOKRCP01'" in bind
     assert "v.raw_sha256 = s.source_row_sha256 AND v.effective_sha256 = s.source_row_sha256" in bind
-    assert "welfare" not in bind.split("\n-- ")[0]
+    # 복지는 활성 판본 content_sha256(정제 레코드 내용 해시)과 같을 때만, 출처별 provider·scope 로
+    assert "v.content_sha256 = s.source_row_sha256" in bind
+    assert ("(s.source_type = 'welfare_central' AND w.provider = 'ssis:NationalWelfareInformationsV001'"
+            " AND w.scope = 'central_nationwide')") in bind
+    assert ("(s.source_type = 'welfare_local' AND w.provider = 'ssis:LocalGovernmentWelfareInformations'"
+            " AND w.scope = 'local')") in bind
     assert f"INSERT INTO rag_chunk ({', '.join(COLUMNS)})" in sql and "WHERE source_record_sha256 IS NOT NULL" in sql
     # 판본 기록 건수 = 실제로 넣은 건수, 하나도 안 맞으면 적재하지 않음
     assert f"VALUES ('{v}', 'fake@1', :loaded_count," in sql and "AS any_loaded" in sql

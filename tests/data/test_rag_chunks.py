@@ -7,6 +7,7 @@ from rag_samples import recipe_rec, welfare_rec
 
 from agetech_data import paths
 from agetech_data.rag.chunks import MAX_CHARS, build_chunks, recipe_chunks, region_label, welfare_chunks
+from agetech_data.welfare.revision import content_sha256
 
 
 def test_region_label():
@@ -23,7 +24,10 @@ def test_welfare_short_record_is_one_chunk_with_header_and_original_text():
     assert "문의처: 남구청 복지지원과: 053-664-2538" in c.content
     assert (c.region_scope, c.ctpv, c.sgg, c.period_end) == ("district", "대구광역시", "남구", "9999-12-31")
     assert c.source_checked_at == "2026-11-05T00:00:00+00:00"       # 상세 확인 시각 우선
-    assert c.source_record_sha256 == welfare_rec()["raw_sha256"]     # 원본 표와 대조할 레코드 해시
+    # 원본 표와 대조할 해시 = 정제 레코드 내용 해시(DB welfare_revisions.content_sha256 과 같은 함수)
+    assert c.source_record_sha256 == content_sha256(welfare_rec()) != welfare_rec()["raw_sha256"]
+    changed_views = {**welfare_rec(), "raw_sha256": "f" * 64, "source_fetched_at": "2026-11-09T00:00:00+00:00"}
+    assert welfare_chunks(changed_views, "welfare_local:abc")[0].source_record_sha256 == c.source_record_sha256
     assert welfare_chunks(welfare_rec(), "welfare_local:abc")[0].content_sha256 == c.content_sha256
 
 

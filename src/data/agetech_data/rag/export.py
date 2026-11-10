@@ -12,7 +12,8 @@ rag_rollback_index(판본) 함수.
 활성 판본과 맞춰 fingerprint 를 붙이고, 맞는 판본이 없는 청크는 넣지 않는다.
   - 레시피: recipes·recipe_revisions 의 활성 판본에서 raw_sha256 과 effective_sha256(보완 후 행) 이 둘 다
     청크 원본 행 해시와 같을 때만. 보완표로 고친 레시피는 DB 내용이 청크와 달라서 빠진다.
-  - 복지: 아직 맞출 기준이 없다(DB 적재본과 청크가 서로 다른 수집본) → 적재하지 않는다.
+  - 복지: welfare_services·welfare_revisions 의 활성 판본에서 content_sha256(정제 레코드 내용 해시,
+    welfare.revision.content_sha256) 이 청크의 원본 해시와 같을 때만. DB 적재와 청크가 같은 갱신 수집본·같은 정제를 쓴다.
 
 CSV: 빈 칸(따옴표 없는 빈 값)은 NULL, 배열은 '{...}', 벡터는 '[...]' 문자열.
 """
@@ -25,6 +26,7 @@ import json
 from pathlib import Path
 
 from agetech_data import paths
+from agetech_data.welfare.revision import SOURCES as WELFARE_SOURCES
 
 # rag_chunk 표 칸 (DB)
 COLUMNS = [
@@ -76,9 +78,13 @@ def load_script(manifest: dict, manifest_sha256: str, csv_name: str = "rag_chunk
     v, n, model = _sql_str(name), int(manifest["count"]), _sql_str(model_id)
     versions = _sql_str(json.dumps(manifest["data_versions"], ensure_ascii=False))
     cols = ", ".join(COLUMNS)
+    # 청크 source_type(welfare_central·welfare_local) ↔ 백엔드 welfare_services 의 provider·scope
+    welfare_match = "\n     OR ".join(
+        f"(s.source_type = 'welfare_{kind}' AND w.provider = '{src['provider']}' AND w.scope = '{src['scope']}')"
+        for kind, src in WELFARE_SOURCES.items())
     return f"""-- 생성: agetech_data.rag.export — 판본 {name}, 청크 {n}, 모델 {model_id}
 -- 실행: 이 파일이 있는 폴더에서  psql -v ON_ERROR_STOP=1 -f load_index.sql
--- 필요: SQL 초안 v3 표(rag_index_version·rag_chunk)와 백엔드 원본 표(recipes·recipe_revisions)
+-- 필요: SQL 초안 v3 표(rag_index_version·rag_chunk)와 백엔드 원본 표(recipes·recipe_revisions·welfare_services·welfare_revisions)
 \\set ON_ERROR_STOP on
 
 SELECT EXISTS (SELECT 1 FROM rag_index_version WHERE index_version = {v}) AS already \\gset
@@ -109,7 +115,11 @@ UPDATE rag_chunk_stage s SET source_record_sha256 = v.fingerprint
   FROM recipes r JOIN recipe_revisions v ON v.id = r.active_revision_id AND v.recipe_id = r.id
  WHERE s.source_type = 'recipe' AND r.provider = '{RECIPE_PROVIDER}' AND r.source_id = s.source_id
    AND v.raw_sha256 = s.source_row_sha256 AND v.effective_sha256 = s.source_row_sha256;
--- 복지(welfare_central·welfare_local): 아직 맞출 기준이 없어 지문 없음 → 넣지 않는다
+-- 복지: 활성 welfare_revisions 의 content_sha256(정제 레코드 내용 해시)이 청크의 원본 해시와 같을 때만
+UPDATE rag_chunk_stage s SET source_record_sha256 = v.fingerprint
+  FROM welfare_services w JOIN welfare_revisions v ON v.id = w.active_revision_id AND v.service_id = w.id
+ WHERE ({welfare_match})
+   AND w.source_id = s.source_id AND v.content_sha256 = s.source_row_sha256;
 
 SELECT source_type, count(*) AS in_index, count(source_record_sha256) AS loaded
 FROM rag_chunk_stage GROUP BY source_type ORDER BY source_type;
@@ -160,7 +170,7 @@ def main(argv: list[str] | None = None) -> int:
                       encoding="utf-8", newline="\n")
     print(f"판본 {manifest['index_version']}: {n}행 → {out}")
     print(f"적재·전환: cd {out.parent} && psql -v ON_ERROR_STOP=1 -f {script.name}"
-          " (게시 판본과 맞는 청크만 들어감 — 지금은 레시피만, 복지는 연결 기준 확정 뒤)")
+          " (원본 표 게시 판본과 맞는 청크만 들어감)")
     return 0
 
 

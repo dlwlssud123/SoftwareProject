@@ -14,6 +14,8 @@ import hashlib
 import re
 from dataclasses import asdict, dataclass, field
 
+from agetech_data.welfare.revision import content_sha256 as welfare_content_sha256
+
 MAX_CHARS = 1000            # 이보다 긴 문서는 항목 경계로 나눈다
 MAX_CONTACTS = 5            # 본문에 넣는 문의처 수 (나머지는 원본 표에서)
 
@@ -39,7 +41,9 @@ class Chunk:
     period_end: str | None
     quality_status: str              # ok / flagged
     data_version: str
-    source_record_sha256: str | None = None   # 원본 레코드 해시 — 검색 때 원본 표 게시 레코드와 대조
+    # 원본 표 판본과 맞출 해시 — 복지: 정제 레코드 내용 해시(= DB welfare_revisions.content_sha256),
+    # 레시피: 원본 행 해시(= recipe_revisions.raw_sha256). DB 적재 때 게시 판본 fingerprint 로 바꿔 넣는다
+    source_record_sha256: str | None = None
     quality_flags: list[str] = field(default_factory=list)
     allergens: list[str] = field(default_factory=list)
     status: str = "active"
@@ -169,7 +173,7 @@ def welfare_chunks(rec: dict, data_version: str, max_chars: int = MAX_CHARS) -> 
             source_url=rec.get("detail_url"),
             source_checked_at=rec.get("detail_fetched_at") or rec.get("source_fetched_at"),
             source_modified=rec.get("last_modified"), period_end=rec.get("period_end"),
-            quality_status="ok", data_version=data_version, source_record_sha256=rec.get("raw_sha256"),
+            quality_status="ok", data_version=data_version, source_record_sha256=welfare_content_sha256(rec),
             quality_flags=flags,
         ))
     return out
