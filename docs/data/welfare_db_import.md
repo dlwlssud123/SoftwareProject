@@ -34,7 +34,7 @@ Set-Location src/backend
 - 11/11 이전에 받은 수집본은 meta에 `complete`·`items_sha256`이 없어 거부된다 → 갱신을 한 번 돌린 뒤 적재한다.
 - 이전 방식으로 넣은 중앙 사업(전 생애주기 461건)은 갱신 수집본(노년층 130건)에 없는 사업이 완전한 두 번의 적재 뒤 `missing`이 된다. 노년층 사업은 정제 버전이 바뀌어 새 판본 하나씩 생긴다.
 - 레시피 갱신 수집본(`cookrcp01_all.json`)도 meta에 `complete`·`items_sha256`을 써서 `app.jobs.import_public_data --dataset recipes`가 그대로 받는다.
-- `agetech_data.welfare.client`·`central_snapshot.py`는 지우지 않았다. API 계약 표본(`export_api_contract --welfare-snapshot`)이 아직 이 형식을 쓴다. API 계약의 복지 `scope`는 `central_nationwide`만이라 지자체·지역 칸은 API 작업에서 추가한다.
+- `agetech_data.welfare.client`·`central_snapshot.py`는 지우지 않았다. API 계약 표본(`export_api_contract --welfare-snapshot`)이 아직 이 형식을 쓴다. 예정 API 계약(`app/schemas/catalog.py` `WelfareRecord`)은 `scope=local`과 `region_scope`·`ctpv`·`sgg`를 받는다(`normalized`의 `scope`·`ctpv`·`sgg` 그대로).
 
 ### 11/11 실데이터 확인 (로컬 PostgreSQL 16, `alembic upgrade head`)
 

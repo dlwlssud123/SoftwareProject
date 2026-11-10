@@ -126,10 +126,62 @@
             "in": "query",
             "required": false,
             "schema": {
-              "const": "central_nationwide",
-              "default": "central_nationwide",
-              "title": "Scope",
-              "type": "string"
+              "anyOf": [
+                {
+                  "enum": [
+                    "central_nationwide",
+                    "local"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Scope"
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 50,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Region"
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "district",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 50,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "District"
             },
             "style": "form",
             "explode": true
@@ -1509,10 +1561,48 @@
             "title": "Q"
           },
           "scope": {
-            "const": "central_nationwide",
-            "default": "central_nationwide",
-            "title": "Scope",
-            "type": "string"
+            "anyOf": [
+              {
+                "enum": [
+                  "central_nationwide",
+                  "local"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Scope"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Region"
+          },
+          "district": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "District"
           }
         },
         "title": "WelfareListQuery",
@@ -1583,9 +1673,46 @@
             "type": "string"
           },
           "scope": {
-            "const": "central_nationwide",
+            "enum": [
+              "central_nationwide",
+              "local"
+            ],
             "title": "Scope",
             "type": "string"
+          },
+          "region_scope": {
+            "default": "national",
+            "enum": [
+              "national",
+              "province",
+              "district"
+            ],
+            "title": "Region Scope",
+            "type": "string"
+          },
+          "ctpv": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Ctpv"
+          },
+          "sgg": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Sgg"
           },
           "title": {
             "title": "Title",
