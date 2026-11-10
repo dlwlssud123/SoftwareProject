@@ -3,7 +3,8 @@
 원칙
 - 값은 기준량(basis, 보통 100g 또는 100mL)당 함량 그대로 둔다. g↔mL 환산은 하지 않는다.
 - 빈 값은 0이 아니라 None(결측)이다. 천 단위 쉼표("1,670.000")만 정리한다.
-- 원본 행 sha256 을 남겨 수집본과 추적한다. 이상값은 고치지 않고 quality_flags 로 표시한다.
+- 원본 행 sha256 을 남겨 수집본과 추적한다. 이상값은 quality_flags 로 표시한다.
+- 근거가 있는 원천 오류만 보정표(resources/food_corrections.json, corrections.py)로 고치고, 원래 값은 corrections 에 남긴다.
 """
 
 from __future__ import annotations
@@ -27,6 +28,8 @@ FOOD_FLAGS: dict[str, str] = {
     "sugars_exceeds_carbohydrate": "당류 > 탄수화물",
     "energy_macro_mismatch": "4·4·9 환산 열량과 표기 에너지 차이 35% 초과(참고)",
     "same_name_multiple_rows": "같은 식품명이 여러 행(식품코드 계열·기준량 단위가 다름)",
+    "corrected": "근거가 있는 원천 오류를 보정표로 고침(원래 값은 corrections)",
+    "correction_stale": "보정표 항목이 지금 원천과 맞지 않아 적용하지 않음(원천 변경 — 다시 확인 필요)",
 }
 
 _BASIS = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*(g|mL|ml)\s*$")
@@ -90,7 +93,10 @@ class FoodRecord:
     update_date: str | None
     nutrients: dict[str, float | None]  # basis 당 함량
     raw_sha256: str
+    corrections: list[dict] = field(default_factory=list)   # 보정 기록 {field, from, to, reason, evidence, by, at}
     quality_flags: list[str] = field(default_factory=list)
+    dish_serving_text: str | None = None  # 1회분량 참고량 원문 (DISH_ONE_SERVING)
+    source_sha256: str | None = None  # 응답 순번 NUM만 제외한 원천 내용 해시(보정 검증용)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -115,6 +121,8 @@ def clean_food(row: dict) -> FoodRecord:
         serving_ref_text=t["serving_ref_text"], source_name=t["source_name"], create_method=t["create_method"],
         research_date=t["research_date"], update_date=t["update_date"],
         nutrients=nutrients, raw_sha256=sha256_json(row), quality_flags=flags,
+        dish_serving_text=t["dish_serving_text"],
+        source_sha256=sha256_json({key: value for key, value in row.items() if key != "NUM"}),
     )
     rec.quality_flags += food_flags(rec)
     return rec
@@ -147,8 +155,12 @@ def food_flags(r: FoodRecord) -> list[str]:
     return flags
 
 
-def clean_foods(rows: list[dict]) -> list[FoodRecord]:
+def clean_foods(rows: list[dict], corrections=None) -> list[FoodRecord]:
+    """원본 행 → 정제 레코드. corrections 를 주지 않으면 보정표 파일을 적용한다(빈 튜플이면 보정 안 함)."""
+    from agetech_data.nutrition.corrections import apply_corrections, load_corrections
+
     recs = [clean_food(r) for r in rows]
+    apply_corrections(recs, load_corrections() if corrections is None else corrections)
     names = Counter(r.name for r in recs)
     for r in recs:
         if names[r.name] > 1:

@@ -1,0 +1,2 @@
+# Exact scanner span of the dummy URL in test_config.py, which verifies unsupported-driver error redaction.
+mysql://user:private-password@localhost
