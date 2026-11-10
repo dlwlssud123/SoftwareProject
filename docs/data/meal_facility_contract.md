@@ -25,7 +25,7 @@
 |---|---|---|---|
 | `facility_id` | 문자열 | — | 시설 ID. 같은 장소의 다른 급식 일정은 끝에 `-2`, `-3` |
 | `name`, `operator` | 문자열 | `fcltyNm`, `operInstitutionNm` | 시설명, 운영 기관 |
-| `ctpv`, `sgg` | 문자열·null | 주소에서 | 정규화 시도·시군구. 주소가 없으면 제공 지자체로(`region_from_provider`) |
+| `ctpv`, `sgg` | 문자열·null | 주소에서 | 정규화 시도·시군구. 주소가 없으면 제공 지자체로(`region_from_provider`), 주소에서 시군구만 못 읽으면 같은 시도의 제공 지자체 시군구로(`sgg_from_provider`) |
 | `address_road`, `address_lot` | 문자열·null | `rdnmadr`, `lnmadr` | 도로명·지번 주소 원문 |
 | `phone` | 문자열·null | `phoneNumber` | 전화번호 |
 | `place` | 문자열·null | `mlsvPlace` | 급식 장소 |
@@ -52,7 +52,7 @@
 | `days_unparsed`, `time_unparsed` | 요일·시간을 읽지 못함 | 원문 확인 |
 | `includes_delivery` | 반찬·도시락 배달 포함 | 찾아가는 식당이 아닐 수 있음 |
 | `duplicate_merged` | 다른 지자체·기준일 중복 등록을 합침 | — |
-| `address_missing`, `region_from_provider`, `region_unknown`, `invalid_date:<필드>` | 주소·지역·날짜 문제 | — |
+| `address_missing`, `region_from_provider`, `sgg_from_provider`, `region_unknown`, `invalid_date:<필드>` | 주소·지역·날짜 문제 | — |
 
 ### 2.1 중복 등록 합치기
 

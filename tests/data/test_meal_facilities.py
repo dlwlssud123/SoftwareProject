@@ -128,6 +128,16 @@ def test_normalize_real_rows(records):
     assert stale.days_raw == "주1회(6일분) 반찬배달"                # 못 읽어도 원문은 그대로
 
 
+def test_sigungu_from_same_province_provider_when_address_is_glued(rows):
+    base = next(r for r in rows if r["fcltyNm"] == "남구종합사회복지관")
+    glued = {**base, "rdnmadr": "전라남도 완도군신지면 신지로 516", "lnmadr": "", "insttNm": "전남광주통합특별시 완도군"}
+    [rec] = normalize_payload({"items": add_row_ids([glued])}, AS_OF)
+    assert (rec.ctpv, rec.sgg) == (MERGED, "완도군") and "sgg_from_provider" in rec.quality_flags
+    other = {**glued, "insttNm": "대구광역시 남구"}            # 다른 시도 지자체의 시군구는 쓰지 않음
+    [rec] = normalize_payload({"items": add_row_ids([other])}, AS_OF)
+    assert (rec.ctpv, rec.sgg) == (MERGED, None) and "sgg_from_provider" not in rec.quality_flags
+
+
 def test_operation_ended_flag_relative_to_as_of(rows):
     closed = next(r for r in rows if (r.get("operCloseDate") or "9999") < "2026-01-01")
     [rec] = normalize_payload({"items": add_row_ids([closed])}, AS_OF)
