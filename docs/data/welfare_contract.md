@@ -6,6 +6,7 @@
 | 대상 | 복지 API(이진녕), 복지 화면·지역 선택(김찬형), 관리자 검수(김민찬) |
 | 원천 | 한국사회보장정보원 중앙부처 복지서비스·지자체 복지서비스 (공공데이터포털), 노년층 `lifeArray=006` |
 | 생성 명령 | `uv run python -m agetech_data.refresh --source welfare_central welfare_local` → `uv run python -m agetech_data.welfare.build` |
+| DB 적재 | 같은 갱신 수집본을 같은 정제로 `welfare_services`·`welfare_revisions`에 넣는다 — `welfare_db_import.md` (11/11부터, 중앙·지자체 모두) |
 | 기준 | 기획서 CORE-05 "전국·지역 사업을 구분하고 관련 제도·지원 기준·공식 경로 안내", 11.3 "출처·확인일·미확인 필드 표시" |
 
 ## 1. 꼭 지킬 규칙
