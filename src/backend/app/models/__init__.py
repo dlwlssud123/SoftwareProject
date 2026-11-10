@@ -19,6 +19,10 @@ from app.models.public_data import (  # noqa: F401
     RecipeRevision,
     RecipeStep,
 )
+from app.models.recipe_nutrition import (  # noqa: F401
+    RecipeComputedNutrition,
+    RecipeIngredientFood,
+)
 from app.models.user_data import (  # noqa: F401
     MealLog,
     MealLogItem,
