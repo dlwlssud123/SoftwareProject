@@ -94,10 +94,13 @@ def collect_free_meal(key: str, *, fetch: Fetcher = http_fetch, sleep=time.sleep
         page += 1
     if total and len(rows) != total:
         raise CollectError(f"무료급식소 {len(rows)}/{total}건만 받음 — 게시하지 않음")
+    items = add_row_ids(rows)
     meta = {
         "provider": PROVIDER, "service": SERVICE, "documentation": DOCUMENTATION,
         "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "total_count": total, "item_count": len(rows),
+        "total_count": total, "item_count": len(items),
+        # DB 적재(backend import_meal_facilities)가 확인하는 값 — 건수가 다르면 위에서 이미 실패
+        "complete": True, "items_sha256": sha256_json(items),
         "note": "row_id는 수집기가 붙인 원천 행 해시(원천에는 ID 없음)",
     }
-    return {"meta": meta, "items": add_row_ids(rows)}
+    return {"meta": meta, "items": items}

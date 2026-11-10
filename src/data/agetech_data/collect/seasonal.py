@@ -29,6 +29,7 @@ from agetech_data.net import (
     fetch_with_retry,
     http_fetch,
 )
+from agetech_data.textutil import sha256_json
 
 API_BASE = "https://apis.data.go.kr/1390803/allbaroFoodMonth"
 PROVIDER = "농촌진흥청 국립식량과학원 (공공데이터포털)"
@@ -130,5 +131,7 @@ def collect_seasonal(key: str, *, fetch: Fetcher = http_fetch, sleep=time.sleep,
     meta = {"provider": PROVIDER, "service": SERVICE, "documentation": DOCUMENTATION,
             "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "item_count": len(items), "months": 12, "api_calls": call.calls,
-            "details": {"requested": details, "failed": failed}}
+            "details": {"requested": details, "failed": failed},
+            # DB 적재(backend import_seasonal)가 확인하는 값: 상세를 모두 받았으면 완전, 항목 해시
+            "complete": details and not failed, "items_sha256": sha256_json(items)}
     return {"meta": meta, "items": items}

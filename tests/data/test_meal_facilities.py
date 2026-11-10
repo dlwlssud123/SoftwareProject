@@ -10,6 +10,7 @@ from agetech_data.collect.meal_facilities import add_row_ids, collect_free_meal,
 from agetech_data.facilities.normalize import normalize_payload, parse_days, parse_meals, split_region
 from agetech_data.facilities.query import ALWAYS, facilities_for
 from agetech_data.net import CollectError, Fatal, Quota, QuotaExceededError
+from agetech_data.textutil import sha256_json
 from agetech_data.welfare.regions import MERGED, normalize_ctpv
 
 FIXTURE = Path(__file__).parent / "fixtures" / "free_meal_sample.json"
@@ -52,6 +53,8 @@ def test_collect_pages_row_ids_and_count_check(rows):
     got = collect_free_meal("KEY", fetch=lambda url: (200, pages[int(url.split("pageNo=")[1].split("&")[0])]),
                             sleep=lambda s: None, log=lambda m: None, page_size=10)
     assert got["meta"]["item_count"] == got["meta"]["total_count"] == 16
+    assert got["meta"]["complete"] is True                # DB 적재(import_meal_facilities)가 확인
+    assert got["meta"]["items_sha256"] == sha256_json(got["items"])
     ids = [r["row_id"] for r in got["items"]]
     assert len(ids) == len(set(ids)) == 16
     twin = add_row_ids([{"a": 1}, {"a": 1}])
