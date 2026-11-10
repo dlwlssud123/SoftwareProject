@@ -70,7 +70,7 @@
 | `allergens` | `["대두", "알류"]` | 레시피 재료명 추정(법정 19종 이름), 확인 필요 종류 포함 |
 | `status` | `active` | 다음 판본을 기다리지 않고 바로 숨길 때만 `retracted`(사라진 원본은 새 판본에 없음) |
 | `data_version` | `welfare_local:3f761c00cacb` | 원천 원문 sha256 앞 12자리 |
-| `source_record_sha256` | 64자리 | **인덱스 파일**: 청크를 만든 원본 행 해시(복지 `raw_sha256`, 레시피 `source.raw_sha256`) — 파일 검색에서 대조. **DB `rag_chunk`**: 원본 표의 게시 판본 fingerprint — 적재 스크립트가 붙이고, 검색 때 `rag_source_active`와 같아야 씀(4절, SQL 초안 v3) |
+| `source_record_sha256` | 64자리 | **인덱스 파일**: 원본 표 판본과 맞출 해시 — 복지는 정제 레코드 내용 해시(`welfare.revision.content_sha256`: 조회수·확인 시각 등 실행마다 바뀌는 칸을 뺀 레코드, = DB `welfare_revisions.content_sha256`), 레시피는 원본 행 해시(`source.raw_sha256`). 파일 검색에서 대조. **DB `rag_chunk`**: 원본 표의 게시 판본 fingerprint — 적재 스크립트가 붙이고, 검색 때 `rag_source_active`와 같아야 씀(4절, SQL 초안 v3) |
 
 청크 본문 규칙:
 - 복지: 머리말 `[복지] 사업명 (전국 | 시도 전체 | 시도 시군구)` 다음에 요약·지원 대상·선정 기준·지원 내용·지원 주기·제공 방식·신청 방법·신청 안내(중앙)·문의처(최대 5개)·담당을 원문 그대로 넣음. 1,000자를 넘으면 개요 / 지원 내용 / 신청 항목 경계로 나누고, 조각마다 같은 머리말을 붙인다.
@@ -86,7 +86,7 @@
    2. CSV를 임시 표에 받고 행 수·모델이 manifest와 같은지 확인 → 다르면 아무것도 남기지 않고 종료 코드 3
    3. **게시 판본 지문 붙이기(v3)**: CSV의 `source_row_sha256`(청크를 만든 원본 행 해시)로 원본 표의 활성 판본을 찾아 그 `fingerprint`를 `source_record_sha256`에 넣는다. 맞는 판본이 없는 청크는 넣지 않는다(검색에 틀린 근거 대신 '없음').
       - 레시피: `recipes`(`provider = 'foodsafetykorea:COOKRCP01'`, `source_id`) → 활성 `recipe_revisions`의 `raw_sha256`과 `effective_sha256`(보완표 적용 후 행)이 **둘 다** 원본 행 해시와 같을 때만. 보완표로 고친 레시피(11/10 기준 4건: 33·36·642·276)는 DB 내용이 청크 원문과 달라서 빠진다 — 청크를 보완 후 행으로 만들면 들어간다(후속).
-      - 복지: **아직 넣지 않는다.** DB의 중앙 복지(`welfare_revisions`)는 백엔드 수집본(`central_all.json`, XML 원문)에서, 청크는 갱신 수집본(`central_elderly.json`·`local_elderly.json`)에서 만들어 원본 행 해시를 맞출 수 없다. 지자체 복지는 DB 적재 전이다. 어느 수집본을 기준으로 할지 정해지면 같은 방식으로 붙인다.
+      - 복지: `welfare_services`(중앙 `ssis:NationalWelfareInformationsV001`·`central_nationwide` / 지자체 `ssis:LocalGovernmentWelfareInformations`·`local`, `source_id`) → 활성 `welfare_revisions`의 `content_sha256`이 청크 해시와 같을 때만. DB 적재(`app.jobs.import_welfare`)와 청크가 **같은 갱신 수집본·같은 정제 레코드**를 쓰므로 맞는다(11/11 이진녕 확인: 기준 = 데이터 갱신 수집본, `welfare_db_import.md`). 조회수·확인 시각만 바뀐 날은 DB 새 판본도, 청크 해시 변화도 없다.
       - 판본별 넣은 건수를 `source_type`별로 출력한다. 하나도 안 맞으면 아무것도 남기지 않고 종료 코드 3
    4. 넣은 청크로 새 판본을 `loading` 등록(`chunk_count` = 실제로 넣은 수)
    5. 넣은 행 수·모델이 맞으면 **한 트랜잭션에서** 이전 `active` → `retired`, 새 판본 → `active` → 아니면 `failed`로 남기고 종료 코드 3(이전 판본이 계속 검색됨)

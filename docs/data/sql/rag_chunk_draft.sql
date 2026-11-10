@@ -128,7 +128,8 @@ $$;
 --   load_index.sql = ① 임시 표에 \copy → 행 수·모델이 manifest와 같은지 확인(다르면 아무것도 안 남김)
 --                    ② 원본 표 활성 판본의 fingerprint 를 source_record_sha256 에 붙이고, 붙은 청크만 새 판본(loading)으로
 --                       넣는다(아직 검색 안 됨). 레시피는 recipe_revisions 의 raw_sha256·effective_sha256 이 둘 다 청크
---                       원본 행 해시와 같을 때만. 복지는 맞출 기준이 정해질 때까지 넣지 않는다(rag_index_contract.md 4절)
+--                       원본 행 해시와 같을 때만. 복지는 welfare_revisions 의 content_sha256(정제 레코드 내용 해시)이
+--                       같을 때만 — DB 적재와 청크가 같은 갱신 수집본·같은 정제를 쓴다(rag_index_contract.md 4절)
 --                    ③ 넣은 행 수·모델이 맞으면 한 트랜잭션에서 이전 active → retired, 새 판본 → active
 --                    ④ 다르면 failed 로 남기고 오류로 끝냄(종료 코드 3) — 이전 판본이 계속 검색됨
 --   적재·전환은 rag_rollback_index 와 같은 표 잠금을 잡아 동시 실행을 막는다(검색 SELECT 는 됨).
@@ -149,10 +150,15 @@ $$;
 --    WHERE w.scope = 'central_nationwide' AND w.publication_status = 'published'
 --      AND v.detail_state = 'ready' AND v.quality_status <> 'hold'
 --   UNION ALL
+--   SELECT 'welfare_local', w.source_id, v.fingerprint
+--     FROM welfare_services w JOIN welfare_revisions v ON v.id = w.active_revision_id AND v.service_id = w.id
+--    WHERE w.scope = 'local' AND w.publication_status = 'published'
+--      AND v.detail_state = 'ready' AND v.quality_status <> 'hold'
+--   UNION ALL
 --   SELECT 'recipe', r.source_id, v.fingerprint
 --     FROM recipes r JOIN recipe_revisions v ON v.id = r.active_revision_id AND v.recipe_id = r.id
 --    WHERE r.provider = 'foodsafetykorea:COOKRCP01' AND v.quality_status <> 'hold';
--- 지자체 DB 적재와 공고 저장을 연결할 때 해당 원본의 게시·마감·철회 조건도 뷰에 반영한다.
+-- 공고 저장을 연결할 때 해당 원본의 게시·마감·철회 조건도 뷰에 반영한다.
 -- 원본 표가 생기기 전 시험용(청크에서 채움):
 -- CREATE TABLE rag_source_active (source_type text, source_id text, record_sha256 char(64),
 --                                 PRIMARY KEY (source_type, source_id));
