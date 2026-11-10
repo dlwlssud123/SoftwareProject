@@ -87,3 +87,8 @@ region, out = facilities_for(records, "대구", "남구", lat=35.849, lon=128.59
 - 원천이 지자체별로 연 1회 안팎 갱신된다(기준일 2022~2026 섞임). 갱신은 다른 공공데이터와 같은 `refresh`로 돌고, 실패하면 이전 판본을 유지한다.
 - 요일·시간 원문 표기가 제각각이라 약 6%·3%는 읽지 못한다(보고서 5절). 원문을 그대로 보여 준다.
 - 표준데이터에 시설 ID가 없어 시설명·주소가 바뀌면 `facility_id`도 바뀐다.
+
+## 6. DB 적재
+
+- 표는 #18 `meal_facilities`에 원천 칸(Alembic `20261111_01`)을 더해 쓴다. 칸 대응·게시 규칙·명령은 [`facility_seasonal_db_import.md`](facility_seasonal_db_import.md).
+- 요약: `source_id` = `facility_id`, `checked_on` = 수집 날짜(KST), `reference_date` = 원천 기준일, `hours_text` = 요일 원문 + 시간 원문, `quality_flags` 그대로, 정제 레코드 전체는 `normalized`. 운영 종료·미운영은 비게시.
