@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 from urllib.parse import quote
 
 from agetech_data.net import CollectError, Fatal, Fetcher, Retry, fetch_with_retry, http_fetch
+from agetech_data.textutil import sha256_json
 
 PROVIDER = "식품의약품안전처 식품안전나라"
 SERVICE = "COOKRCP01"
@@ -68,6 +69,8 @@ def collect_recipes(key: str, *, fetch: Fetcher = http_fetch, sleep: Callable[[f
     return {
         "meta": {"provider": PROVIDER, "service": SERVICE, "documentation": DOCUMENTATION,
                  "fetched_at": datetime.now(UTC).isoformat(timespec="seconds"),
-                 "total_count": total, "item_count": len(items)},
+                 "total_count": total, "item_count": len(items),
+                 # DB 적재(backend import_public_data.read_snapshot)가 확인하는 값 — 건수가 다르면 위에서 이미 실패
+                 "complete": True, "items_sha256": sha256_json(items)},
         "items": items,
     }

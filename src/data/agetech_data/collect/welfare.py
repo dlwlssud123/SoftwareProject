@@ -230,6 +230,8 @@ def collect_welfare(kind: Kind, key: str, *, life: str = LIFE_ELDERLY, details: 
                  "kind": kind, "params": {"lifeArray": life, **api["list_params"]},
                  "fetched_at": started.isoformat(timespec="seconds"),
                  "total_count": total, "item_count": len(items),
+                 # DB 적재(backend import_welfare)가 확인하는 값: 상세 대기(pending)가 없으면 완전, 항목 해시
+                 "complete": not detail_counts.get("pending"), "items_sha256": sha256_json(items),
                  "details": {"counts": detail_counts, "fetched_this_run": len(fetched),
                              "remaining": len(todo) - len(fetched), "stopped_by_quota": stopped,
                              "daily_limit": api["daily_detail_limit"], "max_age_days": max_age_days}},
