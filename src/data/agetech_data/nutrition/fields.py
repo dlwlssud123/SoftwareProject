@@ -42,6 +42,10 @@ NUTRIENT_FIELDS: dict[str, tuple[str, str]] = {
     "refuse_pct": ("AMT_NUM157", "폐기율(%)"),
 }
 
+# 레시피 합계·식사 기록 계산에 쓰는 성분 (앱 영양 화면의 열량·탄수화물·단백질·지방·나트륨 포함)
+SUM_NUTRIENTS: list[str] = ["energy_kcal", "protein_g", "fat_g", "carbohydrate_g", "sugars_g", "fiber_g",
+                            "sodium_mg", "potassium_mg", "calcium_mg", "cholesterol_mg", "sat_fat_g"]
+
 # 정제 레코드 키: 원본 필드 (텍스트)
 TEXT_FIELDS: dict[str, str] = {
     "food_code": "FOOD_CD",
@@ -53,6 +57,7 @@ TEXT_FIELDS: dict[str, str] = {
     "basis_text": "SERVING_SIZE",     # 영양성분함량기준량 (예: 100g, 100mL)
     "food_weight_text": "Z10500",     # 식품중량
     "serving_ref_text": "NUTRI_AMOUNT_SERVING",  # 1회 섭취참고량
+    "dish_serving_text": "DISH_ONE_SERVING",     # 1회분량 참고량 (10/31 수집본 음식 4,048건 모두 비어 있음)
     "source_name": "SUB_REF_NAME",    # 출처명
     "create_method": "CRT_MTH_NM",    # 데이터생성방법명 (분석/산출/수집)
     "research_date": "RESEARCH_YMD",  # 데이터생성일자

@@ -24,20 +24,18 @@ from collections import Counter
 from pathlib import Path
 
 from agetech_data import paths
-from agetech_data.nutrition.fields import NUTRIENT_FIELDS
+from agetech_data.nutrition.dish_eval import evaluate as evaluate_dish_search
+from agetech_data.nutrition.fields import NUTRIENT_FIELDS, SUM_NUTRIENTS
 from agetech_data.nutrition.foods import FoodRecord, clean_foods
-from agetech_data.nutrition.match import FoodIndex, load_ingredient_map, match_ingredient, search_dishes
+from agetech_data.nutrition.match import FoodIndex, load_ingredient_map, match_ingredient
 from agetech_data.nutrition.units import CONVERTED, to_grams
+from agetech_data.recipes.correct import apply_corrections
 from agetech_data.recipes.validate import check_recipe, load_rows
 
 SCHEMA_VERSION = 1
 # 레시피 원문 영양값(INFO_*)과 비교할 성분
 COMPARE = {"energy_kcal": "INFO_ENG", "protein_g": "INFO_PRO", "fat_g": "INFO_FAT",
            "carbohydrate_g": "INFO_CAR", "sodium_mg": "INFO_NA"}
-SUM_NUTRIENTS = ["energy_kcal", "protein_g", "fat_g", "carbohydrate_g", "sugars_g", "fiber_g",
-                 "sodium_mg", "potassium_mg", "calcium_mg", "cholesterol_mg", "sat_fat_g"]
-DISH_EXAMPLES = ["김치찌개", "된장찌개", "쌀밥", "미역국", "불고기", "비빔밥", "잡채", "계란말이",
-                 "고등어구이", "제육볶음", "순두부찌개", "김치찌게"]
 
 
 def _rel(p: Path) -> str:
@@ -106,6 +104,8 @@ def build_recipe_nutrition(rows: list[dict], foods: list[FoodRecord], entries) -
 
 
 def summarize(recipes: list[dict], foods: list[FoodRecord], entries) -> dict:
+    from agetech_data.nutrition.corrections import load_corrections
+
     items = [i for r in recipes for i in r["ingredients"]]
     grams_by_status: Counter = Counter()
     for i in items:
@@ -139,6 +139,12 @@ def summarize(recipes: list[dict], foods: list[FoodRecord], entries) -> dict:
             "flags": dict(Counter(fl for f in foods for fl in f.quality_flags).most_common()),
             "missing_pct": {k: round(100 * sum(f.nutrients[k] is None for f in foods) / max(len(foods), 1), 1)
                             for k in SUM_NUTRIENTS},
+            # 원천 오류 보정 (resources/food_corrections.json, clean_foods 에서 적용됨)
+            "corrections": [{"food_code": f.food_code, "name": f.name, **c} for f in foods for c in f.corrections],
+            "corrections_stale": [{"food_code": f.food_code, "name": f.name} for f in foods
+                                  if "correction_stale" in f.quality_flags],
+            "corrections_missing": sorted({c["food_code"] for c in load_corrections()}
+                                          - {f.food_code for f in foods}),
         },
         "manual_map": {"entries": len(entries), "reviewed": sum(bool(e.get("reviewed_by")) for e in entries),
                        "codes": len(used_codes)},
@@ -151,6 +157,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="식품영양성분 정제·레시피 재료 매핑·보고서")
     ap.add_argument("--nutrition-raw", type=Path, default=paths.NUTRITION_RAW)
     ap.add_argument("--recipes", type=Path, default=paths.RECIPES_RAW)
+    ap.add_argument("--corrections", type=Path, default=paths.RECIPE_CORRECTIONS)
     ap.add_argument("--foods-out", type=Path, default=paths.FOODS_PROCESSED)
     ap.add_argument("--recipes-out", type=Path, default=paths.RECIPE_NUTRITION)
     ap.add_argument("--report", type=Path, default=paths.NUTRITION_MAPPING_REPORT)
@@ -166,15 +173,22 @@ def main(argv: list[str] | None = None) -> int:
     foods = clean_foods(raw["items"])
     entries = load_ingredient_map()
     rows = load_rows(args.recipes)
+    correction_bytes = args.corrections.read_bytes()
+    rows, corrections = apply_corrections(rows, json.loads(correction_bytes))
     recipes = build_recipe_nutrition(rows, foods, entries)
     summary = summarize(recipes, foods, entries)
-    dish_index = FoodIndex(foods, ("음식",))
-    dishes = {q: search_dishes(q, dish_index, limit=3) for q in DISH_EXAMPLES}
+    dishes = evaluate_dish_search(foods)
 
     inputs = {
         "nutrition_raw": {"path": _rel(args.nutrition_raw), "sha256": hashlib.sha256(raw_bytes).hexdigest(),
                           "meta": raw.get("meta")},
-        "recipes": {"path": _rel(args.recipes), "sha256": hashlib.sha256(args.recipes.read_bytes()).hexdigest()},
+        "recipes": {
+            "path": _rel(args.recipes),
+            "sha256": hashlib.sha256(args.recipes.read_bytes()).hexdigest(),
+            "corrections_path": _rel(args.corrections),
+            "corrections_sha256": hashlib.sha256(correction_bytes).hexdigest(),
+            "correction_count": len(corrections),
+        },
     }
     nutrient_spec = {k: {"field": f, "label": label} for k, (f, label) in NUTRIENT_FIELDS.items()}
     _write(args.foods_out, {"schema_version": SCHEMA_VERSION, "input": inputs["nutrition_raw"],
@@ -187,6 +201,7 @@ def main(argv: list[str] | None = None) -> int:
 
     mi = summary["match_items"]
     print(f"식품 {len(foods)}건 정제 → {_rel(args.foods_out)}")
+    print(f"음식명 검색 정답 표본 {dishes['total']}건: 1순위 일치 {dishes['top1']}, 3순위 안 {dishes['top3']}")
     print(f"레시피 {summary['recipes']}건 재료 {summary['items']}개: " +
           ", ".join(f"{k} {mi.get(k, 0)}" for k in ("exact", "curated", "reviewed", "water", "candidate", "unmapped")))
     print(f"모든 재료가 계산된 레시피 {summary['complete_recipes']}건 → {_rel(args.recipes_out)}")

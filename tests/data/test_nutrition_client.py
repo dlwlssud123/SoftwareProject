@@ -87,6 +87,17 @@ def test_duplicate_codes_rejected():
         collect(KEY, fetch=FakeApi(total=1000, dup=True), sleep=lambda s: None, log=lambda m: None)
 
 
+def test_changed_total_rejected():
+    responses = iter([_ok(_rows(0, 1), 2), _ok(_rows(1, 1), 3)])
+    with pytest.raises(CollectError, match="건수가 변경"):
+        collect(KEY, rows=1, fetch=lambda _: next(responses), sleep=lambda _: None, log=lambda _: None)
+
+
+def test_missing_food_code_rejected():
+    with pytest.raises(CollectError, match="식품코드가 없는"):
+        collect(KEY, fetch=lambda _: _ok([{"FOOD_NM_KR": "이름만"}], 1), log=lambda _: None)
+
+
 def test_missing_key_keeps_existing_file(tmp_path, monkeypatch, capsys):
     out = tmp_path / "raw.json"
     out.write_text("기존", encoding="utf-8")

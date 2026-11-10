@@ -196,7 +196,9 @@ def _first(sources: list[dict], tags: tuple[str, ...]) -> str | None:
 
 def normalize_item(item: dict, source: str, fetched_at: str | None, as_of: date) -> WelfareRecord:
     lst, det = item.get("list") or {}, item.get("detail") or {}
-    srcs = [det, lst]  # 상세 우선, 없으면 목록
+    status = item.get("detail_status") or ("fresh" if det else "pending")
+    # 재수집 대기 중인 상세가 최신 목록의 지역·기간을 되돌리지 않도록 한다.
+    srcs = [{**det, **lst}] if status == "stale" else [det, lst]
     flags: list[str] = []
     text = {k: clean_text(_first(srcs, tags)) for k, tags in TEXT_FIELDS.items()}
     lists = {k: split_list(_first(srcs, tags)) for k, tags in LIST_FIELDS.items()}
@@ -215,7 +217,6 @@ def normalize_item(item: dict, source: str, fetched_at: str | None, as_of: date)
         if ctpv is None:
             flags.append("unknown_ctpv")
     online = _first(srcs, ("onapPsbltYn",))
-    status = item.get("detail_status") or ("fresh" if det else "pending")
     if status == "pending":
         flags.append("detail_pending")
     elif status == "stale":

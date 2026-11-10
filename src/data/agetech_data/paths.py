@@ -15,16 +15,20 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 FRONTEND_DATA_DIR = REPO_ROOT / "src" / "frontend" / "assets" / "data"
 RECIPES_RAW = FRONTEND_DATA_DIR / "recipes.json"
 RECIPES_SOURCE_META = FRONTEND_DATA_DIR / "recipe_source.json"
+RECIPE_CORRECTIONS = FRONTEND_DATA_DIR / "recipe_corrections.json"
+RECIPES_ALL_RAW = REPO_ROOT / "data" / "raw" / "recipes" / "cookrcp01_all.json"
+WELFARE_RAW = REPO_ROOT / "data" / "raw" / "welfare" / "central_all.json"
 
 # 가공 결과(gitignore 대상, 명령으로 재생성)
 PROCESSED_DIR = REPO_ROOT / "data" / "processed"
 RECIPES_VALIDATED = PROCESSED_DIR / "recipes_validated.json"
-RECIPES_API = PROCESSED_DIR / "recipes_api.json"
+RECIPES_CORRECTED = PROCESSED_DIR / "recipes_corrected.json"
+RECIPE_CORRECTION_AUDIT = PROCESSED_DIR / "recipe_correction_audit.json"
 
 # 커밋하는 보고서
 REPORTS_DIR = REPO_ROOT / "docs" / "data"
 RECIPE_QUALITY_REPORT = REPORTS_DIR / "recipe_quality_report.md"
-RECIPE_API_SAMPLE = REPORTS_DIR / "samples" / "recipe_api_sample.json"
+RECIPE_CORRECTION_REPORT = REPORTS_DIR / "recipe_correction_report.md"
 
 # 식약처 식품영양성분DB (공공데이터포털 FoodNtrCpntDbInfo03) 수집 원본 — gitignore 대상
 NUTRITION_RAW_DIR = REPO_ROOT / "data" / "raw" / "nutrition"
@@ -48,3 +52,7 @@ WELFARE_REGIONAL_REPORT = REPORTS_DIR / "welfare_regional_report.md"
 FOODS_PROCESSED = PROCESSED_DIR / "foods_v03.json"
 RECIPE_NUTRITION = PROCESSED_DIR / "recipe_ingredient_nutrition.json"
 NUTRITION_MAPPING_REPORT = REPORTS_DIR / "nutrition_mapping_report.md"
+NUTRITION_API_SAMPLE = REPORTS_DIR / "samples" / "nutrition_api_sample.json"
+
+RECIPES_API = PROCESSED_DIR / "recipes_api.json"
+RECIPE_API_SAMPLE = REPORTS_DIR / "samples" / "recipe_api_sample.json"
