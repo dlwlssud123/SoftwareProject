@@ -1,7 +1,7 @@
 # ValueFlow 공통 백엔드 API 명세서
 
 - 작성일: 2026-11-03
-- 갱신일: 2026-11-09
+- 갱신일: 2026-11-10
 - API 경로 버전: `v1` / 애플리케이션 버전: `0.1.0`
 - 구현 기준: `src/backend/app`의 실제 등록 경로·Pydantic 모델·예외 처리
 - 로컬 주소: `http://127.0.0.1:8000`
@@ -254,3 +254,18 @@ DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세는 DB
 `age`는 0~120 정수, 지역·재료명은 공백 제거 후 1~100자다. 재료 목록은 30개, 알레르기는 계약상 19종으로 제한한다. 스칼라의 `null`과 배열의 `[]`로 해당 값을 지운다. 미전달 항목과 최초 동의 시각은 유지한다. 최초 동의 없이 저장하면 409, 빈 변경·알 수 없는 필드·잘못된 값은 422, DB 장애는 503이다. `{"consent":false}`는 동의를 철회하며 프로필을 삭제한다. 철회 요청에 `preferences` 객체를 함께 보내면 422다. 프로필 삭제 후 새 저장에는 다시 동의해야 한다. 게스트 세션은 별도 수명주기를 따른다.
 
 저장은 `profiles.user_id`로 사용자를 고유하게 연결한다. 같은 사용자의 변경·철회는 사용자 행 잠금으로 직렬화한다. 배포 시 `20261109_01` 마이그레이션을 적용한다. 동의 화면의 안내 문구와 앱 입력·보안 저장소 연결은 프런트 연동 작업에서 제공한다.
+
+## 11. Flutter·React 연동 기준
+
+| 설정 | 로컬 개발 값 | 요청 예 |
+| --- | --- | --- |
+| Flutter Android 에뮬레이터 `API_BASE_URL` | `http://10.0.2.2:8000` | `GET /api/v1/recipes?limit=1` |
+| React 관리자 `VITE_API_BASE_URL` | `http://127.0.0.1:8000` | `GET /api/v1/admin/me` |
+
+기본 주소에는 스킴·호스트·포트만 넣고, 요청 경로에 `/api/v1`을 붙인다. React 개발 서버가 `http://localhost:5173`에서 실행되면 백엔드 `CORS_ORIGINS`에 그 주소를 등록한다. Swagger 문서는 PC에서 `http://127.0.0.1:8000/docs`로 접속한다. 기업 서버용 HTTPS 주소는 배포 작업에서 확정한다.
+
+- 성공 시 최상위 `data`를 DTO로 읽는다. 목록은 `data.items`, 추천은 `data.items[].item`과 `reasons`를 읽는다. JSON 키는 `snake_case`이며, 원천 ID는 숫자처럼 보여도 문자열로 유지한다.
+- HTTP 오류는 `error.code`로 분기하고 `error.message`를 표시한다. 입력 오류는 `error.fields`, 서버가 재시도 가능하다고 표시한 오류는 `error.retryable`을 읽는다. JSON 본문이 없는 네트워크·프록시 오류는 앱의 기본 안내로 처리한다.
+- React는 관리자 요청에 `Authorization: Bearer <access_token>`을 보내고 `data.role`을 확인한다. 401은 세션 재확인, 403은 권한 부족 상태로 표시한다. Flutter와 React 모두 토큰·프로필을 요청 및 응답 로그에서 제외한다.
+
+현재 Flutter 화면은 `DemoRepository`의 번들 JSON과 기기 내 규칙으로 식단·복지를 추천한다. 서버 전환은 연결된 레시피 목록·상세와 세션·프로필부터 진행한다. 식단 추천과 복지 목록·상세·추천은 [예정 OpenAPI](./catalog.openapi.json)와 [JSON 표본](./api_examples.json)으로 화면을 먼저 맞추고, 실제 서버 연결은 해당 기능이 구현된 뒤 검증한다. [Flutter 통신 PR #6](https://github.com/dlwlssud123/SoftwareProject/pull/6)의 오류 파서는 화면 연동 시 `error.message`를 읽도록 맞춘다.
