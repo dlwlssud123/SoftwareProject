@@ -375,6 +375,22 @@ def test_postgres_seasonal_links_follow_active_recipe_revisions(
         assert link.share == Decimal(repr(round(100 / 105, 3)))
         assert import_seasonal.verify_import(db, plan)["verified"]
 
+        # 레시피가 예전 내용으로 돌아가면(A → B → A) 입력 지문이 첫 적재와 같아도 연결을 다시 맞춘다
+        import_recipes(db, tmp_path, RECIPES, DAY3)
+        result = import_seasonal.apply_import(db, plan)
+        assert not result["already_imported"] and result["relinked_items"] == 1
+        link = db.scalar(
+            select(SeasonalRecipeLink).where(
+                SeasonalRecipeLink.seasonal_food_id == spinach.id
+            )
+        )
+        assert (
+            link.recipe_revision_id == db.get(Recipe, link.recipe_id).active_revision_id
+        )
+        assert link.share == Decimal(repr(round(200 / 205, 3)))
+        assert import_seasonal.apply_import(db, plan)["already_imported"]
+        assert import_seasonal.verify_import(db, plan)["verified"]
+
 
 def test_postgres_seasonal_partial_missing_and_manual_rows(tmp_path, pg_connection):
     with Session(pg_connection) as db, db.begin():

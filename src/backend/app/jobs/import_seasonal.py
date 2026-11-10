@@ -286,15 +286,35 @@ def planned_links(row: dict, recipes: ActiveRecipes) -> set:
     return {recipes.revisions[link["recipe_id"]] for link in row["recipes"]}
 
 
+def needs_relink(
+    food: SeasonalFood | None, row: dict, current: dict, recipes: ActiveRecipes
+) -> bool:
+    return (
+        food is None
+        or food.links_sha256 != row["links_sha256"]
+        or current.get(food.id, set()) != planned_links(row, recipes)
+    )
+
+
 def apply_import(session: Session, plan: SeasonalPlan) -> dict:
     """Caller owns the transaction; never commit a partially applied snapshot."""
     session.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": IMPORT_LOCK})
     recipes = load_active_recipes(session)
     plan = link_plan(plan, recipes)
+    existing = session.scalars(
+        select(SeasonalFood).where(SeasonalFood.provider == PROVIDER)
+    ).all()
+    by_source = {food.source_id: food for food in existing}
+    current_links = stored_links(session)
     previous = session.scalar(
         select(DataImportRun).where(DataImportRun.fingerprint == plan.fingerprint)
     )
-    if previous:
+    # Same fingerprint is not enough: active recipes can go A -> B -> A (a source edit reverted),
+    # leaving links on B's revisions. Skip only when every stored link already matches.
+    if previous and not any(
+        needs_relink(by_source.get(row["source_id"]), row, current_links, recipes)
+        for row in plan.rows
+    ):
         return {
             "run_id": str(previous.id),
             "already_imported": True,
@@ -304,16 +324,11 @@ def apply_import(session: Session, plan: SeasonalPlan) -> dict:
             "relinked_items": 0,
             "newly_unpublished": 0,
         }
-    existing = session.scalars(
-        select(SeasonalFood).where(SeasonalFood.provider == PROVIDER)
-    ).all()
     if any(food.last_seen_at > plan.collected_at for food in existing):
         raise ValueError(
             "An older seasonal snapshot cannot replace the latest successful scan"
         )
-    by_source = {food.source_id: food for food in existing}
-    current_links = stored_links(session)
-    run = DataImportRun(
+    run = previous or DataImportRun(
         id=uuid.uuid4(),
         fingerprint=plan.fingerprint,
         parser_version=NORMALIZER_VERSION,
@@ -345,9 +360,7 @@ def apply_import(session: Session, plan: SeasonalPlan) -> dict:
             setattr(food, column, value)
         food.is_published = row["is_published"]
         food.last_seen_at, food.last_seen_run_id = plan.collected_at, run.id
-        if food.links_sha256 != row["links_sha256"] or current_links.get(
-            food.id, set()
-        ) != planned_links(row, recipes):
+        if needs_relink(food, row, current_links, recipes):
             relink.append((food, row))
         food.links_sha256 = row["links_sha256"]
     session.flush()
