@@ -2,7 +2,8 @@
 
     uv run python -m agetech_data.welfare.sample    # 수집 원본 → docs/data/samples/welfare_api_sample.json
 
-같은 원본이면 같은 출력이다. 필드 정의는 docs/data/welfare_contract.md (2절 레코드, 3절 조회, 5절 표본·지역 키).
+같은 원본이면 같은 출력이다(실행 날짜와 무관 — 시행 기간 종료는 수집 날짜 기준으로 판단).
+필드 정의는 docs/data/welfare_contract.md (2절 레코드, 3절 조회, 5절 표본·지역 키).
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ import re
 import sys
 from collections import Counter
 from collections.abc import Callable
+from datetime import date
 from pathlib import Path
 
 from agetech_data import paths
@@ -63,21 +65,29 @@ def _counts(matches) -> dict:
     return {k: c.get(k, 0) for k in ("district", "province", "national")}
 
 
-def build(central_path: Path, local_path: Path) -> dict:
+def sample_date(*payloads: dict) -> date | None:
+    """표본 기준일 = 수집 원본 목록 확인 날짜 중 늦은 것(정제 `normalize_payload`와 같은 `fetched_at[:10]`)."""
+    days = [f[:10] for p in payloads if (f := (p.get("meta") or {}).get("fetched_at"))]
+    return date.fromisoformat(max(days)) if days else None
+
+
+def build(central_path: Path, local_path: Path, as_of: date | None = None) -> dict:
     central = json.loads(central_path.read_text(encoding="utf-8"))
     local = json.loads(local_path.read_text(encoding="utf-8"))
-    records = normalize_payload(central, "central") + normalize_payload(local, "local")
+    # services_for 는 기준일을 안 주면 오늘 날짜로 종료 사업을 거른다 → 표본이 실행 날짜에 따라 바뀌지 않게 고정
+    as_of = as_of or sample_date(central, local) or date.today()
+    records = normalize_payload(central, "central", as_of) + normalize_payload(local, "local", as_of)
 
     regions = []
     for label, ctpv, sgg in REGION_CASES:
-        q, m = services_for(records, ctpv, sgg)
+        q, m = services_for(records, ctpv, sgg, as_of=as_of)
         regions.append({"cases": [label], "input": {"ctpv": ctpv, "sgg": sgg}, "resolved": _resolved(q),
                         "counts": _counts(m),
                         # 지역 사업 이름 몇 개 (대구 남구·부산 남구처럼 숫자가 같아도 다른 사업임을 보이려고)
                         "local_examples": [f"{x['record'].ctpv} {x['record'].sgg or '(시도 전체)'} · {x['record'].name}"
                                            for x in m if x["match"] != "national"][:3]})
 
-    q, matches = services_for(records, *PILOT)
+    q, matches = services_for(records, *PILOT, as_of=as_of)
     local_items = [{"match": m["match"], "reason": m["reason"], "record": m["record"].to_dict()}
                    for m in matches if m["match"] != "national"]
     national = [m for m in matches if m["match"] == "national"]
@@ -98,6 +108,7 @@ def build(central_path: Path, local_path: Path) -> dict:
         "description": "복지 API 표본 — 시범 지역(대구광역시 남구) 조회 결과와 지역 입력 해석 사례. 필드 정의는 contract 문서.",
         "contract": "docs/data/welfare_contract.md",
         "input": {"central": _input(central_path), "local": _input(local_path)},
+        "as_of": as_of.isoformat(),
         "region_key": {
             "fields": ["ctpv", "sgg"],
             "rule": "지역은 정규화한 (시도, 시군구) 이름 쌍으로 맞춘다. 원천(복지로 중앙·지자체)에는 지역 코드가 없다(정의서 5.2절).",
@@ -121,13 +132,15 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--central", type=Path, default=paths.WELFARE_CENTRAL_RAW)
     ap.add_argument("--local", type=Path, default=paths.WELFARE_LOCAL_RAW)
     ap.add_argument("--sample", type=Path, default=SAMPLE_PATH, help="표본 JSON (커밋)")
+    ap.add_argument("--as-of", type=date.fromisoformat, default=None,
+                    help="시행 기간 종료 판단 기준일 (기본: 수집 원본 목록 확인 날짜)")
     args = ap.parse_args(argv)
     for p in (args.central, args.local):
         if not p.is_file():
             print(f"원본이 없습니다: {_rel(p)} — 먼저 `python -m agetech_data.refresh --source welfare_central welfare_local`",
                   file=sys.stderr)
             return 1
-    payload = build(args.central, args.local)
+    payload = build(args.central, args.local, args.as_of)
     write_json(args.sample, payload)
     c = payload["pilot"]["counts"]
     print(f"시범 지역 {PILOT[0]} {PILOT[1]}: 시군구 {c['district']} · 시도 전체 {c['province']} · 전국 {c['national']}"

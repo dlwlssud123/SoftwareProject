@@ -105,11 +105,12 @@ query, matches = services_for(records, "광주광역시", "광산")   # 앱 프�
 
 ### 5.1 표본 — `docs/data/samples/welfare_api_sample.json`
 
-`uv run python -m agetech_data.welfare.sample`로 다시 만든다(수집 원본에서 바로, 같은 원본이면 같은 출력).
+`uv run python -m agetech_data.welfare.sample`로 다시 만든다(수집 원본에서 바로, 같은 원본이면 실행 날짜와 관계없이 같은 출력).
 
 | 키 | 내용 |
 |---|---|
 | `input` | 중앙·지자체 수집 원본 경로·sha256·목록 확인 시각(`fetched_at`)·건수 |
+| `as_of` | 시행 기간 종료 판단 기준일 — 수집 원본 목록 확인 날짜(`fetched_at` 앞 10자리, 둘 중 늦은 날). `services_for(as_of=...)`에 그대로 넘긴다. `--as-of`로 바꿀 수 있다 |
 | `region_key` | 지역을 맞추는 키 — 정규화한 (`ctpv`, `sgg`) 이름 쌍 (5.2절) |
 | `regions[]` | 지역 입력 해석 사례 9건: 앱이 보낸 `input` → `resolved`(정규화한 시도·시군구·`notes`) → `counts`(범위별 사업 수)·`local_examples`(지역 사업 이름 예) |
 | `pilot` | 대구광역시 남구 조회 결과: `counts`, `order`(정렬 규칙), `items[]`(남구 사업 4 + 대구시 전체 10건 전부, `{match, reason, record}` — `record`는 2절 레코드 그대로), `national_examples[]`(전국 130건 중 대표 3건), `national_omitted` |

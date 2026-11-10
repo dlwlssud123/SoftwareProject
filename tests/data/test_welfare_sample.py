@@ -2,12 +2,14 @@
 
 import hashlib
 import json
+from datetime import date, datetime
 
 import pytest
 
 from agetech_data import paths
+from agetech_data.welfare import query
 from agetech_data.welfare.regions import MERGED
-from agetech_data.welfare.sample import NATIONAL_CASES, PILOT, REGION_CASES, SAMPLE_PATH, build
+from agetech_data.welfare.sample import NATIONAL_CASES, PILOT, REGION_CASES, SAMPLE_PATH, build, sample_date
 
 needs_raw = pytest.mark.skipif(not (paths.WELFARE_CENTRAL_RAW.is_file() and paths.WELFARE_LOCAL_RAW.is_file()),
                                reason="복지 수집 원본 없음 (refresh 실행 필요)")
@@ -16,6 +18,34 @@ needs_raw = pytest.mark.skipif(not (paths.WELFARE_CENTRAL_RAW.is_file() and path
 def test_case_labels_unique():
     labels = [c[0] for c in REGION_CASES] + [c[0] for c in NATIONAL_CASES]
     assert len(labels) == len(set(labels))
+
+
+def test_sample_date_is_latest_fetch_day():
+    a = {"meta": {"fetched_at": "2026-11-05T15:20:06+00:00"}}
+    b = {"meta": {"fetched_at": "2026-11-06T00:19:00+00:00"}}
+    assert sample_date(a, b) == date(2026, 11, 6)
+    assert sample_date(a, {"meta": {}}, {}) == date(2026, 11, 5)
+    assert sample_date({}, {"meta": None}) is None
+
+
+@needs_raw
+def test_sample_does_not_depend_on_run_date(monkeypatch):
+    base = build(paths.WELFARE_CENTRAL_RAW, paths.WELFARE_LOCAL_RAW)
+
+    class Later(datetime):   # 조회 함수의 '오늘'을 2030년으로 옮겨도 표본은 같아야 한다
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2030, 1, 1, tzinfo=tz)
+
+    monkeypatch.setattr(query, "datetime", Later)
+    assert build(paths.WELFARE_CENTRAL_RAW, paths.WELFARE_LOCAL_RAW) == base
+    assert base["as_of"] == sample_date(json.loads(paths.WELFARE_CENTRAL_RAW.read_text(encoding="utf-8")),
+                                        json.loads(paths.WELFARE_LOCAL_RAW.read_text(encoding="utf-8"))).isoformat()
+    # 기준일을 직접 늦추면 그때까지 끝난 사업은 빠진다(남구·대구시 사업 수가 늘지 않음)
+    later = build(paths.WELFARE_CENTRAL_RAW, paths.WELFARE_LOCAL_RAW, date(2030, 1, 1))
+    assert later["as_of"] == "2030-01-01"
+    assert later["pilot"]["counts"]["district"] <= base["pilot"]["counts"]["district"]
+    assert later["pilot"]["counts"]["province"] <= base["pilot"]["counts"]["province"]
 
 
 @needs_raw
