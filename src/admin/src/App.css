@@ -1,0 +1,162 @@
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 230px;
+  flex-shrink: 0;
+  padding: 32px 20px;
+  background: #172338;
+  color: #fff;
+}
+
+.sidebar h1 {
+  margin: 0;
+  font-size: 25px;
+}
+
+.sidebar > p {
+  color: #b4c1d5;
+  margin-bottom: 36px;
+}
+
+.sidebar nav {
+  display: grid;
+  gap: 10px;
+}
+
+.sidebar nav a {
+  padding: 14px 16px;
+  border-radius: 10px;
+  text-decoration: none;
+}
+
+.sidebar nav a:hover {
+  background: #25354f;
+}
+
+.sidebar nav a[aria-current="page"] {
+  background: #315fd2;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+  padding: 40px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 1px;
+}
+
+.page-header h2 {
+  margin: 10px 0 24px;
+  font-size: 28px;
+}
+
+.badge {
+  padding: 7px 12px;
+  border-radius: 20px;
+  background: #e2e8f0;
+  white-space: nowrap;
+}
+
+.notice {
+  padding: 18px;
+  margin: 0 0 28px;
+  border: 1px solid #cbdaf5;
+  border-radius: 12px;
+  background: #edf3ff;
+  line-height: 1.7;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  padding: 26px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.card h3 {
+  margin-top: 0;
+}
+
+.card p {
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.menu-card {
+  text-decoration: none;
+}
+
+.menu-card:hover {
+  border-color: #315fd2;
+}
+
+.menu-card span {
+  color: #315fd2;
+  font-weight: 600;
+}
+
+.empty-state {
+  margin-top: 24px;
+  padding: 48px 20px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  text-align: center;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+@media (max-width: 700px) {
+  .admin-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    padding: 20px;
+  }
+
+  .sidebar > p {
+    margin-bottom: 20px;
+  }
+
+  .sidebar nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .main-content {
+    padding: 24px 16px;
+  }
+}
+.retry-button {
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: #315fd2;
+  color: #fff;
+  cursor: pointer;
+}
+
+.retry-button:hover {
+  background: #244aaa;
+}

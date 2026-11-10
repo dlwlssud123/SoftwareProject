@@ -5,7 +5,8 @@ import pytest
 
 from agetech_data import paths
 from agetech_data.welfare import build
-from agetech_data.welfare.normalize import clean_text, normalize_item, normalize_payload, parse_ymd, split_list
+from agetech_data.welfare.normalize import (clean_text, is_placeholder_form, normalize_item, normalize_payload, parse_ymd,
+                                            split_list)
 from agetech_data.welfare.query import services_for
 from agetech_data.welfare.regions import MERGED, match_sgg, normalize_ctpv, normalize_sgg
 
@@ -130,6 +131,25 @@ def test_local_detail_entries_use_common_keys_and_link_status():
     assert r.homepages[2]["value"] == "목포시청"
     assert (r.forms[0]["url"], r.forms[0]["link_status"]) == ("https://www.bokjiro.go.kr/f?id=1&sn=1", "ok")
     assert "homepage_not_url" in r.quality_flags and r.unverified_fields == []
+    assert "placeholder_form" not in r.quality_flags
+
+
+@pytest.mark.parametrize("name,placeholder", [("첨부파일없음.hwp", True), ("없음.hwp", True), ("첨부 파일 없음.pdf", True),
+                                              ("신청서.hwp", False), ("없음안내문.hwp", False)])
+def test_placeholder_forms_are_dropped(name, placeholder):
+    """'첨부파일없음.hwp'는 내려받을 서식이 아니다 — 서식 목록에서 빼고 사업에 표시한다(원문은 data/raw 그대로)."""
+    xml = ("<wantedDtl><resultCode>0</resultCode>"
+           f"<basfrmList><wlfareInfoReldNm>{name}</wlfareInfoReldNm>"
+           "<wlfareInfoReldCn>https://www.bokjiro.go.kr/f?id=9&amp;sn=1</wlfareInfoReldCn></basfrmList>"
+           "<basfrmList><wlfareInfoReldNm>신청서2.hwp</wlfareInfoReldNm>"
+           "<wlfareInfoReldCn>https://www.bokjiro.go.kr/f?id=9&amp;sn=2</wlfareInfoReldCn></basfrmList>"
+           "</wantedDtl>")
+    item = _local("WLF00000011", "경상북도", "경산시", status="fresh", detail={"servId": "WLF00000011"})
+    item["detail_xml"] = xml
+    r = normalize_item(item, "local", None, AS_OF)
+    names = [f["name"] for f in r.forms]
+    assert (name not in names) == placeholder and "신청서2.hwp" in names
+    assert ("placeholder_form" in r.quality_flags) == placeholder
 
 
 def test_period_ended_and_unknown_ctpv_flags():
@@ -178,6 +198,45 @@ def test_services_for_unknown_inputs():
     assert {x["match"] for x in m} == {"province", "national"}
 
 
+def test_services_for_rechecks_expiry_after_snapshot_collection():
+    item = _local("WLF00000091", "서울특별시", "중구", status="fresh",
+                  detail={"enfcEndYmd": "20000101"})
+    records = normalize_payload({"meta": {"fetched_at": "1999-01-01T00:00:00Z"}, "items": [item]}, "local")
+    assert "period_ended" not in records[0].quality_flags
+    assert services_for(records, "서울", "중구")[1] == []
+    assert len(services_for(records, "서울", "중구", include_ended=True)[1]) == 1
+
+
+@pytest.mark.parametrize("as_of, expected", [(date(2000, 1, 1), 1), (date(2000, 1, 2), 0)])
+def test_services_for_explicit_date_keeps_end_day_inclusive(as_of, expected):
+    item = _local("WLF00000093", "서울특별시", "중구", status="fresh",
+                  detail={"enfcEndYmd": "20000101"})
+    record = normalize_item(item, "local", None, date(2001, 1, 1))
+    assert "period_ended" in record.quality_flags
+    assert len(services_for([record], "서울", "중구", as_of=as_of)[1]) == expected
+
+
+def test_stale_detail_keeps_latest_list_region_and_period():
+    item = _local("WLF00000092", "서울특별시", "중구", "현재 사업", status="stale",
+                  detail={"ctpvNm": "경상북도", "sggNm": "경산시", "servNm": "이전 사업", "enfcEndYmd": "20251231"})
+    item["list"]["enfcEndYmd"] = "29991231"
+    record = normalize_item(item, "local", None, AS_OF)
+    assert (record.ctpv, record.sgg, record.name, record.period_end) == ("서울특별시", "중구", "현재 사업", "2999-12-31")
+    assert "detail_stale" in record.quality_flags
+    assert len(services_for([record], "서울", "중구")[1]) == 1
+    assert services_for([record], "경상북도", "경산시")[1] == []
+
+
+@pytest.mark.parametrize("latest_sgg", ["", None, "-"])
+def test_stale_detail_does_not_restore_fields_cleared_by_list(latest_sgg):
+    item = _local("WLF00000094", "서울특별시", latest_sgg, status="stale",
+                  detail={"ctpvNm": "서울특별시", "sggNm": "중구", "enfcEndYmd": "20251231"})
+    item["list"]["enfcEndYmd"] = ""
+    record = normalize_item(item, "local", None, AS_OF)
+    assert (record.scope, record.sgg, record.period_end) == ("province", None, None)
+    assert len(services_for([record], "서울")[1]) == 1
+
+
 # --- CLI ------------------------------------------------------------------
 def test_build_main_end_to_end(tmp_path):
     meta = {"fetched_at": "2026-11-01T00:00:00+00:00", "item_count": 1, "details": {"counts": {"fresh": 1}}}
@@ -209,7 +268,9 @@ def test_real_welfare_regression():
     entries = [e for r in recs for e in r.contacts + r.homepages + r.apply_guides + r.laws + r.forms]
     assert all(e["name"] or e["value"] for e in entries)
     assert {e["link_status"] for r in recs for e in r.homepages + r.forms} <= {"ok", "scheme_added", "not_url"}
-    fresh = [r for r in recs if r.detail_status == "fresh"]
+    assert not [f for r in recs for f in r.forms if is_placeholder_form(f)]   # 자리 표시 서식은 남지 않는다
+    assert sum("placeholder_form" in r.quality_flags for r in recs) >= 80     # 11/06 수집본 88개 사업
+    fresh =[r for r in recs if r.detail_status == "fresh"]
     assert sum(bool(r.target_detail) for r in fresh) >= 0.95 * len(fresh)
     q, m = services_for(recs, "광주광역시", "광산구")
     assert q.ctpv == MERGED and any(x["match"] == "district" for x in m)

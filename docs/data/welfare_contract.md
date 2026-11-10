@@ -49,7 +49,7 @@
 | `detail_fetched_at`, `source_fetched_at` | ISO 시각·null | | 상세·목록 확인 시각 (UTC) |
 | `raw_sha256` | 문자열 | | 원문 항목 해시 |
 | `unverified_fields` | 문자열 배열 | | 안내에 필요한데 아직 확인 못 한 필드 |
-| `quality_flags` | 문자열 배열 | | `detail_pending`, `detail_stale`, `period_ended`, `no_official_link`, `unknown_ctpv`, `homepage_not_url`, `invalid_date:<필드>` |
+| `quality_flags` | 문자열 배열 | | `detail_pending`, `detail_stale`, `period_ended`, `no_official_link`, `unknown_ctpv`, `homepage_not_url`, `placeholder_form`(자리 표시 서식을 뺌), `invalid_date:<필드>` |
 
 텍스트는 HTML 엔티티·`<br>`(줄바꿈)·태그만 정리하고 내용은 바꾸지 않는다. 원문은 `data/raw/welfare/`에 그대로 있다.
 
@@ -70,9 +70,10 @@
 | `raw` | 원천 하위 태그 그대로 (추적용) |
 
 - 이름·값 없이 구분 코드만 있는 항목은 뺀다.
+- `첨부파일없음.hwp`·`없음.hwp`처럼 첨부가 없다는 **자리 표시 파일은 서식(`forms`)에서 뺀다.** 사업에는 `placeholder_form`을 붙인다(원문은 `data/raw/welfare/`에 그대로).
 - 중앙은 신청 방법 설명(`apply_detail`)이 없고 `apply_guides`에 단계별 기관 안내가 있다. 지자체는 `apply_guides`가 없다.
 - 원문 오타는 고치지 않는다. 예: `https;//www.ulleung.go.kr`, `강원특별자치도청(www.provin.gangwon.kr)`은 `not_url`로 남는다.
-- 전체 1,468건 상세 확인(11/06) 기준: 서식 링크 1,644개는 모두 `ok`, 누리집은 `ok` 208 / `scheme_added` 79 / `not_url` 20. 지자체 신청 방법 설명(`apply_detail`)이 원천에 없는 사업은 1,338건 중 258건.
+- 전체 1,468건 상세 확인(11/06) 기준: 서식 링크 1,556개는 모두 `ok`(자리 표시 파일 88건은 뺌 — 88개 사업, 그중 77개는 서식이 없어짐), 누리집은 `ok` 208 / `scheme_added` 79 / `not_url` 20. 지자체 신청 방법 설명(`apply_detail`)이 원천에 없는 사업은 1,338건 중 258건.
 
 ## 3. 지역별 조회 (서버 연동용)
 
@@ -87,11 +88,13 @@ query, matches = services_for(records, "광주광역시", "광산")   # 앱 프�
 ```
 
 - 순서: 내 시군구 → 내 시도 전체 → 전국. 같은 범위 안에서는 상세가 있는 것을 먼저 둔다.
-- 기본으로 시행 기간이 끝난 사업(`period_ended`)은 뺀다(`include_ended=True`로 포함).
+- 기본으로 조회 당일 한국 날짜와 `period_end`를 비교해 시행 기간이 끝난 사업을 뺀다. 종료일 당일은 포함한다. `as_of=date(...)`로 기준일을 지정하거나 `include_ended=True`로 종료 사업을 포함할 수 있다. 수집 당시의 `period_ended` 플래그는 종료일이 없는 과거 레코드의 대체 판단에만 쓴다.
 - 시군구 입력은 공백·`시/군/구` 접미사 생략을 허용하고, 같은 시도 안에서 하나로 정해질 때만 맞춘다. 못 맞추면 `notes`에 이유를 남기고 시도 전체·전국 사업만 준다.
 - `reason`은 지역이 맞는 이유일 뿐 자격 판단이 아니다. 화면에는 "지원 대상·기준은 원문과 문의처로 확인" 안내를 함께 둔다.
 
 ## 4. 알려진 제한
+
+- `stale` 상세를 재수집하기 전에는 최신 목록 값을 공통 필드에 우선 적용한다. 지역·이름·시행 기간이 과거 상세 값으로 되돌아가지 않으며 상세에만 있는 본문은 `detail_stale` 표시와 함께 유지한다.
 
 - 상세는 첫 갱신 후 이틀 동안 일부 `pending`이다(중앙 100/일, 지자체 1,000/일, 매일 00시 KST 초기화). 이번 수집은 11/05·11/06 두 번에 나눠 전부 받았다. 한도를 늘리려면 공공데이터포털 운영계정 전환이 필요하다.
 - 중앙부처 사업은 지역 구분이 없어 모두 `national`이다.

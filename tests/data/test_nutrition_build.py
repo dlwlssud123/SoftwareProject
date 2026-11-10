@@ -66,6 +66,20 @@ def test_build_main_without_raw(tmp_path, capsys):
     assert "client" in capsys.readouterr().err
 
 
+def test_build_applies_verified_recipe_corrections(tmp_path, nutrition_sample):
+    raw = tmp_path / "nutrition.json"
+    raw.write_text(json.dumps(nutrition_sample), encoding="utf-8")
+    output = tmp_path / "recipes.json"
+    args = ["--nutrition-raw", str(raw), "--foods-out", str(tmp_path / "foods.json"),
+            "--recipes-out", str(output), "--no-report"]
+    assert build.main(args) == 0
+    result = json.loads(output.read_text(encoding="utf-8"))
+    recipes = {row["source_id"]: row for row in result["recipes"]}
+    assert recipes["33"]["quality_status"] == recipes["36"]["quality_status"] == "ok"
+    assert result["input"]["recipes"]["correction_count"] == 6
+    assert result["input"]["recipes"]["corrections_sha256"] == hashlib.sha256(paths.RECIPE_CORRECTIONS.read_bytes()).hexdigest()
+
+
 def test_ingredient_map_file_structure():
     data = json.loads(INGREDIENT_MAP_FILE.read_text(encoding="utf-8"))
     keys = set()
@@ -104,7 +118,13 @@ def test_real_recipes_regression():
     by = {(r, i["name"]): i for r, rec in recipes.items() for i in rec["ingredients"]}
     assert by[("28", "연두부")]["match"]["food_name"] == "두부, 연두부"
     assert by[("644", "검은콩")]["match"]["food_name"] == "대두, 검은색, 서리태, 말린것"  # 두유 음료 아님
-    assert by[("277", "다진 돼지고기")]["match"]["status"] == "candidate"  # 부위 미기재 (괄호 없음)
+    # 부위 미기재(괄호 없음)는 수동 매핑표의 기본 부위(앞다리)
+    assert by[("277", "다진 돼지고기")]["match"]["food_name"] == "돼지고기, 앞다리, 생것"
+    assert not [i for i in items if i["match"]["status"] == "candidate"]   # 모든 재료에 매핑 결정이 있음
+    # 먹지 않는 약재·이중 계산되는 소스는 매핑하지 않기로 한 결정(manual:no_match)
+    assert by[("89", "시금치우유 소스")]["match"]["rule"] == "manual:no_match"
+    # 성분 합이 맞지 않는 가공식품 수집 행 대신 원재료성 분석 행
+    assert by[("277", "통조림 햄")]["match"]["food_name"] == "햄, 통조림, 돼지고기와 닭고기 함유"
     assert by[("272", "다진 돼지고기")]["match"]["food_name"] == "돼지고기, 등심, 생것"  # 괄호 '등심'
     for i in items:
         if i["contribution"] is not None:
