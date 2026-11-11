@@ -95,6 +95,8 @@ DB 적재는 정제 레코드까지 판본 지문에 포함한다. 원본이 같
 
 **화면 표시 권장**: `complete=false`인 레시피의 `computed`는 "일부 재료 기준"이라고 표시한다. 레시피 원문 `INFO_*`와 섞어 쓰지 않는다.
 
+**DB 적재**: 같은 계산을 DB 활성 판본(레시피 재료 × 식품)으로 돌려 `recipe_ingredient_foods`(재료 하나)·`recipe_computed_nutrition`(레시피 판본 하나)에 넣는다 — `python -m app.jobs.map_recipe_foods`, 칸 대응·규칙은 [`recipe_food_map_db.md`](recipe_food_map_db.md).
+
 ## 4. 코드에서 쓰는 함수 (서버 연동용)
 
 ```python
@@ -132,7 +134,7 @@ match_ingredient("다진 마늘", ingredient_index)       # → MatchResult(stat
 ## 6. DB 적재
 
 - **식품 — 적재됨** (`src/backend/app/jobs/import_public_data.py`, 이진녕): 정제 식품을 `foods`(`provider`, `food_code`)와 판본 표 `food_revisions`로 넣는다. 판본은 `fingerprint`(원문 해시·정제 결과·파서 버전)로 구분하고, 기준량(`basis_*`)·성분은 2.1절 보정을 적용한 값이다. 레코드 전체는 `normalized`에 들어가서 보정의 원래 값·근거(`corrections`)도 함께 남고, 수집 원본은 `raw`·`raw_sha256`에 있다.
-- **레시피 재료 매핑 — 아직 표 없음 (제안)**: (레시피 ID, `order_no`) 단위로 `match.status`·`food_code`·`grams`·`grams.status` 저장. `curated`→`reviewed` 전환 이력(확인자·일시)을 남길 수 있게 한다. 지금 DB의 `recipe_ingredients`는 원문 재료 줄(`raw_item`·`name`·`amount_text`·`parsed`)만 가진다.
+- **레시피 재료 매핑**: `recipe_ingredients`에 원문 재료를 유지하고, 판본별 식품 매핑과 계산 영양을 별도 테이블에 저장한다. [DB 구조와 계산·적재 절차](./recipe_food_map_db.md)를 따른다.
 - 수동 매핑표 원본은 `src/data/agetech_data/resources/ingredient_food_map.json`(커밋 대상)이며, 관리자 화면에서 검수하게 되면 이 파일 형식을 기준으로 옮긴다.
 
 ## 7. 사진·영양 API — 음식명 → 후보 → 사용자 확인 → 영양값

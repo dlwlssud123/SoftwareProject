@@ -148,9 +148,15 @@ class FoodIndex:
         if key.startswith("다진") and len(key) > 2:
             key = key[2:]
         scored = []
+        ratios: dict[str, float] = {}          # 같은 첫 이름(돼지고기 …)이 많아 이름별로 한 번만 계산
+        chars = set(key)
         for r in self.refs:
             head = r.tokens[0] if r.tokens else ""
-            s = SequenceMatcher(None, key, head).ratio()
+            if head not in ratios:
+                # 겹치는 글자가 없으면 유사도는 정확히 0 (빈 문자열끼리는 1 이라 그대로 계산)
+                ratios[head] = (0.0 if key and head and chars.isdisjoint(head)
+                                else SequenceMatcher(None, key, head).ratio())
+            s = ratios[head]
             if key and (key in r.tokens or any(key in t for t in r.tokens[:2])):
                 s = max(s, 0.8)
             elif head and len(head) >= 2 and head in key:
