@@ -1,7 +1,7 @@
 # ValueFlow 공통 백엔드 API 명세서
 
 - 작성일: 2026-11-03
-- 갱신일: 2026-11-09
+- 갱신일: 2026-11-10
 - API 경로 버전: `v1` / 애플리케이션 버전: `0.1.0`
 - 구현 기준: `src/backend/app`의 실제 등록 경로·Pydantic 모델·예외 처리
 - 로컬 주소: `http://127.0.0.1:8000`
@@ -209,7 +209,7 @@ DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세는 DB
 | `GET /recipes` | `limit=20`(1~100), `offset=0`(0~10000), 선택 `q`·`category`·`cooking_method`·반복 `exclude_allergens` | `items[]`, `limit`, `offset`, `total` |
 | `GET /recipes/{recipe_id}` | COOKRCP01 원천 ID 문자열, 예 `108` | `RecipeRecord` |
 | `POST /meal/recommendations` | 필수 `meal_time`(`breakfast/lunch/dinner/snack`), 선택 `exclude_allergens=[]`·`exclude_ingredients=[]`·`limit=5`(1~20) | `items[].item`·`reasons[]`, `evaluated_at`, `rules_version`, `warnings[]` |
-| `GET /welfare` | `limit`·`offset`·선택 `q`, `scope=central_nationwide` | 같은 페이지 구조의 `WelfareRecord` |
+| `GET /welfare` | `limit`·`offset`·선택 `q`, 선택 `scope`(`central_nationwide`/`local`, 없으면 둘 다), 선택 `region`·`district`(`district`는 `region`과 함께) | 같은 페이지 구조의 `WelfareRecord` |
 | `GET /welfare/{service_id}` | 원천 ID 문자열, 예 `WLF00000060` | `WelfareRecord` |
 | `POST /welfare/recommendations` | 필수 `age`(0~120)·`region`(1~50자), 선택 `district`·`lives_alone`·`limit=5`(1~20) | 같은 추천 구조의 `WelfareRecord` |
 
@@ -217,7 +217,7 @@ DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세는 DB
 
 레시피 응답은 [데이터 담당 계약](../data/recipe_contract.md)의 재료·단계·알레르기 근거·품질 필드를 그대로 보존한다. 누락 영양값은 `null`이며 0으로 채우지 않는다. `_g`는 g, `_mg`는 mg, `_kcal`는 kcal지만 `basis=per_serving_unverified`여서 g당/1인분 확정 계산으로 쓰지 않는다. `hold`는 목록/추천에서 제외하고 알레르기의 `detected`와 `needs_check.candidates` 모두 필터 대상으로 삼는다. `complete=false`를 안전 확인 완료로 표시하지 않는다. `quality.issues[].detail`은 구조화된 JSON 객체다.
 
-복지는 지원 대상·선정 기준·지원 내용·신청 안내·문의처를 구분한다. `application[].method/description`과 `contacts[].name/contact`는 XML의 `servSeDetailNm/servSeDetailLink`를 옮긴 표시 필드이며, `description/contact`가 반드시 URL이라는 뜻은 아니다. 신청 기간이 확인되지 않은 중앙 사업은 `application_status=unknown`을 유지한다. 수집 대기·게시 보류 자료를 정상 추천으로 노출하지 않는다. 신청 가능 여부·수급 자격 확정 결과를 만들어 넣지 않는다.
+복지는 지원 대상·선정 기준·지원 내용·신청 안내·문의처를 구분한다. `application[].method/description`과 `contacts[].name/contact`는 XML의 `servSeDetailNm/servSeDetailLink`를 옮긴 표시 필드이며, `description/contact`가 반드시 URL이라는 뜻은 아니다. 사업은 중앙(`scope=central_nationwide`, `region_scope=national`)과 지자체(`scope=local`)로 나뉘고, 지자체는 `region_scope`가 `province`(시도 전체, `sgg=null`) 또는 `district`이며 `ctpv`·`sgg`는 정규화한 시도·시군구 이름이다([복지 데이터 계약](../data/welfare_contract.md) 2·3절, DB는 `welfare_revisions.normalized`). `region`·`district`를 주면 내 시군구 사업 → 내 시도 전체 사업 → 전국 사업 순이며, 지역 입력은 줄임말·옛 이름을 데이터 계약의 `services_for`와 같은 규칙으로 해석한다. 신청 기간이 확인되지 않은 중앙 사업은 `application_status=unknown`을 유지한다. 수집 대기·게시 보류 자료를 정상 추천으로 노출하지 않는다. 신청 가능 여부·수급 자격 확정 결과를 만들어 넣지 않는다.
 
 레시피 출처는 `provider/service/source_id/fetched_at/raw_sha256`, 복지는 `provider/source_id/source_url/checked_at/detail_checked_at/raw_sha256`를 제공한다. 두 출처의 `revision_id`는 DB 판본 UUID이며 수집 원문 표본에서는 `null`이다. DB 조회 구현에서는 활성 판본을 채운다. 기존 공통 `meta.revision`은 정수 계약을 유지하며 원천 ID나 DB UUID를 대신 넣지 않는다. 시간은 시간대 포함 ISO 8601이며 미수집 시각은 추정하지 않는다.
 
@@ -254,3 +254,18 @@ DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세는 DB
 `age`는 0~120 정수, 지역·재료명은 공백 제거 후 1~100자다. 재료 목록은 30개, 알레르기는 계약상 19종으로 제한한다. 스칼라의 `null`과 배열의 `[]`로 해당 값을 지운다. 미전달 항목과 최초 동의 시각은 유지한다. 최초 동의 없이 저장하면 409, 빈 변경·알 수 없는 필드·잘못된 값은 422, DB 장애는 503이다. `{"consent":false}`는 동의를 철회하며 프로필을 삭제한다. 철회 요청에 `preferences` 객체를 함께 보내면 422다. 프로필 삭제 후 새 저장에는 다시 동의해야 한다. 게스트 세션은 별도 수명주기를 따른다.
 
 저장은 `profiles.user_id`로 사용자를 고유하게 연결한다. 같은 사용자의 변경·철회는 사용자 행 잠금으로 직렬화한다. 배포 시 `20261109_01` 마이그레이션을 적용한다. 동의 화면의 안내 문구와 앱 입력·보안 저장소 연결은 프런트 연동 작업에서 제공한다.
+
+## 11. Flutter·React 연동 기준
+
+| 설정 | 로컬 개발 값 | 요청 예 |
+| --- | --- | --- |
+| Flutter Android 에뮬레이터 `API_BASE_URL` | `http://10.0.2.2:8000` | `GET /api/v1/recipes?limit=1` |
+| React 관리자 `VITE_API_BASE_URL` | `http://127.0.0.1:8000` | `GET /api/v1/admin/me` |
+
+기본 주소에는 스킴·호스트·포트만 넣고, 요청 경로에 `/api/v1`을 붙인다. React 개발 서버가 `http://localhost:5173`에서 실행되면 백엔드 `CORS_ORIGINS`에 그 주소를 등록한다. Swagger 문서는 PC에서 `http://127.0.0.1:8000/docs`로 접속한다. 기업 서버용 HTTPS 주소는 배포 작업에서 확정한다.
+
+- 성공 시 최상위 `data`를 DTO로 읽는다. 목록은 `data.items`, 추천은 `data.items[].item`과 `reasons`를 읽는다. JSON 키는 `snake_case`이며, 원천 ID는 숫자처럼 보여도 문자열로 유지한다.
+- HTTP 오류는 `error.code`로 분기하고 `error.message`를 표시한다. 입력 오류는 `error.fields`, 서버가 재시도 가능하다고 표시한 오류는 `error.retryable`을 읽는다. JSON 본문이 없는 네트워크·프록시 오류는 앱의 기본 안내로 처리한다.
+- React는 관리자 요청에 `Authorization: Bearer <access_token>`을 보내고 `data.role`을 확인한다. 401은 세션 재확인, 403은 권한 부족 상태로 표시한다. Flutter와 React 모두 토큰·프로필을 요청 및 응답 로그에서 제외한다.
+
+현재 Flutter 화면은 `DemoRepository`의 번들 JSON과 기기 내 규칙으로 식단·복지를 추천한다. 서버 전환은 연결된 레시피 목록·상세와 세션·프로필부터 진행한다. 식단 추천과 복지 목록·상세·추천은 [예정 OpenAPI](./catalog.openapi.json)와 [JSON 표본](./api_examples.json)으로 화면을 먼저 맞추고, 실제 서버 연결은 해당 기능이 구현된 뒤 검증한다. [Flutter 통신 PR #6](https://github.com/dlwlssud123/SoftwareProject/pull/6)의 오류 파서는 화면 연동 시 `error.message`를 읽도록 맞춘다.

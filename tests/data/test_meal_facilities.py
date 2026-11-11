@@ -50,7 +50,12 @@ def test_parse_page_json_nodata_and_gateway_errors():
 
 def test_collect_pages_row_ids_and_count_check(rows):
     pages = {1: _page(rows[:10], 16), 2: _page(rows[10:], 16)}
-    got = collect_free_meal("KEY", fetch=lambda url: (200, pages[int(url.split("pageNo=")[1].split("&")[0])]),
+
+    def fetch(url):
+        assert url.startswith("https://api.data.go.kr/")
+        return 200, pages[int(url.split("pageNo=")[1].split("&")[0])]
+
+    got = collect_free_meal("KEY", fetch=fetch,
                             sleep=lambda s: None, log=lambda m: None, page_size=10)
     assert got["meta"]["item_count"] == got["meta"]["total_count"] == 16
     assert got["meta"]["complete"] is True                # DB 적재(import_meal_facilities)가 확인
@@ -105,6 +110,14 @@ def test_parse_meals():
     assert parse_meals("11:20 ~ 12:20") == [{"meal": None, "start": "11:20", "end": "12:20"}]
     assert parse_meals("중식(12:00)") == [{"meal": "중식", "start": "12:00", "end": None}]
     assert parse_meals("00:00~00:00") == [] and parse_meals("미정 (배달)") == []
+
+
+def test_invalid_calendar_dates_are_flagged(rows):
+    fields = ("referenceDate", "operOpenDate", "operCloseDate")
+    invalid = {**rows[0], **dict.fromkeys(fields, "2026-02-30")}
+    [record] = normalize_payload({"meta": {}, "items": [invalid]}, AS_OF)
+    assert all(f"invalid_date:{field}" in record.quality_flags for field in fields)
+    assert (record.reference_date, record.open_date, record.close_date) == (None, None, None)
 
 
 def test_normalize_real_rows(records):

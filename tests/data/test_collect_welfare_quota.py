@@ -49,6 +49,7 @@ def test_quota_stops_details_and_marks_pending(tmp_path):
     out = collect_welfare("central", KEY, fetch=api, cache_path=tmp_path / "c.json", **QUIET)
     st = out["meta"]["details"]
     assert out["meta"]["item_count"] == 5  # 목록은 완전
+    assert out["meta"]["complete"] is False   # 상세 대기가 있으면 DB 적재는 명시적으로 허용할 때만
     assert st["counts"] == {"fresh": 3, "pending": 2} and st["remaining"] == 2 and st["stopped_by_quota"]
     assert api.detail_calls == 4  # 한도 초과 응답에서 재시도하지 않음
     assert "pending" in _status(out).values() and "detail" not in out["items"][4]
