@@ -1,20 +1,26 @@
 import json
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 from pydantic import ValidationError
+from sqlalchemy.exc import OperationalError
 
 from app.jobs.export_api_contract import PLANNED, handoff_schema
+from app.schemas.auth import IdentityData
 from app.schemas.catalog import (
     RecipeDetailResponse,
     RecipeListQuery,
     RecipeListResponse,
     RecipeRecommendationRequest,
+    RecipeRecommendationResponse,
     RecipeRecord,
     WelfareDetailResponse,
     WelfareListResponse,
     WelfareRecommendationRequest,
+    WelfareRecommendationResponse,
 )
+from app.schemas.common import ErrorResponse, SuccessResponse
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -111,6 +117,58 @@ def test_committed_response_examples_validate_and_preserve_unknown_application_s
     assert welfare.data.application_status == "unknown"
     assert welfare.data.source.detail_checked_at is not None
     assert welfare.data.source.revision_id is None
+
+
+def test_recommendation_and_admin_handoff_examples():
+    examples = json.loads(
+        (ROOT / "docs/설계/api_examples.json").read_text(encoding="utf-8")
+    )
+    requests, responses = examples["requests"], examples["responses"]
+    RecipeRecommendationRequest.model_validate(
+        requests["recipe_recommendation"]["body"]
+    )
+    WelfareRecommendationRequest.model_validate(
+        requests["welfare_recommendation"]["body"]
+    )
+    recipe = RecipeRecommendationResponse.model_validate(
+        responses["recipe_recommendation"]
+    )
+    assert recipe.data.items == []
+    welfare = WelfareRecommendationResponse.model_validate(
+        responses["welfare_recommendation"]
+    )
+    assert welfare.data.items[0].item.application_status == "unknown"
+    assert welfare.data.items[0].reasons
+    admin = SuccessResponse[IdentityData].model_validate(responses["admin_identity"])
+    assert admin.data.role == "admin"
+    assert "access_token" not in responses["admin_identity"]["data"]
+    assert ErrorResponse.model_validate(responses["admin_required"]).error.code == (
+        "ADMIN_REQUIRED"
+    )
+
+
+@pytest.mark.parametrize(
+    ("path", "status", "key"),
+    [
+        ("/api/v1/admin/me", 401, "auth_required"),
+        ("/api/v1/health/ready", 503, "database_unavailable"),
+    ],
+)
+def test_runtime_error_matches_handoff_example(client, path, status, key):
+    examples = json.loads(
+        (ROOT / "docs/설계/api_examples.json").read_text(encoding="utf-8")
+    )
+    if key == "database_unavailable":
+        from app.core.database import get_db
+
+        session = Mock()
+        session.execute.side_effect = OperationalError(None, None, RuntimeError())
+        client.app.dependency_overrides[get_db] = lambda: session
+    response = client.get(path)
+    assert response.status_code == status
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error == ErrorResponse.model_validate(examples["responses"][key]).error
+    assert error.meta.request_id == response.headers["X-Request-ID"]
 
 
 @pytest.mark.parametrize("ingredient", ["", "   ", "x" * 101])

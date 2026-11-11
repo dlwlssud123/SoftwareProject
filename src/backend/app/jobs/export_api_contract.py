@@ -6,6 +6,7 @@ from pathlib import Path
 
 from pydantic.json_schema import models_json_schema
 
+from app.schemas.auth import GuestRequest, IdentityData
 from app.schemas.catalog import (
     Page,
     RecipeRecommendationRequest,
@@ -18,7 +19,7 @@ from app.schemas.catalog import (
     WelfareRecommendationResponse,
     WelfareRecord,
 )
-from app.schemas.common import ErrorResponse, ResponseMeta, SuccessResponse
+from app.schemas.common import ErrorDetail, ErrorResponse, ResponseMeta, SuccessResponse
 
 ROOT = Path(__file__).resolve().parents[4]
 PLANNED = (
@@ -162,10 +163,14 @@ def build_examples(welfare_snapshot: Path) -> dict:
     recipe = RecipeRecord.model_validate(recipe_samples["samples"][0]["recipe"])
     snapshot = json.loads(welfare_snapshot.read_text(encoding="utf-8"))
     meta = snapshot["meta"]
-    row = normalize_item(
-        next(i for i in snapshot["items"] if i.get("detail_xml")),
-        aware_time(meta["fetched_at"]),
+    detailed = [item for item in snapshot["items"] if item.get("detail_xml")]
+    if not detailed:
+        raise ValueError("복지 API 표본을 생성하려면 상세 XML이 한 건 이상 필요합니다.")
+    # 독거노인·장애인 응급안전안심서비스의 공개 원천 표본을 우선 사용한다.
+    senior_example = next(
+        (item for item in detailed if item["service_id"] == "WLF00001093"), None
     )
+    row = normalize_item(senior_example or detailed[0], aware_time(meta["fetched_at"]))
     welfare = WelfareRecord(
         service_id=row["source_id"],
         scope=row["normalized"]["scope"],
@@ -208,15 +213,62 @@ def build_examples(welfare_snapshot: Path) -> dict:
         },
     )
     example_meta = ResponseMeta(request_id="00000000-0000-4000-8000-000000000001")
+    evaluated_at = "2026-11-10T00:00:00Z"
 
     def envelope(data):
         return SuccessResponse(data=data, meta=example_meta).model_dump(
             mode="json", by_alias=True
         )
 
+    def error_example(code: str, message: str, *, retryable: bool = False):
+        return ErrorResponse(
+            error=ErrorDetail(code=code, message=message, retryable=retryable),
+            meta=example_meta,
+        ).model_dump(mode="json")
+
+    recipe_recommendation = RecipeRecommendationResponse.model_validate(
+        {
+            "data": {
+                "items": [],
+                "evaluated_at": evaluated_at,
+                "rules_version": "example",
+                "warnings": [],
+            },
+            "meta": example_meta,
+        }
+    )
+    welfare_recommendation = WelfareRecommendationResponse.model_validate(
+        {
+            "data": {
+                "items": [
+                    {
+                        "item": welfare,
+                        "reasons": ["표본: 독거 어르신의 안전을 지원하는 서비스예요."],
+                    }
+                ]
+                if senior_example is not None
+                else [],
+                "evaluated_at": evaluated_at,
+                "rules_version": "example",
+                "warnings": ["신청 전 공식 안내에서 지원 조건을 확인해 주세요."],
+            },
+            "meta": example_meta,
+        }
+    )
     return {
-        "description": "실제 공개 원천의 DTO 표본. 서버 조회/추천 결과가 아니며 DB 판본은 미연결(null). request_id는 예시 값.",
+        "description": "연동용 JSON 표본. 공개 카탈로그 값은 원천 자료이며 판본은 미연결(null). 추천 문구, 사용자 ID, 시각, request_id는 예시 값.",
         "requests": {
+            "health_live": {"method": "GET", "path": "/api/v1/health/live"},
+            "guest_session": {
+                "method": "POST",
+                "path": "/api/v1/auth/guest",
+                "body": GuestRequest().model_dump(),
+            },
+            "admin_identity": {
+                "method": "GET",
+                "path": "/api/v1/admin/me",
+                "headers": {"Authorization": "Bearer <access_token>"},
+            },
             "recipe_list": {
                 "method": "GET",
                 "path": "/api/v1/recipes?limit=20&offset=0&exclude_allergens=알류&exclude_allergens=우유",
@@ -254,6 +306,26 @@ def build_examples(welfare_snapshot: Path) -> dict:
             "recipe_list": envelope(Page(items=[recipe], limit=20, offset=0, total=1)),
             "welfare_list": envelope(
                 Page(items=[welfare], limit=20, offset=0, total=1)
+            ),
+            "recipe_recommendation": recipe_recommendation.model_dump(mode="json"),
+            "welfare_recommendation": welfare_recommendation.model_dump(mode="json"),
+            "admin_identity": envelope(
+                IdentityData(
+                    user_id="00000000-0000-4000-8000-000000000002",
+                    role="admin",
+                    expires_at="2026-11-17T00:00:00Z",
+                )
+            ),
+            "auth_required": error_example(
+                "AUTH_REQUIRED", "유효한 인증 정보가 필요합니다."
+            ),
+            "admin_required": error_example(
+                "ADMIN_REQUIRED", "관리자 권한이 필요합니다."
+            ),
+            "database_unavailable": error_example(
+                "DATABASE_UNAVAILABLE",
+                "데이터베이스 연결을 확인해 주세요.",
+                retryable=True,
             ),
             "empty_list": envelope(Page(items=[], limit=20, offset=0, total=0)),
             "validation_error": ErrorResponse.model_validate(

@@ -49,7 +49,7 @@ API 연동 시 `.env.example`을 복사합니다.
 Copy-Item .env.example .env.local
 ```
 
-- `VITE_API_BASE_URL`: 서버 담당자와 확인한 API 기본 주소
+- `VITE_API_BASE_URL`: 로컬 예시는 `http://127.0.0.1:8000`입니다. 요청 경로에 `/api/v1`을 붙입니다. [공통 API 연동 기준](../../docs/설계/API_명세서.md#11-flutterreact-연동-기준)을 참고하세요.
 - 현재 기본값은 빈칸이며 실제 요청은 수행하지 않습니다.
 - 환경변수 변경 후 개발 서버를 다시 실행합니다.
 - `VITE_` 변수는 브라우저에 노출되므로 비밀번호·인증키를 넣지 않습니다.
