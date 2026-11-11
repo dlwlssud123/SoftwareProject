@@ -66,8 +66,9 @@ def upgrade() -> None:
             _in("gram_status", GRAM_STATUSES), name="ck_recipe_ingredient_grams"
         ),
         sa.CheckConstraint(
+            "(food_id IS NULL) = (food_revision_id IS NULL) AND "
             f"({_in('match_status', USABLE_STATUSES)}) = "
-            "(food_id IS NOT NULL AND food_revision_id IS NOT NULL)",
+            "(food_id IS NOT NULL)",
             name="ck_recipe_ingredient_food_present",
         ),
         sa.CheckConstraint(

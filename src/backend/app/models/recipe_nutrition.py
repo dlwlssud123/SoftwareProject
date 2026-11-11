@@ -65,8 +65,9 @@ class RecipeIngredientFood(Base):
         ),
         # A usable match always names the exact food revision used; other statuses name none.
         CheckConstraint(
+            "(food_id IS NULL) = (food_revision_id IS NULL) AND "
             f"({_in('match_status', USABLE_STATUSES)}) = "
-            "(food_id IS NOT NULL AND food_revision_id IS NOT NULL)",
+            "(food_id IS NOT NULL)",
             name="ck_recipe_ingredient_food_present",
         ),
         CheckConstraint(

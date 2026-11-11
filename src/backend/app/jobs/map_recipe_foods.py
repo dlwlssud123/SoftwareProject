@@ -32,7 +32,7 @@ from sqlalchemy import delete, insert, select, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.jobs.import_public_data import FOOD_PROVIDER
+from app.jobs.import_public_data import FOOD_PROVIDER, RECIPE_PROVIDER
 from app.models import (
     DataImportRun,
     Food,
@@ -81,6 +81,7 @@ def load_active(session: Session) -> ActiveData:
             Recipe.source_id, Recipe.id, RecipeRevision.id, RecipeRevision.fingerprint
         )
         .join(RecipeRevision, RecipeRevision.id == Recipe.active_revision_id)
+        .where(Recipe.provider == RECIPE_PROVIDER)
         .order_by(Recipe.source_id)
     ).all()
     parsed: dict[uuid.UUID, list[dict]] = {}

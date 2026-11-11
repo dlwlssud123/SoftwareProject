@@ -229,6 +229,18 @@ def test_postgres_mapping_constraints(tmp_path, pg_connection):
                 )
             )
             db.flush()
+        # 식품 판본 없이 식품 ID만 남길 수 없음
+        with pytest.raises(IntegrityError), db.begin_nested():
+            db.add(
+                RecipeIngredientFood(
+                    recipe_revision_id=other.recipe_revision_id,
+                    recipe_ingredient_id=other.id,
+                    match_status="unmapped",
+                    food_id=db.scalar(select(Food.id).limit(1)),
+                    **base,
+                )
+            )
+            db.flush()
         # 다른 판본의 재료 행을 가리킴
         with pytest.raises(IntegrityError), db.begin_nested():
             db.add(
@@ -244,3 +256,18 @@ def test_postgres_mapping_constraints(tmp_path, pg_connection):
         with pytest.raises(IntegrityError), db.begin_nested():
             items[0].reviewed_by = "누군가"
             db.flush()
+
+
+def test_postgres_mapping_only_uses_cookrcp01_recipes(tmp_path, pg_connection):
+    with Session(pg_connection) as db, db.begin():
+        load(db, tmp_path)
+        recipe = db.scalar(select(Recipe).where(Recipe.source_id == "2"))
+        recipe.provider = "another-provider"
+        db.flush()
+
+        result = map_recipe_foods.apply_mapping(db, MAP)
+
+        assert result["recipes"] == 1
+        assert db.scalar(select(RecipeComputedNutrition.recipe_revision_id)) != (
+            recipe.active_revision_id
+        )
