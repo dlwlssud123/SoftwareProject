@@ -112,6 +112,10 @@ def prepare_import(path: Path = paths.FREE_MEAL_RAW) -> FacilityPlan:
     if collected_at > datetime.now(UTC):
         raise ValueError("Meal facility collection time cannot be in the future")
     rows, skipped = facility_rows(snapshot)
+    if not rows:
+        raise ValueError(
+            "Meal facility snapshot has no usable rows after normalization"
+        )
     inputs = {
         "dataset": "meal_facilities",
         "file_sha256": hashlib.sha256(raw).hexdigest(),

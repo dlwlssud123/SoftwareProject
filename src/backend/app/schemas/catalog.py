@@ -10,6 +10,7 @@ from pydantic import (
     Field,
     JsonValue,
     StringConstraints,
+    model_validator,
 )
 
 from app.schemas.common import SuccessResponse
@@ -171,8 +172,21 @@ class RecipeRecord(ContractModel):
     source: RecipeSource
 
 
+WelfareScope = Literal["central_nationwide", "local"]
+
+
 class WelfareListQuery(PageQuery):
-    scope: Literal["central_nationwide"] = "central_nationwide"
+    # None lists central and local services. With region (and district), order is
+    # the district's services, then province-wide, then nationwide (data services_for).
+    scope: WelfareScope | None = None
+    region: str | None = Field(default=None, min_length=1, max_length=50)
+    district: str | None = Field(default=None, min_length=1, max_length=50)
+
+    @model_validator(mode="after")
+    def district_requires_region(self):
+        if self.district is not None and self.region is None:
+            raise ValueError("district requires region")
+        return self
 
 
 class WelfareRecommendationRequest(ContractModel):
@@ -205,7 +219,12 @@ class WelfareSource(ContractModel):
 
 class WelfareRecord(ContractModel):
     service_id: str = Field(pattern=r"^WLF[0-9]+$")
-    scope: Literal["central_nationwide"]
+    scope: WelfareScope
+    # Region from the normalized record: central services are national, local ones
+    # are province-wide (sgg null) or district services.
+    region_scope: Literal["national", "province", "district"] = "national"
+    ctpv: str | None = None
+    sgg: str | None = None
     title: str
     summary: str
     target_text: str

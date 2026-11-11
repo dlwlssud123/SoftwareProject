@@ -7,6 +7,7 @@ from agetech_data.collect.recipes import collect_recipes
 from agetech_data.collect.welfare import collect_welfare
 from agetech_data.net import CollectError, Fatal, Retry, fetch_with_retry
 from agetech_data.settings import load_secret_any
+from agetech_data.textutil import sha256_json
 
 KEY = "abc+/=SECRET키"
 NOSLEEP = {"sleep": lambda s: None, "log": lambda m: None}
@@ -63,6 +64,8 @@ def test_collect_recipes_pages_and_meta():
     out = collect_recipes(KEY, fetch=_recipe_api(1156), **NOSLEEP)
     assert out["meta"]["item_count"] == 1156 and len({r["RCP_SEQ"] for r in out["items"]}) == 1156
     assert KEY not in json.dumps(out, ensure_ascii=False)
+    # 백엔드 적재(import_public_data.read_snapshot)가 확인하는 칸
+    assert out["meta"]["complete"] is True and out["meta"]["items_sha256"] == sha256_json(out["items"])
 
 
 def test_collect_recipes_rejects_duplicates_and_fatal_codes():
@@ -101,6 +104,7 @@ def _welfare_api(total, *, gateway=None, mismatch=False, ids=None):
 def test_collect_welfare_list_and_detail(kind):
     out = collect_welfare(kind, KEY, fetch=_welfare_api(7), page_size=3, **NOSLEEP)
     assert out["meta"]["item_count"] == 7 and out["meta"]["params"]["lifeArray"] == "006"
+    assert out["meta"]["complete"] is True and out["meta"]["items_sha256"] == sha256_json(out["items"])
     item = out["items"][0]
     assert item["list"]["ctpvNm"] == "경상북도"
     assert item["detail"]["sprtTrgtCn"] == "65세 이상" and "<inqplCtadrList>" in item["detail_xml"]  # 원문 XML 보존

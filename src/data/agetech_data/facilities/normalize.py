@@ -137,8 +137,11 @@ def _date(v: str | None, flags: list[str], name: str) -> str | None:
     v = _s(v)
     if not v:
         return None
-    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", v):
-        return v
+    if isinstance(v, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", v):
+        try:
+            return date.fromisoformat(v).isoformat()
+        except ValueError:
+            pass
     flags.append(f"invalid_date:{name}")
     return None
 

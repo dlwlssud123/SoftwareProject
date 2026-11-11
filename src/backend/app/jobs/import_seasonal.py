@@ -59,7 +59,13 @@ FOOD_COLUMNS = (
     "normalized",
     "content_sha256",
 )
-CONTENT_COLUMNS = ("detail", "detail_status", "normalized", "content_sha256")
+CONTENT_COLUMNS = (
+    "detail",
+    "detail_status",
+    "official_related_recipes",
+    "normalized",
+    "content_sha256",
+)
 
 
 def number(value: float | None) -> Decimal | None:

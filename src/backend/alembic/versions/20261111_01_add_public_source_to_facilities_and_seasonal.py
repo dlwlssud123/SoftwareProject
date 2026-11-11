@@ -147,7 +147,7 @@ def upgrade() -> None:
         "seasonal_ingredients",
         "(seasonal_food_id IS NULL AND match_term IS NULL AND match_kind IS NULL) OR "
         "(seasonal_food_id IS NOT NULL AND match_term IS NOT NULL "
-        "AND match_kind IN ('official', 'alias'))",
+        "AND match_kind IS NOT NULL AND match_kind IN ('official', 'alias'))",
     )
     op.create_index(
         op.f("ix_seasonal_ingredients_seasonal_food_id"),
