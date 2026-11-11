@@ -10,6 +10,7 @@ from agetech_data.collect.meal_facilities import add_row_ids, collect_free_meal,
 from agetech_data.facilities.normalize import normalize_payload, parse_days, parse_meals, split_region
 from agetech_data.facilities.query import ALWAYS, facilities_for
 from agetech_data.net import CollectError, Fatal, Quota, QuotaExceededError
+from agetech_data.textutil import sha256_json
 from agetech_data.welfare.regions import MERGED, normalize_ctpv
 
 FIXTURE = Path(__file__).parent / "fixtures" / "free_meal_sample.json"
@@ -57,6 +58,8 @@ def test_collect_pages_row_ids_and_count_check(rows):
     got = collect_free_meal("KEY", fetch=fetch,
                             sleep=lambda s: None, log=lambda m: None, page_size=10)
     assert got["meta"]["item_count"] == got["meta"]["total_count"] == 16
+    assert got["meta"]["complete"] is True                # DB 적재(import_meal_facilities)가 확인
+    assert got["meta"]["items_sha256"] == sha256_json(got["items"])
     ids = [r["row_id"] for r in got["items"]]
     assert len(ids) == len(set(ids)) == 16
     twin = add_row_ids([{"a": 1}, {"a": 1}])
@@ -139,6 +142,16 @@ def test_normalize_real_rows(records):
     stale = by["대한노인회 완도군지회(완도읍분회)"][0]
     assert {"reference_stale", "days_unparsed", "time_unparsed", "includes_delivery"} <= set(stale.quality_flags)
     assert stale.days_raw == "주1회(6일분) 반찬배달"                # 못 읽어도 원문은 그대로
+
+
+def test_sigungu_from_same_province_provider_when_address_is_glued(rows):
+    base = next(r for r in rows if r["fcltyNm"] == "남구종합사회복지관")
+    glued = {**base, "rdnmadr": "전라남도 완도군신지면 신지로 516", "lnmadr": "", "insttNm": "전남광주통합특별시 완도군"}
+    [rec] = normalize_payload({"items": add_row_ids([glued])}, AS_OF)
+    assert (rec.ctpv, rec.sgg) == (MERGED, "완도군") and "sgg_from_provider" in rec.quality_flags
+    other = {**glued, "insttNm": "대구광역시 남구"}            # 다른 시도 지자체의 시군구는 쓰지 않음
+    [rec] = normalize_payload({"items": add_row_ids([other])}, AS_OF)
+    assert (rec.ctpv, rec.sgg) == (MERGED, None) and "sgg_from_provider" not in rec.quality_flags
 
 
 def test_operation_ended_flag_relative_to_as_of(rows):

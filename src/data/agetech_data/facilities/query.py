@@ -25,6 +25,7 @@ CAUTIONS = {
     "operation_ended": "운영 종료일이 지남",
     "not_operating": "원천에 '미운영'으로 표시",
     "region_from_provider": "주소가 없어 제공 지자체로 지역을 정함",
+    "sgg_from_provider": "주소에서 시군구를 읽지 못해 제공 지자체로 지역을 정함",
 }
 ALWAYS = "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
 

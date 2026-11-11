@@ -7,6 +7,7 @@ import pytest
 
 from agetech_data.collect.seasonal import collect_seasonal, parse
 from agetech_data.net import CollectError, Fatal, QuotaExceededError, Retry
+from agetech_data.textutil import sha256_json
 from agetech_data.seasonal.normalize import (
     Matcher,
     build_records,
@@ -64,8 +65,23 @@ def test_collect_months_details_pacing_and_throttle_retry():
     got = collect_seasonal("KEY", fetch=fetch, sleep=sleeps.append, log=lambda m: None)
     assert got["meta"]["item_count"] == 12 and [i["row_id"] for i in got["items"]][:2] == ["m1-101", "m2-102"]
     assert all(i["detail_status"] == "ok" for i in got["items"])
+    assert got["meta"]["complete"] is True and got["meta"]["items_sha256"] == sha256_json(got["items"])
     assert len(calls) == 12 + 12 + 1                       # 목록 12 + 상세 12 + 한도 재시도 1
     assert 0.5 in sleeps and 15.0 in sleeps                # 호출 간격, 23 뒤 오래 쉼
+
+
+def test_failed_detail_marks_snapshot_incomplete_for_db_import():
+    def fetch(url):
+        if "/foodList" in url:
+            m = int(url.split("srchMonth=")[1].split("&")[0])
+            return 200, _ok({"totalCount": 1, "items": {"item": {"fdmtSn": str(100 + m), "fdmtNm": f"재료{m}"}}})
+        if "srchFdmtSn=101" in url:                       # 1월 식재료 상세만 실패(키·경로 문제처럼)
+            return 200, json.dumps({"response": {"header": {"resultCode": "99", "resultMsg": "오류"}, "body": {}}})
+        return 200, _ok({"stdInfo": {}, "ntkInfo": {}, "connRecipeList": {}})
+
+    got = collect_seasonal("KEY", fetch=fetch, sleep=lambda s: None, log=lambda m: None)
+    assert got["meta"]["details"]["failed"] == 1 and got["meta"]["complete"] is False
+    assert [i["detail_status"] for i in got["items"]].count("failed") == 1
 
 
 def test_collect_fails_on_empty_month_and_daily_quota():

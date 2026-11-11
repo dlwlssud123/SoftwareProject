@@ -173,6 +173,11 @@ def normalize_row(row: dict, fetched_at: str | None, as_of: date) -> MealFacilit
             flags.append("region_from_provider")
     if ctpv is None:
         flags.append("region_unknown")
+    elif sgg is None and provider:                    # '완도군신지면'처럼 시군구가 뒤 글자와 붙어 못 읽음
+        p_ctpv, p_sgg = split_region(provider)       # → 같은 시도의 제공 지자체(시군구 단위)로
+        if p_ctpv == ctpv and p_sgg:
+            sgg = p_sgg
+            flags.append("sgg_from_provider")
     lat, lon, ok = _coord(row.get("latitude"), row.get("longitude"))
     if not ok:
         flags.append("coords_missing" if not (_s(row.get("latitude")) and _s(row.get("longitude"))) else "coords_invalid")

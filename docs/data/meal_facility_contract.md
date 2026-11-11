@@ -25,7 +25,7 @@
 |---|---|---|---|
 | `facility_id` | 문자열 | — | 시설 ID. 같은 장소의 다른 급식 일정은 끝에 `-2`, `-3` |
 | `name`, `operator` | 문자열 | `fcltyNm`, `operInstitutionNm` | 시설명, 운영 기관 |
-| `ctpv`, `sgg` | 문자열·null | 주소에서 | 정규화 시도·시군구. 주소가 없으면 제공 지자체로(`region_from_provider`) |
+| `ctpv`, `sgg` | 문자열·null | 주소에서 | 정규화 시도·시군구. 주소가 없으면 제공 지자체로(`region_from_provider`), 주소에서 시군구만 못 읽으면 같은 시도의 제공 지자체 시군구로(`sgg_from_provider`) |
 | `address_road`, `address_lot` | 문자열·null | `rdnmadr`, `lnmadr` | 도로명·지번 주소 원문 |
 | `phone` | 문자열·null | `phoneNumber` | 전화번호 |
 | `place` | 문자열·null | `mlsvPlace` | 급식 장소 |
@@ -52,7 +52,7 @@
 | `days_unparsed`, `time_unparsed` | 요일·시간을 읽지 못함 | 원문 확인 |
 | `includes_delivery` | 반찬·도시락 배달 포함 | 찾아가는 식당이 아닐 수 있음 |
 | `duplicate_merged` | 다른 지자체·기준일 중복 등록을 합침 | — |
-| `address_missing`, `region_from_provider`, `region_unknown`, `invalid_date:<필드>` | 주소·지역·날짜 문제 | — |
+| `address_missing`, `region_from_provider`, `sgg_from_provider`, `region_unknown`, `invalid_date:<필드>` | 주소·지역·날짜 문제 | — |
 
 ### 2.1 중복 등록 합치기
 
@@ -87,3 +87,8 @@ region, out = facilities_for(records, "대구", "남구", lat=35.849, lon=128.59
 - 원천이 지자체별로 연 1회 안팎 갱신된다(기준일 2022~2026 섞임). 갱신은 다른 공공데이터와 같은 `refresh`로 돌고, 실패하면 이전 판본을 유지한다.
 - 요일·시간 원문 표기가 제각각이라 약 6%·3%는 읽지 못한다(보고서 5절). 원문을 그대로 보여 준다.
 - 표준데이터에 시설 ID가 없어 시설명·주소가 바뀌면 `facility_id`도 바뀐다.
+
+## 6. DB 적재
+
+- 표는 #18 `meal_facilities`에 원천 칸(Alembic `20261111_01`)을 더해 쓴다. 칸 대응·게시 규칙·명령은 [`facility_seasonal_db_import.md`](facility_seasonal_db_import.md).
+- 요약: `source_id` = `facility_id`, `checked_on` = 수집 날짜(KST), `reference_date` = 원천 기준일, `hours_text` = 요일 원문 + 시간 원문, `quality_flags` 그대로, 정제 레코드 전체는 `normalized`. 운영 종료·미운영은 비게시.

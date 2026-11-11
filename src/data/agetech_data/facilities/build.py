@@ -39,6 +39,7 @@ FLAG_LABELS = {
     "address_missing": "주소 없음",
     "region_from_provider": "주소 없어 제공 지자체로 지역 결정",
     "region_unknown": "시도를 알 수 없음",
+    "sgg_from_provider": "주소에서 시군구를 못 읽어 같은 시도의 제공 지자체로 정함",
 }
 
 
