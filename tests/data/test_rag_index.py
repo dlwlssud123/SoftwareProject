@@ -127,9 +127,10 @@ def test_load_script_binds_published_fingerprint_then_switches_only_when_counts_
     manifest, _, _ = load_index(tmp_path)
     sql = load_script(manifest, "a" * 64)
     v = manifest["index_version"]
-    assert f"WHERE index_version = '{v}') AS already" in sql                     # 같은 판본이면 건너뜀
+    assert f"WHERE index_version = '{v}' AND status IN ('active', 'retired')" in sql
     # 순서: 잠금 → 임시 표에 받기 → 파일 건수·모델 확인 → 지문 붙이기 → loading 등록·넣기 → 전환
-    order = ["LOCK TABLE rag_index_version, rag_chunk IN EXCLUSIVE MODE", "\\copy rag_chunk_stage (index_version",
+    order = ["BEGIN;", "LOCK TABLE rag_index_version, rag_chunk IN EXCLUSIVE MODE", "AS already",
+             "\\copy rag_chunk_stage (index_version",
              f"count(*) = 7 AND coalesce(bool_and(index_version = '{v}' AND embedding_model = 'fake@1'), false)"
              " AS staged_ok",
              "SET source_record_sha256 = v.fingerprint", "'loading'", "INSERT INTO rag_chunk (", "AS ok"]
@@ -138,6 +139,8 @@ def test_load_script_binds_published_fingerprint_then_switches_only_when_counts_
     # 레시피는 원문·보완 후 해시가 둘 다 같을 때만, 복지는 붙이지 않음(지문 없는 청크는 넣지 않음)
     bind = sql[sql.index("SET source_record_sha256 = v.fingerprint"):sql.index("SELECT source_type")]
     assert "s.source_type = 'recipe'" in bind and "r.provider = 'foodsafetykorea:COOKRCP01'" in bind
+    assert bind.count("v.quality_status <> 'hold'") == 2
+    assert "w.publication_status = 'published' AND v.detail_state = 'ready'" in bind
     assert "v.raw_sha256 = s.source_row_sha256 AND v.effective_sha256 = s.source_row_sha256" in bind
     # 복지는 활성 판본 content_sha256(정제 레코드 내용 해시)과 같을 때만, 출처별 provider·scope 로
     assert "v.content_sha256 = s.source_row_sha256" in bind
@@ -151,8 +154,10 @@ def test_load_script_binds_published_fingerprint_then_switches_only_when_counts_
     switch = sql[sql.index("\\if :ok"):]
     assert "count(*) = :loaded_count" in sql[:sql.index("\\if :ok")]
     assert switch.index("SET status = 'retired' WHERE status = 'active'") < switch.index("SET status = 'active'")
-    assert "SET status = 'failed'" in switch and "RAISE EXCEPTION" in switch
-    assert sql.count("ROLLBACK;") == 2                     # 파일 건수 불일치·맞는 청크 없음 → 아무것도 안 남김
+    assert "ROLLBACK;" in switch and "RAISE EXCEPTION" in switch
+    assert "status IN ('loading', 'failed') AND activated_at IS NULL" in sql
+    assert sql.count("\nBEGIN;") == sql.count("COMMIT;") == 1
+    assert "COMMIT;" not in sql[:sql.index("SET status = 'active'")]
 
 
 def test_index_version_kept_when_unchanged_and_new_when_changed(tmp_path, monkeypatch):
@@ -205,6 +210,36 @@ def test_search_uses_only_chunks_matching_active_source_records(tmp_path):
     assert "WLF00004828" not in {h.source_id for h in s.search_vector(q, region=region, active_sources=gone)}
     stale = {**active, ("welfare_local", "WLF00004828"): "0" * 64}           # 원본이 바뀌었는데 인덱스는 옛것
     assert "WLF00004828" not in {h.source_id for h in s.search_vector(q, region=region, active_sources=stale)}
+    s.chunks[0]["source_record_sha256"] = None
+    assert s.search_vector(q, region=region, active_sources={}) == []
+
+
+def test_recipe_allergy_search_requires_complete_analysis_and_excludes_possible_matches(tmp_path):
+    from rag_samples import recipe_rec
+
+    recipes = {"records": [
+        recipe_rec("1", allergens=()) | {
+            "allergens": {"complete": True, "needs_check": [{"candidates": ["밀"]}]},
+        },
+        recipe_rec("2", allergens=()) | {
+            "allergens": {"complete": True, "not_determinable": ["밀"]},
+        },
+        recipe_rec("3", allergens=()) | {
+            "allergens": {"complete": False, "detected": []},
+        },
+        recipe_rec("4", allergens=()),
+    ]}
+    embedder = FakeEmbedder()
+    build_index(None, recipes, embedder, index_dir=tmp_path)
+    searcher = IndexSearcher.from_index(tmp_path, embedder)
+    query = "밀이 들어가지 않은 부드러운 반찬"
+
+    assert {hit.source_id for hit in searcher.search(query)} == {"1", "2", "3", "4"}
+    assert [hit.source_id for hit in searcher.search(query, allergies=["밀"])] == ["4"]
+
+    safe = next(chunk for chunk in searcher.chunks if chunk["source_id"] == "4")
+    safe["quality_flags"] = []  # 완결 표시가 없는 이전 인덱스
+    assert searcher.search(query, allergies=["밀"]) == []
 
 
 def test_evidence_status_thresholds():

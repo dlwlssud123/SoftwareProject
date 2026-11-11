@@ -67,7 +67,7 @@
 | `source_checked_at` | `2026-11-05T…+00:00` | 복지 상세 확인 시각(없으면 목록), 레시피 수집 시각 |
 | `source_modified`, `period_end` | `2026-03-01`, `9999-12-31` | 지자체 복지만 |
 | `quality_status`, `quality_flags` | `flagged`, `["ingredient_amount_missing"]` | 레시피 hold는 청크 없음. 복지 미확인 필드는 `unverified:<필드>` |
-| `allergens` | `["대두", "알류"]` | 레시피 재료명 추정(법정 19종 이름), 확인 필요 종류 포함 |
+| `allergens` | `["대두", "알류"]` | 레시피 재료명 추정(법정 19종 이름). 검출·확인 필요 후보·판정 불가 종류를 함께 저장 |
 | `status` | `active` | 다음 판본을 기다리지 않고 바로 숨길 때만 `retracted`(사라진 원본은 새 판본에 없음) |
 | `data_version` | `welfare_local:3f761c00cacb` | 원천 원문 sha256 앞 12자리 |
 | `source_record_sha256` | 64자리 | **인덱스 파일**: 원본 표 판본과 맞출 해시 — 복지는 정제 레코드 내용 해시(`welfare.revision.content_sha256`: 조회수·확인 시각 등 실행마다 바뀌는 칸을 뺀 레코드, = DB `welfare_revisions.content_sha256`), 레시피는 원본 행 해시(`source.raw_sha256`). 파일 검색에서 대조. **DB `rag_chunk`**: 원본 표의 게시 판본 fingerprint — 적재 스크립트가 붙이고, 검색 때 `rag_source_active`와 같아야 씀(4절, SQL 초안 v3) |
@@ -89,7 +89,7 @@
       - 복지: `welfare_services`(중앙 `ssis:NationalWelfareInformationsV001`·`central_nationwide` / 지자체 `ssis:LocalGovernmentWelfareInformations`·`local`, `source_id`) → 활성 `welfare_revisions`의 `content_sha256`이 청크 해시와 같을 때만. DB 적재(`app.jobs.import_welfare`)와 청크가 **같은 갱신 수집본·같은 정제 레코드**를 쓰므로 맞는다(11/11 이진녕 확인: 기준 = 데이터 갱신 수집본, `welfare_db_import.md`). 조회수·확인 시각만 바뀐 날은 DB 새 판본도, 청크 해시 변화도 없다.
       - 판본별 넣은 건수를 `source_type`별로 출력한다. 하나도 안 맞으면 아무것도 남기지 않고 종료 코드 3
    4. 넣은 청크로 새 판본을 `loading` 등록(`chunk_count` = 실제로 넣은 수)
-   5. 넣은 행 수·모델이 맞으면 **한 트랜잭션에서** 이전 `active` → `retired`, 새 판본 → `active` → 아니면 `failed`로 남기고 종료 코드 3(이전 판본이 계속 검색됨)
+   5. 넣은 행 수·모델이 맞으면 이전 `active` → `retired`, 새 판본 → `active`. 적재부터 활성화까지 **한 트랜잭션**에서 처리하므로 실패하거나 연결이 종료되면 이전 판본을 유지한다. 중단된 기존 `loading` 판본은 같은 적재 파일로 다시 시도할 수 있다.
 3. 되돌리기: `SELECT rag_rollback_index('<판본>');` — 없는·적재 중·실패한·한 번도 활성이 아니었던·건수나 모델이 안 맞는 판본은 오류로 거부하고 지금 활성 판본을 그대로 둔다. 정리: 활성 + 바로 전 판본 하나만 남기고 삭제(청크는 함께 지워짐, SQL은 초안 파일)
 4. **원본 표와 맞추기 — 한 트랜잭션으로 묶지 않는다(11/07 결정).** 원본 표(복지 하루 1회·레시피 주 1회)와 RAG 판본은 따로 전환한다. 묶으면 임베딩 실패가 복지 정보 갱신까지 막고, 주기도 다르다. 대신 검색이 원본 표의 지금 게시 레코드와 레코드 해시를 대조한다(`rag_source_active` 뷰 JOIN).
    - 순서: ① 원본 수집·정제 → ② 원본 표 적재·전환 → ③ `rag.index`(바뀐 청크만 임베딩) → ④ `load_index.sql`
@@ -132,7 +132,8 @@ SELECT * FROM (
     AND (c.region_scope IN ('national', 'none')
          OR (c.ctpv = :ctpv AND (c.region_scope = 'province' OR c.sgg = :sgg)))
     AND (c.period_end IS NULL OR c.period_end >= current_date)
-    AND NOT (c.allergens && :allergies)
+    AND (c.source_type <> 'recipe' OR COALESCE(cardinality(:allergies), 0) = 0
+         OR ('allergen_analysis_complete' = ANY(c.quality_flags) AND NOT (c.allergens && :allergies)))
   ORDER BY c.source_type, c.source_id, c.embedding <=> :q
 ) best
 ORDER BY distance
@@ -144,6 +145,7 @@ LIMIT 5;
 
 - 지역은 `welfare.query.resolve_region()`으로 먼저 정규화한다(앱 입력 `대구`·`남구` → `대구광역시`·`남구`).
 - 같은 사업이 긴 문서라 청크가 여러 개면 근거가 한 사업으로 채워질 수 있어, 원본 단위로 하나만 남긴다.
+- 알레르기 제외 조건이 있으면 `quality_flags`에 `allergen_analysis_complete`가 있고 해당 알레르기가 검출·확인 필요 후보·판정 불가 목록에 없는 레시피만 검색한다. 이 표시는 레시피 데이터 계약의 재료 분석 완료 여부이며, 식품 제조 과정의 교차 접촉은 판정하지 않는다. 이전 인덱스는 이 표시를 얻으려면 `rag.index`로 다시 만들어야 한다.
 - **'근거 없음' 판단**(`rag_search_report.md` 2절): KURE-v1 유사도는 0.4~0.7에 몰려 있어 문턱값 하나로는 정답 질문과 정답 없는 질문을 완전히 가르지 못한다(11/07 평가: 정답 1위 질문의 1위 유사도 최소 0.413, 정답 없는 질문 최대 0.520). 그래서
   - 1위 유사도 < 0.40 → 근거 없음(정답 질문 최소값 0.413보다 조금 낮게 잡음). 대화 AI에 근거를 주지 않고 "확인되지 않는다 + 공식 문의처(보건복지상담센터 129, 주민센터)" 안내
   - 0.40 이상 → 상위 5개를 근거로 주되, 프롬프트에 "근거가 질문과 맞지 않으면 모른다고 하고 문의처를 안내하라, 근거에 없는 사업·금액·전화번호를 만들지 말라"를 넣는다
@@ -153,7 +155,7 @@ LIMIT 5;
 
 ### 5.1 AI 도우미 API 인계 표본 — `docs/data/samples/rag_context_sample.json`
 
-실제 인덱스로 검색한 결과다(생성물, 직접 고치지 않음). 최상위 `index`(판본·모델), `evidence_rules`, `prompt_rules`(대화 AI 지시 제안 5줄), `samples[]`.
+실제 인덱스로 검색한 결과다(생성물, 직접 고치지 않음). 알레르기 완결 여부 필터를 도입하기 전에 만든 표본이므로 해당 사례의 결과를 재현하려면 새 인덱스에서 `rag.samples`를 다시 실행한다. 최상위 `index`(판본·모델), `evidence_rules`, `prompt_rules`(대화 AI 지시 제안 5줄), `samples[]`.
 표본마다 `question`, `profile`(앱 입력 → 해석한 시도·시군구·메모), `filters`, `evidence_status`, `top1_similarity`, `hits[]`(순위·유사도·청크 칸·**본문 전체**), `context`(프롬프트에 그대로 넣을 글, `none`이면 빈 글).
 
 | 표본 | 보여 주는 것 | 판정 |

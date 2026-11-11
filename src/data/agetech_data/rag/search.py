@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import date
 from types import SimpleNamespace
 
+from agetech_data.rag.chunks import ALLERGEN_ANALYSIS_COMPLETE
 from agetech_data.welfare.query import RegionQuery, resolve_region
 
 WELFARE_TYPES = ("welfare_central", "welfare_local")
@@ -72,9 +73,10 @@ class IndexSearcher:
                  today: str, include_ended: bool, active_sources) -> bool:
         if c["status"] != "active" or (source_types and c["source_type"] not in source_types):
             return False
-        if active_sources is not None and \
-                active_sources.get((c["source_type"], c["source_id"])) != c.get("source_record_sha256"):
-            return False          # 원본 표에서 내려갔거나 내용이 바뀌었는데 인덱스가 아직 못 따라옴
+        if active_sources is not None:
+            source_hash = c.get("source_record_sha256")
+            if not source_hash or active_sources.get((c["source_type"], c["source_id"])) != source_hash:
+                return False
         scope = c["region_scope"]
         if scope in ("province", "district"):
             if region is None or not region.ctpv or c["ctpv"] != region.ctpv:
@@ -83,7 +85,12 @@ class IndexSearcher:
                 return False
         if not include_ended and c["period_end"] and c["period_end"] < today:
             return False
-        return not (allergies and allergies.intersection(c["allergens"]))
+        if allergies and c["source_type"] == "recipe":
+            if ALLERGEN_ANALYSIS_COMPLETE not in c.get("quality_flags", ()):
+                return False
+            if allergies.intersection(c["allergens"]):
+                return False
+        return True
 
     def search_vector(self, qvec, *, k: int = 5, source_types=None, region: RegionQuery | None = None,
                       allergies=None, include_ended: bool = False, as_of: date | None = None,

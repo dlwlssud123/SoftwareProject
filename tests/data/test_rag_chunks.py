@@ -69,7 +69,8 @@ def test_recipe_chunk_hold_flagged_allergens_and_suspect_nutrition():
     assert recipe_chunks(recipe_rec(status="hold"), "v") == []
     [c] = recipe_chunks(recipe_rec(status="flagged"), "recipes:abc")
     assert c.chunk_id == "recipe:28:all:1" and c.region_scope == "none"
-    assert c.quality_status == "flagged" and c.quality_flags == ["ingredient_amount_missing"]
+    assert c.quality_status == "flagged"
+    assert c.quality_flags == ["allergen_analysis_complete", "ingredient_amount_missing"]
     assert c.allergens == ["대두", "알류"]
     assert c.source_record_sha256 == recipe_rec()["source"]["raw_sha256"]
     assert "재료: 연두부 75g(3/4모), 달걀 30g(1/2개) / 고명 / 시금치 10g" in c.content

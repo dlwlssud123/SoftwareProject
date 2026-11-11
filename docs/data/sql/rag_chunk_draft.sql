@@ -62,7 +62,8 @@ CREATE TABLE rag_chunk (
     quality_flags     text[]       NOT NULL DEFAULT '{}',
     allergens         text[]       NOT NULL DEFAULT '{}',
                                                   -- 레시피 재료명으로 추정한 알레르기(법정 19종 이름).
-                                                  -- direct·usually·needs_check 모두 넣음 → 거를 때 보수적으로
+                                                  -- 검출·확인 필요 후보·판정 불가 종류를 함께 저장한다.
+                                                  -- 제외 조건이 있으면 quality_flags의 allergen_analysis_complete도 확인한다.
     status            text         NOT NULL DEFAULT 'active'
                       CHECK (status IN ('active', 'retracted')),
                                                   -- 다음 판본을 기다리지 않고 바로 숨길 때만 retracted
@@ -130,9 +131,9 @@ $$;
 --                       넣는다(아직 검색 안 됨). 레시피는 recipe_revisions 의 raw_sha256·effective_sha256 이 둘 다 청크
 --                       원본 행 해시와 같을 때만. 복지는 welfare_revisions 의 content_sha256(정제 레코드 내용 해시)이
 --                       같을 때만 — DB 적재와 청크가 같은 갱신 수집본·같은 정제를 쓴다(rag_index_contract.md 4절)
---                    ③ 넣은 행 수·모델이 맞으면 한 트랜잭션에서 이전 active → retired, 새 판본 → active
---                    ④ 다르면 failed 로 남기고 오류로 끝냄(종료 코드 3) — 이전 판본이 계속 검색됨
---   적재·전환은 rag_rollback_index 와 같은 표 잠금을 잡아 동시 실행을 막는다(검색 SELECT 는 됨).
+--                    ③ 넣은 행 수·모델이 맞으면 이전 active → retired, 새 판본 → active
+--                    ④ 검증 실패·연결 종료 시 전체 롤백 — 이전 판본이 계속 검색됨
+--   적재와 전환은 한 트랜잭션에서 처리한다. rag_rollback_index 와 같은 표 잠금으로 동시 쓰기를 막는다.
 --   임베딩이 중간에 실패하면 manifest가 만들어지지 않아 적재할 판본 자체가 없다(이전 판본 그대로).
 --
 -- ── 원본 표와 맞추기 (결정: 한 트랜잭션으로 묶지 않음) ────────────────────
@@ -208,6 +209,8 @@ $$;
 -- JOIN rag_source_active s ON s.source_type = c.source_type AND s.source_id = c.source_id
 --                         AND s.record_sha256 = c.source_record_sha256
 -- WHERE c.status = 'active' AND c.embedding_model = :embedding_model
---   AND c.source_type = 'recipe' AND NOT (c.allergens && :allergies)
+--   AND c.source_type = 'recipe'
+--   AND (COALESCE(cardinality(:allergies), 0) = 0
+--        OR ('allergen_analysis_complete' = ANY(c.quality_flags) AND NOT (c.allergens && :allergies)))
 -- ORDER BY c.embedding <=> :q
 -- LIMIT 5;

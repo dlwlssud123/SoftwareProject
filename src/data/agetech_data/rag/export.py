@@ -3,8 +3,8 @@
     uv run python -m agetech_data.rag.export     # data/processed/rag/rag_chunk.csv + load_index.sql
     cd data/processed/rag && psql -v ON_ERROR_STOP=1 -f load_index.sql
 
-판본 전환: 인덱스 판본(index_version) 단위로 통째로 넣고, 건수를 확인한 뒤 한 트랜잭션에서 활성 판본만
-바꾼다. 적재 중·실패한 판본은 검색되지 않는다(검색은 활성 판본만 조회). 되돌리기는 SQL 초안의
+판본 전환: 인덱스 판본(index_version)의 적재·건수 확인·활성 전환을 한 트랜잭션에서 처리한다.
+커밋하기 전까지 이전 활성 판본을 검색한다. 되돌리기는 SQL 초안의
 rag_rollback_index(판본) 함수.
 
 게시 판본 지문(v3): rag_chunk.source_record_sha256 은 원본 표의 게시 판본 fingerprint 다. 인덱스 파일에는
@@ -70,7 +70,7 @@ def write_csv(manifest: dict, chunks: list[dict], vectors, out: Path) -> int:
 
 
 def load_script(manifest: dict, manifest_sha256: str, csv_name: str = "rag_chunk.csv") -> str:
-    """psql 적재·전환 스크립트. 같은 판본이 이미 있으면 아무것도 하지 않는다.
+    """psql 적재·전환 스크립트. 이미 활성화한 적이 있는 판본은 건너뛴다.
 
     백엔드 마이그레이션의 원본 표(recipes·recipe_revisions)와 SQL 초안 v3 표가 있는 DB 에서 실행한다.
     """
@@ -87,15 +87,19 @@ def load_script(manifest: dict, manifest_sha256: str, csv_name: str = "rag_chunk
 -- 필요: SQL 초안 v3 표(rag_index_version·rag_chunk)와 백엔드 원본 표(recipes·recipe_revisions·welfare_services·welfare_revisions)
 \\set ON_ERROR_STOP on
 
-SELECT EXISTS (SELECT 1 FROM rag_index_version WHERE index_version = {v}) AS already \\gset
+BEGIN;
+LOCK TABLE rag_index_version, rag_chunk IN EXCLUSIVE MODE;   -- rag_rollback_index 와 같은 잠금 (검색 SELECT 는 됨)
+SELECT EXISTS (
+    SELECT 1 FROM rag_index_version
+    WHERE index_version = {v} AND status IN ('active', 'retired')
+) AS already \\gset
 \\if :already
-  \\echo '판본 {name} 이미 있음 — 적재·전환하지 않음'
+  ROLLBACK;
+  \\echo '판본 {name} 이미 활성화 이력이 있음 — 적재·전환하지 않음'
   \\quit
 \\endif
 
 -- 1) 인덱스 파일을 임시 표에 받고, 원본 표의 게시 판본 지문을 붙여서 맞는 청크만 loading 판본으로 넣는다
-BEGIN;
-LOCK TABLE rag_index_version, rag_chunk IN EXCLUSIVE MODE;   -- rag_rollback_index 와 같은 잠금 (검색 SELECT 는 됨)
 CREATE TEMP TABLE rag_chunk_stage (LIKE rag_chunk INCLUDING DEFAULTS) ON COMMIT DROP;
 ALTER TABLE rag_chunk_stage ALTER COLUMN source_record_sha256 DROP NOT NULL,
                             ADD COLUMN source_row_sha256 char(64) NOT NULL;
@@ -114,11 +118,13 @@ FROM rag_chunk_stage \\gset
 UPDATE rag_chunk_stage s SET source_record_sha256 = v.fingerprint
   FROM recipes r JOIN recipe_revisions v ON v.id = r.active_revision_id AND v.recipe_id = r.id
  WHERE s.source_type = 'recipe' AND r.provider = '{RECIPE_PROVIDER}' AND r.source_id = s.source_id
+   AND v.quality_status <> 'hold'
    AND v.raw_sha256 = s.source_row_sha256 AND v.effective_sha256 = s.source_row_sha256;
 -- 복지: 활성 welfare_revisions 의 content_sha256(정제 레코드 내용 해시)이 청크의 원본 해시와 같을 때만
 UPDATE rag_chunk_stage s SET source_record_sha256 = v.fingerprint
   FROM welfare_services w JOIN welfare_revisions v ON v.id = w.active_revision_id AND v.service_id = w.id
  WHERE ({welfare_match})
+   AND w.publication_status = 'published' AND v.detail_state = 'ready' AND v.quality_status <> 'hold'
    AND w.source_id = s.source_id AND v.content_sha256 = s.source_row_sha256;
 
 SELECT source_type, count(*) AS in_index, count(source_record_sha256) AS loaded
@@ -131,15 +137,14 @@ FROM rag_chunk_stage \\gset
   DO $$ BEGIN RAISE EXCEPTION '게시 판본과 맞는 청크가 없음 — 적재하지 않음 (이전 판본 그대로)'; END $$;
 \\endif
 
+-- 이전 적재기에서 중단된 판본이 있으면 같은 판본만 다시 적재한다.
+DELETE FROM rag_index_version
+WHERE index_version = {v} AND status IN ('loading', 'failed') AND activated_at IS NULL;
 INSERT INTO rag_index_version (index_version, embedding_model, chunk_count, manifest_sha256, data_versions, status)
 VALUES ({v}, {model}, :loaded_count, '{manifest_sha256}', {versions}::jsonb, 'loading');
 INSERT INTO rag_chunk ({cols})
 SELECT {cols} FROM rag_chunk_stage WHERE source_record_sha256 IS NOT NULL;
-COMMIT;
-
--- 2) 넣은 행 수·모델이 맞으면 한 트랜잭션에서 활성 판본을 바꾼다. 안 맞으면 failed 로 남기고 이전 판본 유지
-BEGIN;
-LOCK TABLE rag_index_version, rag_chunk IN EXCLUSIVE MODE;
+-- 2) 넣은 행 수·모델을 확인하고 같은 트랜잭션에서 활성 판본을 바꾼다.
 SELECT count(*) = :loaded_count AND coalesce(bool_and(embedding_model = {model}), false) AS ok
 FROM rag_chunk WHERE index_version = {v} \\gset
 \\if :ok
@@ -148,8 +153,7 @@ FROM rag_chunk WHERE index_version = {v} \\gset
   COMMIT;
   \\echo '판본 {name} 활성 (청크 ' :loaded_count '개)'
 \\else
-  UPDATE rag_index_version SET status = 'failed' WHERE index_version = {v};
-  COMMIT;
+  ROLLBACK;
   DO $$ BEGIN RAISE EXCEPTION '청크 수·모델이 적재 기록과 다름 — 전환하지 않음 (이전 판본 그대로)'; END $$;
 \\endif
 """

@@ -18,6 +18,7 @@ from agetech_data.welfare.revision import content_sha256 as welfare_content_sha2
 
 MAX_CHARS = 1000            # 이보다 긴 문서는 항목 경계로 나눈다
 MAX_CONTACTS = 5            # 본문에 넣는 문의처 수 (나머지는 원본 표에서)
+ALLERGEN_ANALYSIS_COMPLETE = "allergen_analysis_complete"
 
 _SENT_END = re.compile(r"(?<=[.!?])\s+|\n+")
 
@@ -217,7 +218,16 @@ def recipe_chunks(rec: dict, data_version: str, max_chars: int = MAX_CHARS) -> l
         flags.append("nutrition_suspect")
     if rec.get("missing_step_nos"):
         flags.append("steps_missing")
-    allergens = sorted({d["allergen"] for d in (rec.get("allergens") or {}).get("detected") or [] if d.get("allergen")})
+    allergen_info = rec.get("allergens") or {}
+    allergens = {
+        d["allergen"] for d in allergen_info.get("detected") or [] if d.get("allergen")
+    }
+    allergens.update(
+        allergen for item in allergen_info.get("needs_check") or [] for allergen in item.get("candidates") or []
+    )
+    allergens.update(allergen_info.get("not_determinable") or [])
+    if allergen_info.get("complete") is True:
+        flags.append(ALLERGEN_ANALYSIS_COMPLETE)
     src = rec.get("source") or {}
     out = []
     for no, (section, content) in enumerate(_assemble(header, sections, max_chars), start=1):
@@ -229,7 +239,7 @@ def recipe_chunks(rec: dict, data_version: str, max_chars: int = MAX_CHARS) -> l
             source_checked_at=src.get("fetched_at"), source_modified=None, period_end=None,
             quality_status="flagged" if q.get("status") == "flagged" else "ok",
             data_version=data_version, source_record_sha256=src.get("raw_sha256"),
-            quality_flags=sorted(set(flags)), allergens=allergens,
+            quality_flags=sorted(set(flags)), allergens=sorted(allergens),
         ))
     return out
 

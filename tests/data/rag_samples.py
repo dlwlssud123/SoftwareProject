@@ -29,7 +29,7 @@ def recipe_rec(recipe_id="28", status="ok", allergens=("대두", "알류"), susp
         "missing_step_nos": [], "sodium_tip": "새우 간으로 맛을 내요.",
         "nutrition": {"energy_kcal": 220.0, "carbohydrate_g": 3.0, "protein_g": 14.0, "fat_g": 17.0,
                       "sodium_mg": 99.0, "suspect": suspect},
-        "allergens": {"detected": [{"allergen": a, "kind": "direct"} for a in allergens]},
+        "allergens": {"complete": True, "detected": [{"allergen": a, "kind": "direct"} for a in allergens]},
         "quality": {"status": status,
                     "issues": [{"code": "ingredient_amount_missing"}] if status == "flagged" else []},
         "source": {"fetched_at": "2026-10-31T16:29:00+00:00",
