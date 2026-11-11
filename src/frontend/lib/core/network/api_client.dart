@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 
 import 'api_config.dart';
 import 'api_exception.dart';
@@ -23,13 +22,7 @@ class ApiClient {
               receiveTimeout: ApiConfig.receiveTimeout,
               headers: const {'Accept': 'application/json'},
             ),
-          ) {
-    if (kDebugMode && dio == null) {
-      _dio.interceptors.add(
-        LogInterceptor(requestBody: true, responseBody: true),
-      );
-    }
-  }
+          );
 
   final Dio _dio;
 
@@ -55,10 +48,7 @@ class ApiClient {
     } on DioException catch (error) {
       throw ApiException.fromDio(error);
     } on FormatException {
-      throw const ApiException(
-        ApiErrorType.badResponse,
-        '서버 응답 형식이 올바르지 않아요.',
-      );
+      throw const ApiException(ApiErrorType.badResponse, '서버 응답 형식이 올바르지 않아요.');
     }
   }
 }
