@@ -2,7 +2,7 @@
 
     uv run python -m agetech_data.refresh --source meal_facilities
 
-API: http://api.data.go.kr/openapi/tn_pubr_public_free_mlsv_api (type=json, 1,000건씩)
+API: https://api.data.go.kr/openapi/tn_pubr_public_free_mlsv_api (type=json, 1,000건씩)
 응답: {"header": {"resultCode": "00", ...}, "body": {"items": {"item": [...]}, "totalCount": N}}
 게이트웨이 오류(키 미등록·한도)는 XML(OpenAPI_ServiceResponse)로 온다.
 
@@ -21,7 +21,7 @@ from urllib.parse import urlencode
 from agetech_data.net import CollectError, Fatal, Fetcher, Quota, Retry, fetch_with_retry, http_fetch
 from agetech_data.textutil import sha256_json
 
-API_URL = "http://api.data.go.kr/openapi/tn_pubr_public_free_mlsv_api"
+API_URL = "https://api.data.go.kr/openapi/tn_pubr_public_free_mlsv_api"
 PROVIDER = "전국 지자체 (공공데이터포털 전국무료급식소표준데이터)"
 SERVICE = "전국무료급식소표준데이터 (tn_pubr_public_free_mlsv_api)"
 DOCUMENTATION = "https://www.data.go.kr/data/15013107/standard.do"
