@@ -61,8 +61,14 @@ SEASONAL_RAW = SEASONAL_RAW_DIR / "food_month.json"
 SEASONAL_PROCESSED = PROCESSED_DIR / "seasonal_foods.json"
 SEASONAL_REPORT = REPORTS_DIR / "seasonal_report.md"
 SEASONAL_SAMPLE = REPORTS_DIR / "samples" / "seasonal_sample.json"
+
 # 레시피 계약 형식 전체(COOKRCP01 1,156건) — contract --input data/raw/recipes/cookrcp01_all.json 결과
 RECIPES_API_ALL = PROCESSED_DIR / "recipes_api_all.json"
+
+# RAG 검색 인덱스(청크·벡터·목록, gitignore)와 검색 평가 보고서·평가 질문(커밋)
+RAG_INDEX_DIR = PROCESSED_DIR / "rag"
+RAG_SEARCH_REPORT = REPORTS_DIR / "rag_search_report.md"
+RAG_EVAL_QUESTIONS = Path(__file__).resolve().parent / "resources" / "rag_eval_questions.json"
 
 # 영양 매핑 가공 결과(gitignore)와 보고서(커밋)
 FOODS_PROCESSED = PROCESSED_DIR / "foods_v03.json"
