@@ -150,7 +150,7 @@ class SeasonalIngredient(Base):
         CheckConstraint(
             "(seasonal_food_id IS NULL AND match_term IS NULL AND match_kind IS NULL) OR "
             "(seasonal_food_id IS NOT NULL AND match_term IS NOT NULL "
-            "AND match_kind IN ('official', 'alias'))",
+            "AND match_kind IS NOT NULL AND match_kind IN ('official', 'alias'))",
             name="ck_seasonal_ingredient_match",
         ),
     )

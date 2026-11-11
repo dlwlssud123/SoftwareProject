@@ -189,6 +189,12 @@ def test_facility_snapshot_must_be_complete_and_untouched(tmp_path, change):
         import_meal_facilities.prepare_import(path)
 
 
+def test_facility_snapshot_rejects_all_rows_skipped(tmp_path):
+    path = facility_snapshot(tmp_path, rows=(NOWHERE,))
+    with pytest.raises(ValueError, match="no usable rows"):
+        import_meal_facilities.prepare_import(path)
+
+
 def test_seasonal_snapshot_requires_all_months_and_opt_in_for_failed_details(tmp_path):
     items = seasonal_items()
     with pytest.raises(ValueError):
@@ -430,6 +436,7 @@ def test_postgres_seasonal_partial_missing_and_manual_rows(tmp_path, pg_connecti
         assert spinach.detail_status == "ok" and spinach.detail["intake"].startswith(
             "■ 데쳐서"
         )
+        assert spinach.official_related_recipes == ["시금치 요리"]
         assert spinach.checked_on == date(2026, 11, 8)
         assert import_seasonal.verify_import(db, partial)["verified"]
 
@@ -462,7 +469,7 @@ def test_postgres_seasonal_partial_missing_and_manual_rows(tmp_path, pg_connecti
         with pytest.raises(ValueError):  # 더 오래된 수집본으로 덮지 않음
             import_seasonal.apply_import(db, import_seasonal.prepare_import(older))
 
-        # 매핑 근거 없이 식재료만 붙이지 않음
+        # 매핑 유형 없이 식재료를 붙이지 않음
         with pytest.raises(IntegrityError), db.begin_nested():
             db.add(
                 SeasonalIngredient(
@@ -472,6 +479,7 @@ def test_postgres_seasonal_partial_missing_and_manual_rows(tmp_path, pg_connecti
                     source_url="x",
                     checked_on=date(2026, 11, 10),
                     seasonal_food_id=spinach.id,
+                    match_term="섬초",
                 )
             )
             db.flush()
