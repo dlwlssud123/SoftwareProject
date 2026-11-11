@@ -117,6 +117,8 @@ class RecipeIngredient(Base):
         UniqueConstraint(
             "recipe_revision_id", "order_no", name="uq_recipe_ingredient_order"
         ),
+        # Lets derived rows (recipe_ingredient_foods) prove the ingredient belongs to their revision.
+        UniqueConstraint("recipe_revision_id", "id", name="uq_recipe_ingredient_owner"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

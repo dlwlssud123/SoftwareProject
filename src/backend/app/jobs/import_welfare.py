@@ -16,6 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from agetech_data import paths
+from agetech_data.collect.welfare import LIFE_ELDERLY
 from agetech_data.textutil import sha256_json
 from agetech_data.welfare.revision import (
     NORMALIZER_VERSION,
@@ -63,6 +64,7 @@ def prepare_import(
     if not isinstance(snapshot, dict) or not isinstance(snapshot.get("meta"), dict):
         raise ValueError("Complete welfare collector metadata is required")
     meta, items = snapshot["meta"], snapshot.get("items")
+    params = meta.get("params")
     if (
         not isinstance(items, list)
         or not items
@@ -71,6 +73,8 @@ def prepare_import(
         or meta.get("item_count") != len(items)
         or meta.get("total_count") != len(items)
         or meta.get("kind") != source
+        or not isinstance(params, dict)
+        or params.get("lifeArray") != LIFE_ELDERLY
         or SOURCES[source]["service"] not in str(meta.get("service", ""))
         or meta.get("items_sha256") != sha256_json(items)
     ):

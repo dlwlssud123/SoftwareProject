@@ -53,51 +53,75 @@ def contribution(food: FoodRecord, grams: float) -> tuple[dict[str, float | None
     return out, food.basis_unit == "mL"
 
 
+def _get(item, key):
+    return item.get(key) if isinstance(item, dict) else getattr(item, key)
+
+
+def ingredient_nutrition(ingredients, index: FoodIndex, by_code: dict[str, FoodRecord], entries,
+                         cache: dict | None = None) -> dict:
+    """레시피 재료 목록 → {ingredients, computed, computed_missing, coverage}.
+
+    ingredients 는 재료 파서 결과(Ingredient) 또는 그 dict(DB recipe_ingredients.parsed)다.
+    파일 산출물(build_recipe_nutrition)과 DB 적재(nutrition.recipe_map)가 같은 계산을 쓴다.
+    cache 를 넘기면 같은 (재료명, 괄호 설명)의 매핑을 레시피 사이에서 다시 쓴다(결과는 같고 빠름 —
+    매핑은 이름·괄호·식품 목록·매핑표에만 달려 있다).
+    """
+    items = []
+    totals: dict[str, float] = dict.fromkeys(SUM_NUTRIENTS, 0.0)
+    missing: Counter = Counter()
+    for ing in ingredients:
+        g = to_grams(ing)
+        key = (_get(ing, "name"), tuple(_get(ing, "paren_texts") or ()))
+        m = cache.get(key) if cache is not None else None
+        if m is None:
+            m = match_ingredient(key[0], index, list(key[1]), entries)
+            if cache is not None:
+                cache[key] = m
+        contrib, ml_approx = None, False
+        if m.usable and g.status in CONVERTED:
+            contrib, ml_approx = contribution(by_code[m.food_code], g.grams)
+            for k, v in contrib.items():
+                if v is None:
+                    missing[k] += 1
+                else:
+                    totals[k] += v
+        items.append({
+            "order_no": _get(ing, "order_no"), "line_no": _get(ing, "line_no"), "section": _get(ing, "section"),
+            "raw_item": _get(ing, "raw_item"), "name": _get(ing, "name"), "amount_text": _get(ing, "amount_text"),
+            "grams": g.to_dict(), "match": m.to_dict(),
+            "contribution": contrib, "basis_ml_approx": ml_approx,
+        })
+    conv = [i for i in items if i["grams"]["status"] in CONVERTED and i["match"]["status"] != "water"]
+    g_total = sum(i["grams"]["grams"] for i in conv)
+    g_used = sum(i["grams"]["grams"] for i in conv if i["contribution"] is not None)
+    non_water = [i for i in items if i["match"]["status"] != "water"]
+    complete = bool(non_water) and all(i["contribution"] is not None for i in non_water)
+    return {
+        "ingredients": items,
+        "computed": {k: round(v, 2) for k, v in totals.items()},
+        "computed_missing": dict(missing),
+        "coverage": {
+            "items": len(items),
+            "items_used": sum(i["contribution"] is not None for i in items),
+            "grams_converted": round(g_total, 2),
+            "grams_used": round(g_used, 2),
+            "grams_used_pct": round(100 * g_used / g_total, 1) if g_total else None,
+            "complete": complete,
+        },
+    }
+
+
 def build_recipe_nutrition(rows: list[dict], foods: list[FoodRecord], entries) -> list[dict]:
     index = FoodIndex(foods)
     by_code = {f.food_code: f for f in foods}
+    cache: dict = {}
     out = []
     for row in rows:
         chk = check_recipe(row)
-        items = []
-        totals: dict[str, float] = dict.fromkeys(SUM_NUTRIENTS, 0.0)
-        missing: Counter = Counter()
-        for ing in chk.ingredients.ingredients:
-            g = to_grams(ing)
-            m = match_ingredient(ing.name, index, ing.paren_texts, entries)
-            contrib, ml_approx = None, False
-            if m.usable and g.status in CONVERTED:
-                contrib, ml_approx = contribution(by_code[m.food_code], g.grams)
-                for k, v in contrib.items():
-                    if v is None:
-                        missing[k] += 1
-                    else:
-                        totals[k] += v
-            items.append({
-                "order_no": ing.order_no, "line_no": ing.line_no, "section": ing.section,
-                "raw_item": ing.raw_item, "name": ing.name, "amount_text": ing.amount_text,
-                "grams": g.to_dict(), "match": m.to_dict(),
-                "contribution": contrib, "basis_ml_approx": ml_approx,
-            })
-        conv = [i for i in items if i["grams"]["status"] in CONVERTED and i["match"]["status"] != "water"]
-        g_total = sum(i["grams"]["grams"] for i in conv)
-        g_used = sum(i["grams"]["grams"] for i in conv if i["contribution"] is not None)
-        non_water = [i for i in items if i["match"]["status"] != "water"]
-        complete = bool(non_water) and all(i["contribution"] is not None for i in non_water)
         out.append({
             "source_id": chk.source_id, "name": chk.name, "quality_status": chk.status,
             "raw_sha256": chk.raw_sha256,
-            "ingredients": items,
-            "computed": {k: round(v, 2) for k, v in totals.items()},
-            "computed_missing": dict(missing),
-            "coverage": {
-                "items": len(items),
-                "items_used": sum(i["contribution"] is not None for i in items),
-                "grams_converted": round(g_total, 2),
-                "grams_used": round(g_used, 2),
-                "grams_used_pct": round(100 * g_used / g_total, 1) if g_total else None,
-                "complete": complete,
-            },
+            **ingredient_nutrition(chk.ingredients.ingredients, index, by_code, entries, cache),
             "source_values": {k: row.get(src) for k, src in COMPARE.items()},
         })
     return out

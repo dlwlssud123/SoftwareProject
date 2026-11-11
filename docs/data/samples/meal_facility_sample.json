@@ -1,0 +1,772 @@
+{
+ "schema_version": 1,
+ "description": "무료급식소·경로식당 조회 표본(시범 지역 대구 남구). `python -m agetech_data.facilities.build`로 생성 — 직접 고치지 마세요.",
+ "cases": [
+  {
+   "id": "region_daegu_namgu",
+   "description": "위치 거부 — 앱 프로필 '대구 남구'로 지역 조회 (남구 → 대구시 다른 구)",
+   "input": {
+    "ctpv": "대구",
+    "sgg": "남구"
+   },
+   "resolved": {
+    "ctpv": "대구광역시",
+    "sgg": "남구",
+    "notes": [
+     "'대구' → '대구광역시'로 찾음"
+    ]
+   },
+   "count": 37,
+   "results": [
+    {
+     "match": "district",
+     "distance_km": null,
+     "cautions": [
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FM01885bc442",
+     "name": "남구종합사회복지관",
+     "operator": "남구종합사회복지관",
+     "ctpv": "대구광역시",
+     "sgg": "남구",
+     "address_road": "대구광역시 남구 중앙대로38길 17",
+     "address_lot": "대구광역시 남구 대명동 19-1",
+     "phone": "053-476-7700",
+     "place": "남구종합사회복지관",
+     "targets": [
+      "결식노인",
+      "저소득층",
+      "장애인(회원제)"
+     ],
+     "days": [
+      "수",
+      "목"
+     ],
+     "days_raw": "수+목",
+     "meals": [
+      {
+       "meal": "중식",
+       "start": "11:20",
+       "end": "12:20"
+      }
+     ],
+     "time_raw": "중식(11:20-12:20)",
+     "latitude": 35.84922271,
+     "longitude": 128.5919776,
+     "reference_date": "2026-07-13",
+     "provider": "대구광역시 남구",
+     "quality_flags": []
+    },
+    {
+     "match": "district",
+     "distance_km": null,
+     "cautions": [
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FM089814586f",
+     "name": "희망의집",
+     "operator": "사)함께하는마음재단",
+     "ctpv": "대구광역시",
+     "sgg": "남구",
+     "address_road": "대구광역시 남구 대봉로 108",
+     "address_lot": "대구광역시 남구 이천동 557-9",
+     "phone": "053-476-6635",
+     "place": "희망의집",
+     "targets": [
+      "결식노인",
+      "저소득층",
+      "장애인",
+      "노숙자"
+     ],
+     "days": [
+      "화",
+      "금",
+      "토"
+     ],
+     "days_raw": "화+금+토",
+     "meals": [
+      {
+       "meal": "중식",
+       "start": "11:00",
+       "end": "12:30"
+      }
+     ],
+     "time_raw": "중식(11:00-12:30)",
+     "latitude": 35.84825154,
+     "longitude": 128.6041702,
+     "reference_date": "2026-07-13",
+     "provider": "대구광역시 남구",
+     "quality_flags": []
+    },
+    {
+     "match": "province",
+     "distance_km": null,
+     "cautions": [
+      "자료 기준일이 1년 넘음 — 지금도 운영하는지 전화로 확인",
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FMf4eb4ef6fa",
+     "name": "본동종합사회복지관",
+     "operator": "본동종합사회복지관",
+     "ctpv": "대구광역시",
+     "sgg": "달서구",
+     "address_road": "대구광역시 달서구 송현로 113(송현동)",
+     "address_lot": "대구광역시 달서구 송현동 977-2",
+     "phone": "053-636-5567",
+     "place": "본동종합사회복지관",
+     "targets": [
+      "복지관이 위치한 지역 내 만65세 이상 노인"
+     ],
+     "days": [
+      "월",
+      "화",
+      "수",
+      "목",
+      "금"
+     ],
+     "days_raw": "월+화+수+목+금",
+     "meals": [
+      {
+       "meal": null,
+       "start": "11:30",
+       "end": "12:30"
+      }
+     ],
+     "time_raw": "11:30~12:30",
+     "latitude": 35.82712717,
+     "longitude": 128.5433255,
+     "reference_date": "2025-09-01",
+     "provider": "대구광역시 달서구",
+     "quality_flags": [
+      "reference_stale"
+     ]
+    },
+    {
+     "match": "province",
+     "distance_km": null,
+     "cautions": [
+      "자료 기준일이 1년 넘음 — 지금도 운영하는지 전화로 확인",
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FMb0a1fef9df",
+     "name": "사단법인 사랑해밥차",
+     "operator": "(사)사랑해밥차",
+     "ctpv": "대구광역시",
+     "sgg": "달서구",
+     "address_road": "대구광역시 달서구 대명천로 28(성당동)",
+     "address_lot": "대구광역시 달서구 성당동 202-41",
+     "phone": "053-628-0828",
+     "place": "두류공원 외",
+     "targets": [
+      "노인 및 취약계층"
+     ],
+     "days": [
+      "화",
+      "목"
+     ],
+     "days_raw": "화+목",
+     "meals": [
+      {
+       "meal": null,
+       "start": "11:00",
+       "end": "12:00"
+      }
+     ],
+     "time_raw": "11:00~12:00",
+     "latitude": 35.83907399,
+     "longitude": 128.5561701,
+     "reference_date": "2025-09-01",
+     "provider": "대구광역시 달서구",
+     "quality_flags": [
+      "reference_stale"
+     ]
+    },
+    {
+     "match": "province",
+     "distance_km": null,
+     "cautions": [
+      "자료 기준일이 1년 넘음 — 지금도 운영하는지 전화로 확인",
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FM46e6ea842a",
+     "name": "상인종합사회복지관",
+     "operator": "상인종합사회복지관",
+     "ctpv": "대구광역시",
+     "sgg": "달서구",
+     "address_road": "대구광역시 달서구 상화로 371(상인동)",
+     "address_lot": "대구광역시 달서구 상인동 1563",
+     "phone": "053-641-1100",
+     "place": "상인종합사회복지관",
+     "targets": [
+      "복지관이 위치한 지역 내 만65세 이상 노인"
+     ],
+     "days": [
+      "월",
+      "화",
+      "수",
+      "목",
+      "금"
+     ],
+     "days_raw": "월+화+수+목+금",
+     "meals": [
+      {
+       "meal": null,
+       "start": "11:30",
+       "end": "12:30"
+      }
+     ],
+     "time_raw": "11:30~12:30",
+     "latitude": 35.80867252,
+     "longitude": 128.5522461,
+     "reference_date": "2025-09-01",
+     "provider": "대구광역시 달서구",
+     "quality_flags": [
+      "reference_stale"
+     ]
+    },
+    {
+     "match": "province",
+     "distance_km": null,
+     "cautions": [
+      "자료 기준일이 1년 넘음 — 지금도 운영하는지 전화로 확인",
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FM82b81f2cf4",
+     "name": "성서종합사회복지관",
+     "operator": "성서종합사회복지관",
+     "ctpv": "대구광역시",
+     "sgg": "달서구",
+     "address_road": "대구광역시 달서구 신당로 56(신당동)",
+     "address_lot": "대구광역시 달서구 신당동 1844",
+     "phone": "053-583-1284",
+     "place": "성서종합사회복지관",
+     "targets": [
+      "복지관이 위치한 지역 내 만65세 이상 노인"
+     ],
+     "days": [
+      "월",
+      "화",
+      "수",
+      "목",
+      "금"
+     ],
+     "days_raw": "월+화+수+목+금",
+     "meals": [
+      {
+       "meal": null,
+       "start": "11:30",
+       "end": "12:30"
+      }
+     ],
+     "time_raw": "11:30~12:30",
+     "latitude": 35.85229651,
+     "longitude": 128.4988252,
+     "reference_date": "2025-09-01",
+     "provider": "대구광역시 달서구",
+     "quality_flags": [
+      "reference_stale"
+     ]
+    },
+    {
+     "match": "province",
+     "distance_km": null,
+     "cautions": [
+      "자료 기준일이 1년 넘음 — 지금도 운영하는지 전화로 확인",
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FMbd190c9272",
+     "name": "신당종합사회복지관",
+     "operator": "신당종합사회복지관",
+     "ctpv": "대구광역시",
+     "sgg": "달서구",
+     "address_road": "대구광역시 달서구 신당로 55(신당동)",
+     "address_lot": "대구광역시 달서구 신당동 1846",
+     "phone": "053-581-8310",
+     "place": "신당종합사회복지관",
+     "targets": [
+      "복지관이 위치한 지역 내 만65세 이상 노인"
+     ],
+     "days": [
+      "월",
+      "화",
+      "수",
+      "목",
+      "금"
+     ],
+     "days_raw": "월+화+수+목+금",
+     "meals": [
+      {
+       "meal": null,
+       "start": "11:30",
+       "end": "12:30"
+      }
+     ],
+     "time_raw": "11:30~12:30",
+     "latitude": 35.8538435,
+     "longitude": 128.497451,
+     "reference_date": "2025-09-01",
+     "provider": "대구광역시 달서구",
+     "quality_flags": [
+      "reference_stale"
+     ]
+    },
+    {
+     "match": "province",
+     "distance_km": null,
+     "cautions": [
+      "자료 기준일이 1년 넘음 — 지금도 운영하는지 전화로 확인",
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FM556c9ff596",
+     "name": "어울림자원봉사센터",
+     "operator": "어울림나눔터",
+     "ctpv": "대구광역시",
+     "sgg": "달서구",
+     "address_road": "대구광역시 달서구 와룡로2길 42(본동)",
+     "address_lot": "대구광역시 달서구 본동 1094-1",
+     "phone": "053-628-8204",
+     "place": "허병원주차장 외",
+     "targets": [
+      "노인 및 취약계층"
+     ],
+     "days": [
+      "수",
+      "토"
+     ],
+     "days_raw": "수+토",
+     "meals": [
+      {
+       "meal": null,
+       "start": "11:30",
+       "end": "12:30"
+      }
+     ],
+     "time_raw": "11:30~12:30",
+     "latitude": 35.83391987,
+     "longitude": 128.5400734,
+     "reference_date": "2025-09-01",
+     "provider": "대구광역시 달서구",
+     "quality_flags": [
+      "reference_stale"
+     ]
+    },
+    {
+     "match": "province",
+     "distance_km": null,
+     "cautions": [
+      "자료 기준일이 1년 넘음 — 지금도 운영하는지 전화로 확인",
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FM8914018e71",
+     "name": "우리집나눔센터",
+     "operator": "나눔공동체우리집",
+     "ctpv": "대구광역시",
+     "sgg": "달서구",
+     "address_road": "대구광역시 달서구 월곡로26길 15-4(상인동)",
+     "address_lot": "대구광역시 달서구 상인동 1202-1",
+     "phone": "053-631-0691",
+     "place": "나눔공동체 우리집 내 식당",
+     "targets": [
+      "노인 및 취약계층"
+     ],
+     "days": [
+      "화",
+      "수",
+      "금",
+      "토",
+      "일"
+     ],
+     "days_raw": "화+수+금+토+일",
+     "meals": [
+      {
+       "meal": null,
+       "start": "10:30",
+       "end": "13:00"
+      }
+     ],
+     "time_raw": "10:30~13:00",
+     "latitude": 35.80882042,
+     "longitude": 128.549408,
+     "reference_date": "2025-09-01",
+     "provider": "대구광역시 달서구",
+     "quality_flags": [
+      "reference_stale"
+     ]
+    },
+    {
+     "match": "province",
+     "distance_km": null,
+     "cautions": [
+      "자료 기준일이 1년 넘음 — 지금도 운영하는지 전화로 확인",
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FMa709ee1947",
+     "name": "월성종합사회복지관",
+     "operator": "월성종합사회복지관",
+     "ctpv": "대구광역시",
+     "sgg": "달서구",
+     "address_road": "대구광역시 달서구 학산로7길 39(월성동)",
+     "address_lot": "대구광역시 달서구 월성동 273",
+     "phone": "053-634-4113",
+     "place": "월성종합사회복지관",
+     "targets": [
+      "복지관이 위치한 지역 내 만65세 이상 노인"
+     ],
+     "days": [
+      "월",
+      "화",
+      "수",
+      "목",
+      "금"
+     ],
+     "days_raw": "월+화+수+목+금",
+     "meals": [
+      {
+       "meal": null,
+       "start": "11:30",
+       "end": "12:30"
+      }
+     ],
+     "time_raw": "11:30~12:30",
+     "latitude": 35.83157686,
+     "longitude": 128.5298747,
+     "reference_date": "2025-09-01",
+     "provider": "대구광역시 달서구",
+     "quality_flags": [
+      "reference_stale"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "nearby_3km",
+   "description": "위치 허용 — 예시 위치 = 남구종합사회복지관 좌표, 반경 3km 가까운 순 (지역 경계와 무관)",
+   "input": {
+    "ctpv": "대구",
+    "sgg": "남구",
+    "lat": 35.84922271,
+    "lon": 128.5919776,
+    "radius_km": 3.0
+   },
+   "count": 8,
+   "results": [
+    {
+     "match": "district",
+     "distance_km": 0.0,
+     "cautions": [
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FM01885bc442",
+     "name": "남구종합사회복지관",
+     "operator": "남구종합사회복지관",
+     "ctpv": "대구광역시",
+     "sgg": "남구",
+     "address_road": "대구광역시 남구 중앙대로38길 17",
+     "address_lot": "대구광역시 남구 대명동 19-1",
+     "phone": "053-476-7700",
+     "place": "남구종합사회복지관",
+     "targets": [
+      "결식노인",
+      "저소득층",
+      "장애인(회원제)"
+     ],
+     "days": [
+      "수",
+      "목"
+     ],
+     "days_raw": "수+목",
+     "meals": [
+      {
+       "meal": "중식",
+       "start": "11:20",
+       "end": "12:20"
+      }
+     ],
+     "time_raw": "중식(11:20-12:20)",
+     "latitude": 35.84922271,
+     "longitude": 128.5919776,
+     "reference_date": "2026-07-13",
+     "provider": "대구광역시 남구",
+     "quality_flags": []
+    },
+    {
+     "match": "district",
+     "distance_km": 1.1,
+     "cautions": [
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FM089814586f",
+     "name": "희망의집",
+     "operator": "사)함께하는마음재단",
+     "ctpv": "대구광역시",
+     "sgg": "남구",
+     "address_road": "대구광역시 남구 대봉로 108",
+     "address_lot": "대구광역시 남구 이천동 557-9",
+     "phone": "053-476-6635",
+     "place": "희망의집",
+     "targets": [
+      "결식노인",
+      "저소득층",
+      "장애인",
+      "노숙자"
+     ],
+     "days": [
+      "화",
+      "금",
+      "토"
+     ],
+     "days_raw": "화+금+토",
+     "meals": [
+      {
+       "meal": "중식",
+       "start": "11:00",
+       "end": "12:30"
+      }
+     ],
+     "time_raw": "중식(11:00-12:30)",
+     "latitude": 35.84825154,
+     "longitude": 128.6041702,
+     "reference_date": "2026-07-13",
+     "provider": "대구광역시 남구",
+     "quality_flags": []
+    },
+    {
+     "match": "nearby",
+     "distance_km": 1.65,
+     "cautions": [
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FMdafa06ad8d",
+     "name": "자비의집",
+     "operator": "동화복지재단",
+     "ctpv": "대구광역시",
+     "sgg": "중구",
+     "address_road": "대구광역시 중구 문우관길 73",
+     "address_lot": "대구광역시 중구 남산동 932-33",
+     "phone": "053-256-1082",
+     "place": "자비의집",
+     "targets": [
+      "노인 등"
+     ],
+     "days": [
+      "월",
+      "화",
+      "수",
+      "목",
+      "금"
+     ],
+     "days_raw": "월+화+수+목+금",
+     "meals": [
+      {
+       "meal": null,
+       "start": "09:30",
+       "end": "12:30"
+      }
+     ],
+     "time_raw": "09:30~12:30",
+     "latitude": 35.86404983,
+     "longitude": 128.5928403,
+     "reference_date": "2026-06-23",
+     "provider": "대구광역시 중구",
+     "quality_flags": []
+    },
+    {
+     "match": "nearby",
+     "distance_km": 2.05,
+     "cautions": [
+      "전화번호 없음 — 운영 기관·제공 지자체로 문의",
+      "자료 기준일이 1년 넘음 — 지금도 운영하는지 전화로 확인",
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FM3060b581dd",
+     "name": "해밀사회봉사단",
+     "operator": "해밀사회봉사단",
+     "ctpv": "대구광역시",
+     "sgg": "달서구",
+     "address_road": "대구광역시 달서구 두류남길 56(두류동)",
+     "address_lot": "대구광역시 달서구 두류동 804-88",
+     "phone": null,
+     "place": "해밀무료급식소",
+     "targets": [
+      "노인 및 취약계층"
+     ],
+     "days": [
+      "월",
+      "토"
+     ],
+     "days_raw": "월+토",
+     "meals": [
+      {
+       "meal": null,
+       "start": "11:30",
+       "end": "13:00"
+      }
+     ],
+     "time_raw": "11:30~13:00",
+     "latitude": 35.85728091,
+     "longitude": 128.5714772,
+     "reference_date": "2025-09-01",
+     "provider": "대구광역시 달서구",
+     "quality_flags": [
+      "phone_missing",
+      "reference_stale"
+     ]
+    },
+    {
+     "match": "nearby",
+     "distance_km": 2.13,
+     "cautions": [
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FMd035c9ca46",
+     "name": "대구제일교회",
+     "operator": "대구제일교회",
+     "ctpv": "대구광역시",
+     "sgg": "중구",
+     "address_road": "대구광역시 중구 국채보상로102길 50",
+     "address_lot": "대구광역시 중구 동산동 234",
+     "phone": "053-253-2615",
+     "place": "대구제일교회",
+     "targets": [
+      "취약계층"
+     ],
+     "days": [
+      "토"
+     ],
+     "days_raw": "토",
+     "meals": [
+      {
+       "meal": null,
+       "start": "18:00",
+       "end": "19:30"
+      }
+     ],
+     "time_raw": "18:00~19:30",
+     "latitude": 35.86766703,
+     "longitude": 128.5855662,
+     "reference_date": "2026-06-23",
+     "provider": "대구광역시 중구",
+     "quality_flags": []
+    },
+    {
+     "match": "nearby",
+     "distance_km": 2.14,
+     "cautions": [
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FMfacb4e2aea",
+     "name": "불자의집",
+     "operator": "관음사",
+     "ctpv": "대구광역시",
+     "sgg": "중구",
+     "address_road": "대구광역시 중구 공평로8길 15",
+     "address_lot": "대구광역시 중구 삼덕동2가 26",
+     "phone": "053-421-3700",
+     "place": "불자의집",
+     "targets": [
+      "취약계층"
+     ],
+     "days": [
+      "금"
+     ],
+     "days_raw": "금",
+     "meals": [
+      {
+       "meal": null,
+       "start": "10:00",
+       "end": "12:00"
+      }
+     ],
+     "time_raw": "10:00~12:00",
+     "latitude": 35.86699986,
+     "longitude": 128.6010507,
+     "reference_date": "2026-06-23",
+     "provider": "대구광역시 중구",
+     "quality_flags": []
+    },
+    {
+     "match": "nearby",
+     "distance_km": 2.82,
+     "cautions": [
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FM86cee80d3f",
+     "name": "요셉의집",
+     "operator": "성모자애원",
+     "ctpv": "대구광역시",
+     "sgg": "중구",
+     "address_road": "대구광역시 중구 태평로210",
+     "address_lot": "대구광역시 중구 교동 26-7",
+     "phone": "053-426-8737",
+     "place": "요셉의집",
+     "targets": [
+      "노숙인 등"
+     ],
+     "days": [
+      "월",
+      "화",
+      "목",
+      "금",
+      "토"
+     ],
+     "days_raw": "월+화+목+금+토",
+     "meals": [
+      {
+       "meal": null,
+       "start": "09:00",
+       "end": "10:00"
+      }
+     ],
+     "time_raw": "09:00~10:00",
+     "latitude": 35.87364814,
+     "longitude": 128.6005028,
+     "reference_date": "2026-06-23",
+     "provider": "대구광역시 중구",
+     "quality_flags": []
+    },
+    {
+     "match": "nearby",
+     "distance_km": 2.98,
+     "cautions": [
+      "급식 요일을 읽지 못함 — 원문(days_raw) 확인",
+      "급식 대상·요일·시간은 바뀔 수 있으니 이용 전 시설에 전화로 확인"
+     ],
+     "facility_id": "FM997c42b764",
+     "name": "대구노숙인종합지원센터",
+     "operator": "대구노숙인종합지원센터",
+     "ctpv": "대구광역시",
+     "sgg": "북구",
+     "address_road": "대구광역시 북구 칠성남로38길 22(3층)",
+     "address_lot": "대구광역시 북구 칠성동2가 302-273",
+     "phone": "053-426-5828",
+     "place": "도시락 제공",
+     "targets": [
+      "노숙인"
+     ],
+     "days": null,
+     "days_raw": "혹서기, 동절기 : 중식(수)+석식(월+화+목+금)/ 그 외 : 중식(수)+석식(금)",
+     "meals": [
+      {
+       "meal": "중식",
+       "start": "11:30",
+       "end": "13:00"
+      },
+      {
+       "meal": "석식",
+       "start": "17:30",
+       "end": "18:30"
+      }
+     ],
+     "time_raw": "중식(11:30~13:00)+석식(17:30~18:30)",
+     "latitude": 35.875219,
+     "longitude": 128.600218,
+     "reference_date": "2026-08-01",
+     "provider": "대구광역시 북구",
+     "quality_flags": [
+      "days_unparsed"
+     ]
+    }
+   ]
+  }
+ ]
+}

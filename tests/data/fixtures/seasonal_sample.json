@@ -1,0 +1,975 @@
+{
+ "about": "농식품 이달의 식재료(공공데이터포털 15168024, 이용허락 제한 없음) 실제 응답 발췌 — 테스트용, 상세는 80자로 자름 (2026-11-07 수집)",
+ "meta": {
+  "provider": "농촌진흥청 국립식량과학원 (공공데이터포털)",
+  "service": "농식품 이달의 식재료 목록정보 (allbaroFoodMonth)",
+  "documentation": "https://www.data.go.kr/data/15168024/openapi.do",
+  "fetched_at": "2026-11-07T08:10:29+00:00",
+  "item_count": 123,
+  "months": 12,
+  "api_calls": 135,
+  "details": {
+   "requested": true,
+   "failed": 0
+  }
+ },
+ "items": [
+  {
+   "row_id": "m1-3",
+   "month": 1,
+   "fdmtSn": "3",
+   "fdmtNm": "더덕",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002305&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "3",
+     "fdmtNm": "더덕",
+     "ctvtIndcDtl": "■ 더덕은 도라지과의 여러해살이 풀로 독특한 향기가 뛰어난 우리나라 특유의 산에서 나는 뿌리 나물이다. ■ 단군시대부터 고려에 이르기까지의 역사",
+     "prchCheatDtl": "■ 품종특성- 더덕의 육성품종은 없고 야생을 수집하여 오래 재배하면서 재래종의 분화가 있다. 뿌리의 표면 색깔이 연한 흑갈색으로 잔뿌리가 많고 ",
+     "cstdyMthDtl": "■ 보관법- 더덕을 보관할 때는 더덕이 얼지 않도록 주의하여야 한다. 10℃ 전후 온도가 가장 좋으며, 젖은 신문지에 싸서 냉장고 신선실에 보관",
+     "etcInfoDtl": "■ 더덕은 섬유질이 질긴 특성이 있으므로 밀대로 두드리거나 밀면 섬유질이 연해져 부드럽게 섭취할 수 있다."
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 더덕은 알칼리성 식품으로 고기류와 함께 섭취하면 고기의 산성 성분이 중화되어 궁합이 좋다.",
+     "ntrIrdntEfcyDtl": "■ 더덕은 칼륨, 철분, 칼슘, 인 등의 무기질이 풍부하게 함유된 알칼리성 식품으로 고기류와 함께 섭취하면 고기의 산성 성분이 중화되어 궁합이 ",
+     "rltRsrchInfoDtl": "■ 더덕을 이용한 음식의 전통레시피 개발과 내·외국인의 선호도, 장서영 외 3명, 2014, 한국식생활문화학회지: 29(1)- 본 연구에서는 더",
+     "cnsmpqyDtl": "■ 더덕은 지난해에 이어 생산량이 감소해 8489톤을 기록할 전망이며 2022년까지 지속적인 생산량 감소세가 예상된다. "
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "11",
+       "recipeNm": "참깨소스를 곁들인 찹쌀더덕튀김",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002479&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m1-10",
+   "month": 1,
+   "fdmtSn": "10",
+   "fdmtNm": "장아찌",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002312&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "10",
+     "fdmtNm": "장아찌",
+     "ctvtIndcDtl": "■ 장아찌란 절임류로 간장이나 고추장, 된장, 소금, 젓갈 등을 이용한 저장식품이다. 식탁에 자주 오르는 친근한 반찬으로, 철마다 담그는 종류가",
+     "prchCheatDtl": null,
+     "cstdyMthDtl": "■ 보관법- 수분을 많이 함유한 재료는 소금에 절이거나, 끓는 물에 데치거나, 햇볕에 말리는 등의 전처리를 하여 자체 내의 수분을 일부 제거 한",
+     "etcInfoDtl": "■ 국가별 대표 절임류- 미국의 피클(Pickles) : 채소나 과일에 각종 향신료를 첨가하여  만든 장아찌로 오이를 재료로 한 오이피클이 가장"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 알맞게 익은 장아찌는 꺼내어 그대로 먹기도 하지만, 지나치게 짤 경우에는 물에 담가 짠맛을 우려 낸 후 적당하게 썰어 고춧가루, 참기름, 파",
+     "ntrIrdntEfcyDtl": "■ 장아찌는 제조 및 발효과정에서 각종 유기산과 알코올 성분이 생성되어 식욕을 촉진시키고, 식이성 섬유소가 매우 많아 장의 운동을 도와 변비 및",
+     "rltRsrchInfoDtl": "■ 청주박을 이용한 오이장아찌의 품질 특성, 박영란 외 2명, 동아시아식생활학회지: 25(1), 2015- 본 연구에서는 절임농도에 따른 청주박",
+     "cnsmpqyDtl": "■ 2016년 절임류에 대한 소비자 조사에서 집에서 가장 많이 만들어 먹는 절임식품은 간장에 절인 제품이라는 응답이 46.2%로 가장 많았고, "
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "1",
+       "recipeNm": "오이장아찌 옛날 도시락",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002459&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m1-11",
+   "month": 1,
+   "fdmtSn": "11",
+   "fdmtNm": "찹쌀",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002313&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "11",
+     "fdmtNm": "찹쌀",
+     "ctvtIndcDtl": "■ 멥쌀과 대응되는 말로 나미(糯米) 또는 점미(黏米)라고도 한다. 벼는 중국의 윈난지방(雲南地方)에서 인도의 아삼지방에 걸치는 고원지대가 원산",
+     "prchCheatDtl": "■ 구입요령 - 부서지지 않고 입자가 고른 것, 쌀알이 유백색을 띠고 청결한 것, 쌀알에 골이 없으며 곰팡이가 핀 쌀알이 섞이지 않은 것이 좋은",
+     "cstdyMthDtl": "■ 보관법-밀폐용기에 넣어서 보관하면 벌레가 생기지 않게 보관할 수 있다. 직사광선을 피해 서늘한 곳에 보관. 오래보관하기 위해서 냉장고에 넣는",
+     "etcInfoDtl": "■ 찹쌀은 특유의 찰진 식감이 있어 쌀과 함께 취사하면 밥에 윤기가 흐르고 밥맛이 훨씬 좋아진다."
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 쫀득한 식감을 이용해 떡이나 약식, 전병 등의 재료로 많이 사용하며, 그 밖에 전통음식인 찹쌀식혜, 찹쌀 고추장, 찹쌀동동주, 찹쌀 부꾸미 ",
+     "ntrIrdntEfcyDtl": "■찹쌀은 면연력을 높여주는 비타민B군과 항산화 작용을 하는 비타민E도 포함한다.",
+     "rltRsrchInfoDtl": "■ 찹쌀 첨가와 취반방법에 따른 취반 밥의 품질 및 항산화특성, 김미정 외 9명, 2017, 한국작물회지: 62(2)- 찹쌀을 첨가한 밥의 식미",
+     "cnsmpqyDtl": "■ 2017년 1인당 연간 양곡(쌀+기타양곡) 소비량은 70.9kg으로 전년대비 0.4% 감소하였다."
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "17",
+       "recipeNm": "월과채",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002491&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m1-42",
+   "month": 1,
+   "fdmtSn": "42",
+   "fdmtNm": "돼지고기(수제 소시지)",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002344&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "42",
+     "fdmtNm": "돼지고기(수제 소시지)",
+     "ctvtIndcDtl": "■ 돼지는 예로부터 돝 또는 도야지로 불려왔으며 돝아지(도야지)가 변해서 된 것임■ 한자어로는 저(猪)·시(豕)·돈(豚)·체(彘)·해(亥)등으로",
+     "prchCheatDtl": "■ 품종특성- 경상북도 김천의 지례돈(知禮豚)과 경상남도 사천의 사천도(泗川豚)는 독특한 형태를 간직하고 있었으나 외래품종의 도입으로 인하여 고",
+     "cstdyMthDtl": "■ 보관법- 돼지고기는 얇게 썬 단면이 넓어 상하기 쉬우므로 종이타월로 수분을 한 번 닦아 내고 100g씩 나누어 밀봉해서 보관하면 쉽게 상하지",
+     "etcInfoDtl": "■ 돼지의 형태는 품종에 따라 차이가 있으나 일반적으로 멧돼지에 비하여 머리 부분이 작고, 피하지방이 축적되기 쉬우면, 털이 적고 네 다리가 짧"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 안심:탕수육, 구이, 로스구이, 스테이크, 커틀렛 등.■ 등심:커틀렛, 스테이크, 불고기, 로스트,, 폭찹 등■ 목심:커틀렛,구이, 전골,푹",
+     "ntrIrdntEfcyDtl": "■ 돼지고기는 약 70~75%가 수분, 나머지는 거의 단백질로 구성된 고단백질 식품■ 지방, 탄수화물, 비타민 및 미네랄 등의 영양성분도 소량으",
+     "rltRsrchInfoDtl": "■ 돈지육 및 돈육 중 열안정성 단백질의 존재 확인과 이의 항원성 확인 김정숙·이정은·심원보, 한국식품위생안전성학회, 제31권6호 (2016)-",
+     "cnsmpqyDtl": "■ 돼지고기 1인당 소비량은 200년 16.5kg에서 2010년 19.0kg으로 증가, 2012년 19.2kg, 2013년 20.8kg으로 증가"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "170",
+       "recipeNm": "소시지강정",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002788&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m2-18",
+   "month": 2,
+   "fdmtSn": "18",
+   "fdmtNm": "깻잎",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002320&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "18",
+     "fdmtNm": "깻잎",
+     "ctvtIndcDtl": "■ 깻잎은 식물분류학상 꿀풀과에 속하는 초본식물인 들깨의 잎으로 동북아시아 지역이 원산지로 한국, 중국에서 주로 재배하였다.■ 깻잎은 사전적 의",
+     "prchCheatDtl": "■ 품종특성- 잎들깨1호: 잎 모양은 심장형, 겨울철 시설재배 시 잎 뒷면 색깔이 보라색을 띠며 잎이 크고 두껍다.- 상엽: 상엽들깨는 잎전용 ",
+     "cstdyMthDtl": "■ 보관법- 깻잎은 쉽게 건조해지기 때문에 수분을 유지하는 것이 중요하다. 깻잎을 종이타월로 한번 감싸 랩으로 씌운 후 냉장 보관한다. ■ 손질",
+     "etcInfoDtl": "■ 들깨는 우리 몸에 필요한 영양소를 다량 함유하고 있어 영양 공급원의 보고라고 할 수 있는데 종실 중에는 43%의 기름과 18%의 단백질 및 "
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 깻잎은 독특한 향을 가지고 있어 주로 쌈 채소, 장아찌, 무침 요리의 주재료나 찌개와 탕의 부재료로 활용된다.",
+     "ntrIrdntEfcyDtl": "■ 깻잎은 독특한 향과 맛을 지니고 있어 식용, 약용으로 주로 사용되고 있으며, 베타 카로틴, 카페인산, 루테올린, 퀘르세틴, 로즈마린산 등의 ",
+     "rltRsrchInfoDtl": "■ 깻잎 분말을 첨가한 즉석 쌀국수의 품질 특성 및 항산화 활성, 최미현 외 3명, 한국식품영양과학회지: 48(4), 2019- 본 연구에서는 ",
+     "cnsmpqyDtl": "■ 2012년부터 2016년까지 최근 5년간 잎들깨의 소득을 분석하면 10a당 조수입은 22,788천원이며, 생산비는 8,075천원으로 소득은 "
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "57",
+       "recipeNm": "깻잎 소고기 쌈밥",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002565&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m3-27",
+   "month": 3,
+   "fdmtSn": "27",
+   "fdmtNm": "냉이",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002329&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "27",
+     "fdmtNm": "냉이",
+     "ctvtIndcDtl": "■ 나생이, 나숭이 등으로도 불리는 냉이는 이른 봄을 장식하는 대표적인 나물로서 내한성이 강하며 우리나라 전역에 흔히 자생하는 월년초(越年草)■",
+     "prchCheatDtl": "■ 구입요령- 잎이 짙은 녹색인 것, 잎과 줄기가 자그만한 것, 향이 진한 것이 좋고, 뿌리가 너무 굵고 질긴 것은 피함",
+     "cstdyMthDtl": "■ 보관법- 비닐랩에 싸서 습기를 유지하여 냉장 보관하면 2~3일은 시들지 않게 보관할 수 있고, 손질하고 남은 것은 살짝 데쳐서 보관■ 손질법",
+     "etcInfoDtl": null
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 냉이는 국이나 찌개에 주・부재료로 넣어 먹거나, 데쳐서 나물로 무쳐 먹고, 냉이 김치와 장아찌 등 반찬으로 활용■ 밥 또는 죽에 넣어서 별미",
+     "ntrIrdntEfcyDtl": "■ 냉이는 단백질 8%, 탄수화물 7.4%, 무기질 3%, 지방 0.7% 등이 함유되어있으며 다른 산채류에 비하여 단백질의 함량이 높고 칼슘과 ",
+     "rltRsrchInfoDtl": "■ 석창포, 두릅 순, 냉이 및 민들레 에탄올 추출물의 항산화활성 및 항유전독성 분석 이윤정, 이선우, 이승천, 박은주. 경남대학교 기초과학지 ",
+     "cnsmpqyDtl": "■ 냉이는 단백질, 무기질, 칼슘 등이 풍부한 건강식품으로 봄철  나물채소 중 소비량이 가장 많은 채소"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "142",
+       "recipeNm": "냉이 파강회",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002734&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m4-40",
+   "month": 4,
+   "fdmtSn": "40",
+   "fdmtNm": "달래",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002342&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "40",
+     "fdmtNm": "달래",
+     "ctvtIndcDtl": "■ 달래(Allium monanthum)는 백합과(Liliaceae), 파속(Allium)에 속하는 다년생 알뿌리 식물, ■ 중국, 몽고, 일본",
+     "prchCheatDtl": "■ 품종특성- 돌달래와 산달래로 구분하기도 함- 돌달래는 땅 속에 난형 또는 주형의 비늘줄기가 있고 수염뿌리, 잎이 가늘며 긴 대롱 모양, 여름",
+     "cstdyMthDtl": "■ 보관법- 달래가 마르지 않도록 신문지에 돌돌 말아 비닐 또는 용기에 담아 냉장보관 한다.■ 손질법- 뿌리 부분에 딱딱한 돌기 같은 것이 있는",
+     "etcInfoDtl": "■ 유사종- 산달래 : 산지의 초임이나 들에서 자라는 여러해살이풀- 산마늘 : 깊은 산의 볕이 드는 숲에서 자라는 여러해살이풀"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 비타민C의 파괴를 예방하기 위해 생채로 무쳐 먹거나 된장국에 넣는다.■ 부침재료로도 사용하며 장아찌를 만들어 묵혀 먹기도 함, ■ 줄기와 수",
+     "ntrIrdntEfcyDtl": "■ 달래는 주로 생체 전체를 식용, 무기성분과 아미노산, 당 및 비타민이 풍부하여 영양학적인 면에서 가치가 매우 높은 것으로 나타남■ 면역력을 ",
+     "rltRsrchInfoDtl": "■ 달래추출물이 고지방식이 섭취 흰쥐의 지질대사, 항산화 및 전염증성 사이토카인 생성에 미치는 생리활성 효과 윤광로, 유국제 이윤 한국자원식물학",
+     "cnsmpqyDtl": "■ 1980년대까지 달래 재배는 흔하지 않고 소규모로 이루어졌으나  1990년대 폭발적으로 늘어남■ 현재 서산의 달래는 전국 생산량의 70%를 "
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "173",
+       "recipeNm": "우엉달래잡채",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002794&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m6-65",
+   "month": 6,
+   "fdmtSn": "65",
+   "fdmtNm": "가지",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002367&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "65",
+     "fdmtNm": "가지",
+     "ctvtIndcDtl": "■ 학명은 Solanum melongena L. 이며 가지과(Solanaceae)의 식물로서 토마토, 고추,    감자, 담배 등이 여기에 속한",
+     "prchCheatDtl": "■ 품종특성  - 흑진주：과실 껍질은 흑자색으로 윤이 나며, 과육이 연하여 상품성이 우수함.  - 쇠뿔가지 : 우리나라 농가에서 가장 많이 재배",
+     "cstdyMthDtl": "■ 보관법- 밀봉하여 냉장 보관한다.■ 손질법- 흐르는 물에 깨끗이 씻어 사용한다.",
+     "etcInfoDtl": "■ 유사 식물　：　토마토, 고추, 감자 "
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 주로 나물용으로 쓰인다.■ 절임, 구이, 볶음, 조림으로 이용하기도 하며 튀김으로 요리하면 가지의 스펀지 같은    조직 내로 기름이 흡수되",
+     "ntrIrdntEfcyDtl": "■ 토마토나 오이에 비하면 비타민 등이 부족하고, 탄수화물 중에는 환원당이 많다고   한다.■ 플라보노이드계 색소인 안토시아닌 성분 때문에 지방",
+     "rltRsrchInfoDtl": "■ 가지(Solanum melongena L.) 활성물질의 라디칼 소거능과 산화적 스트레스에 대   한 세포 보호 효과. 김현영, 조윤주, Ya",
+     "cnsmpqyDtl": "■ 우리나라 가지 재배는 2000년대 1,000ha를 약간 넘었으나 점차 감소, 2011년에 약     750ha로 감소.■ 생산량은 2007년"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "266",
+       "recipeNm": "가지절임샐러드",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002976&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m6-69",
+   "month": 6,
+   "fdmtSn": "69",
+   "fdmtNm": "달걀",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002371&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "69",
+     "fdmtNm": "달걀",
+     "ctvtIndcDtl": "■ 우리나라에 닭이 전래된 경로나 사육기원은 명확하지는 않으나 삼국사기와 삼국유사의 기록에 신라 시조인 혁거세 왕이 알에서 태어났다는 설과 김알",
+     "prchCheatDtl": "■ 품종특성- 토종닭 재래종은 예로부터 우리나라에서 사육되어온 닭으로 적갈색, 황갈색, 흑색, 백색, 회갈색 재래닭 등이 있다.- 적갈색 재래닭",
+     "cstdyMthDtl": "■ 보관법- 달걀의 뾰족한 부분을 아래로 하여 냉장고 또는 서늘한 곳에 보관한다. 이때 달걀 표면은 뚜껑으로 덮어줘야 중량손실이 줄어든다.- 달",
+     "etcInfoDtl": "■ 달걀의 섭취와 혈중 콜레스테롤 사이에는 어떠한 관련성도 없다. 05년 예일대학교 예방의학센터에서도 하루 2개의 달걀 섭취는 혈액 내 콜레스테"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■  날것으로 먹거나 굽기, 찌기에 이용되며 각종 요리에 쓰인다.",
+     "ntrIrdntEfcyDtl": "■ 흰자: 계란 중 가장 많은 중량을 차지한다. 전체의 50~60%가 난백으로 이루어진다. 수분과 단백질 함량이 높아 계란이 부화할 때 영양분의",
+     "rltRsrchInfoDtl": "■ 이충언 외 3명, 2007, 계란 섭취수준이 흰쥐 혈청의 지질, 단백질, 칼슘 농도 및 효소활성에 미치는 영향, 한국생명과학회: 17(4)-",
+     "cnsmpqyDtl": "■ 농림축산식품부의 2016년 통계자료에 따르면 우리나라 계란 생산, 소비량은 135억 5천 600만개이며, 1인당 소비량은 연간 268개이다."
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "256",
+       "recipeNm": "달걀프리타타",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002956&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m7-83",
+   "month": 7,
+   "fdmtSn": "83",
+   "fdmtNm": "애호박",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002385&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "83",
+     "fdmtNm": "애호박",
+     "ctvtIndcDtl": "■ 인류가 호박을 이용하기 시작한 시기는 약 9,000년 전으로 추정된다. 호박은 원산지인 멕시코 고대문화를 지탱하여 온 중요한 작물로 유적들 ",
+     "prchCheatDtl": "■ 품종특성- 국내육성 주요 품종으로는 미소와 광명, 산골이 있다.- 미소: 과형, 맛 등 과실 품질 특성은 시판 품종과 유사하며 초세가 강하고",
+     "cstdyMthDtl": "■ 보관법- 애호박의 경우에는 장기저장을 할 수 없지만, 썰어 말리거나 호박을 썰어서 데친 후에 급속 냉동하여 저장하면 장기간 보존이 쉬워 서양",
+     "etcInfoDtl": "■ 국내의 전국적인 호박 행사로는 2003년부터 한국박과채소연구회와 농어촌청소년육성재단, 농촌진흥청 국립원예특작과학원이 공동 주최하는 박과채소챔"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 애호박으로 할 수 있는 음식에는 호박나물, 호박선, 호박전, 호박지짐이, 호박찜, 호박찌개 등 아주 다양하다. 가늘게 채 썬 호박나물을 국수",
+     "ntrIrdntEfcyDtl": "■ 호박은 소화흡수가 잘되는 당질과 비타민A의 함량이 높다. 100년 전 일본에서는 야맹증과 각기병환자가 많아 서양으로부터 밤호박, 당근, 시금",
+     "rltRsrchInfoDtl": "■ 플라스틱 봉지재배가 애호박 품질 향상과 저장 연장에 미치는 효과, 박경섭 외 4명, 2010, 생물환경조절학회지: 19(4)- 본 연구는 플",
+     "cnsmpqyDtl": "■ 한국에서의 한국에서의 박과채소 재배면적은 다른 박과작물이 감소 추세를 보이는 반면 호박만은 꾸준한 재배면적 증가추세를 이어 온 것이 돋보인다"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "307",
+       "recipeNm": "맛양념장을 곁들인 애호박찜",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003055&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m7-88",
+   "month": 7,
+   "fdmtSn": "88",
+   "fdmtNm": "인삼(수삼)",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002390&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "88",
+     "fdmtNm": "인삼(수삼)",
+     "ctvtIndcDtl": "■ 인삼(Panax ginseng C. A. Meyer)은 두릅나무과(Araliaceae) 인삼속(Panax)에 속하는 초본류로 그 뿌리를 약용",
+     "prchCheatDtl": "■ 품종특성- 현재 재배되고 있는 인삼의 대부분은 재래종, 15개 품종이 개발- 천풍(2002, 원형홍삼용, 체형 우수, 내적변), 연풍(200",
+     "cstdyMthDtl": "■ 보관법- 종류에 따라 수분 함유량이 달라 보관방법과 보관기간이 다름.- 수삼은 곰팡이가 피고 썩기 쉬우므로 비닐에 싸서 저온·건조한 냉장실에",
+     "etcInfoDtl": "- 인삼(고려인삼, 고려삼, Korean Ginseng), 서양삼(화기삼, 북미삼, 미국삼, 캐나다삼, American Ginseng), 삼칠삼"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 인삼은 묻어 있는 흙만 씻으면 버리는 부분이 전혀 없는 이용률 100% 식품 재료, 썰거나 쪼개거나 끊어서 조리하기 매우 용이함.■ 구이, ",
+     "ntrIrdntEfcyDtl": "■ 인삼은 사포닌(Saponin), 진세노사이드(Ginsenoside)등의 성분을 함유.■ 심장 등 오장(五臟)을 보호하고 정신을 안정, 눈을 ",
+     "rltRsrchInfoDtl": "■ 금 나노입자를 처리한 홍삼의 산화스트레스 완화 및 PC-12 신경세포 보호 김지원외5명. 한국식품과학회지 제49권 제2호, 222-227(2",
+     "cnsmpqyDtl": "■ 2012년 이후 인삼의 생산량과 소비량 모두 감소, 2011년 23,183톤 대비 25.3% 감소한 수치임.■ 1인당 소비량도 0.46kg("
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "318",
+       "recipeNm": "수삼돈육조림",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003077&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m8-85",
+   "month": 8,
+   "fdmtSn": "85",
+   "fdmtNm": "옥수수",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002387&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "85",
+     "fdmtNm": "옥수수",
+     "ctvtIndcDtl": " ■ 옥수수는 중앙아메리카에서 북쪽으로는 캐나다, 남쪽으로는 아르헨티나까지 전파되어 종류와 품종이 다양하게 분화되었으며 오늘날에는 전 세계적으로",
+     "prchCheatDtl": "■ 품종특성- 찰옥4호: 다수성, 흰찰옥수수, 이삭이 크고 대립형, 식미가 우수하고 간식용 풋옥수수이다.- 일미찰: 다수성, 흰찰옥수수, 식미가",
+     "cstdyMthDtl": "■ 보관법- 수확한 옥수수는 시간이 지날수록 당분이 전분으로 변하여 단맛이 떨어지기 때문에 바로 먹지 않을 때는 냉동 보관하는 것이 좋다. 먼저",
+     "etcInfoDtl": "■ 옥수수는 배아 부분에 영양이 집중되어 있으므로 배아를 함께 먹는 것이 좋고, 칼로 알맹이를 잘라낼 때 숟가락을 이용해서 배아까지 긁어내어 먹"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 찰옥수수는 대부분 쪄 먹는 용도로 이용되고, 단옥수수류는 삶아 먹거나 과일처럼 생으로 먹기도 하고 통조림 등 가공식품으로 이용된다. 팝콘 등",
+     "ntrIrdntEfcyDtl": "■ 옥수수는 쌀이나 보리에 비해 열량이 떨어지지 않지만, 상대적으로 필수아미노산의 양이 부족한 편이다. 따라서 콩, 우유, 고기, 달걀 등 단백",
+     "rltRsrchInfoDtl": "■ 고지방식이 비만 유도 마우스에서 자색옥수수 추출물의 항당뇨 및 항염증 효과, 정현채 외 4명, 한국식품영양학회지: 30(4), 2017- 본",
+     "cnsmpqyDtl": "■ 2017년 기준 옥수수 출하도는 ① 충청북도 ② 강원도 ③ 전라남도 순이고, 시 군은 ① 충북 괴산군 ② 강원 영월군 ③ 충북 제천시 순이다"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "337",
+       "recipeNm": "옥수수 in 가지",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003115&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m8-92",
+   "month": 8,
+   "fdmtSn": "92",
+   "fdmtNm": "고추",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002394&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "92",
+     "fdmtNm": "고추",
+     "ctvtIndcDtl": "■ 고추는 우리나라 국민의 식생활에서 없어서는 안 될 중요한 부식 채소로 전체 채소 중 가장 많은 재배면적과 생산량을 차지한다.■ 고추의 원산지",
+     "prchCheatDtl": "■ 품종특성- 길상 : 착과성이 우수한 조생종으로 조기 수량이 많다. 주간과 절간이 짧으며 키가 작다. 과색은 농녹색으로 광택이 강하다. 매운맛",
+     "cstdyMthDtl": "■ 보관법- 풋고추 적정 저장온도는 7℃로 너무 낮은 온도에 저장하면 속이 검게 변하는 경향이 있다.- 장기저장을 위해서는 씻어서 물기를 제거한",
+     "etcInfoDtl": "■ 고추씨에는 23~29%의 불포화 지방산이 함유되어 있다. 불포화지방산은 체내의 노폐물을 걸러 주는 작용을 한다. 고추의 캡사이신 성분은 젖산"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 고추는 풋고추인 채로 날로 먹기도 하고 조림으로 먹기도 하며 장에 절이는 경우도 있고 장아찌, 조림, 전, 잡채, 튀김 등에 이용된다.",
+     "ntrIrdntEfcyDtl": "■ 국가표준식품성분표에 따르면 풋고추의 비타민 C 함량은 43.95㎎/100g으로 과일류 못지 않은 비타민 C 급원식품이다. 고추의 매운맛 성분",
+     "rltRsrchInfoDtl": "■ 청양고추 착즙액 첨가에 따른 생면의 품질특성, 황인국 외 4명, 한국식품영양과학회지: 40(6), 2011- 최근 강한 매운맛에 대한 선호도",
+     "cnsmpqyDtl": "■ 2018년 7월 일반풋고추 평균 도매가격(가락시장)은 상품 10kg 상자에 4만 6,100원으로 전년보다 1% 높았다. 이는 강원도에서 고온"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "347",
+       "recipeNm": "풋고추 새우살 튀김",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003132&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m8-103",
+   "month": 8,
+   "fdmtSn": "103",
+   "fdmtNm": "풋콩/껍질콩",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002405&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "103",
+     "fdmtNm": "풋콩/껍질콩",
+     "ctvtIndcDtl": "■ 풋콩은 콩의 어린 꼬투리를 미숙할 때 수확한 것이다. 완전히 익으면 대두가 되는데, 풋콩용의 품종은 따로 개발되어 나와 있다.■ 재배종 콩의",
+     "prchCheatDtl": "■ 품종특성- 화엄풋콩: 풋콩용 품종개발을 위하여 풋콩으로 가능한 국내외 콩 유전자원을 수집한 후 특성을 평가한 결과, 1989년 일본으로부터 ",
+     "cstdyMthDtl": "■ 보관법- 풋콩은 밀봉하여 냉장고에 보관하면 1주일 정도 보관할 수 있고, 냉동하면 좀 더 오래 보관할 수 있다. 껍질콩은 건조하지 않도록 비",
+     "etcInfoDtl": "■ 풋콩은 일본에서도 즐겨먹는 식재료 중 하나로 ‘에다마메(えだまめ)’라고 한다. 소금물에 삶아 짭쪼름한 에다마메는 식전에 입맛을 돋우는 전채요"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 풋콩은 흐르는 물에 씻은 뒤 익힐 때는 풋내가 없어질 정도로만 익히면 좋다. 오래 익히면 색이 어두워지고 고소한 맛이 사라지므로 조리 시 주",
+     "ntrIrdntEfcyDtl": "■ 단백질, 지방, 아미노산 등 기본적인 영양 구성은 같지만 수분 함량이 약 60~70% 함유되어 있어 식감이 더 부드럽다. 칼슘, 인, 철, ",
+     "rltRsrchInfoDtl": "■ 박영미 외 2명, 고지방 식이로 유도된 비만 마우스에서 대두 부산물인 순물과 침지수의 항비만 효과, 2015, 한국자원식물학회지, 28(2)",
+     "cnsmpqyDtl": "■ 1인당 1인당 식용콩 소비량은 1970년 5.3kg에서 2005년에는 9.0kg으로 증가하였고, 2015년 8.2㎏ 수준이다. 콩 수입량은 "
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "362",
+       "recipeNm": "풋콩국수",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003162&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m8-134",
+   "month": 8,
+   "fdmtSn": "134",
+   "fdmtNm": "단호박",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002436&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "134",
+     "fdmtNm": "단호박",
+     "ctvtIndcDtl": "■ 호박을 이용하기 시작한 것은 9,000년 전부터이며 그로부터 오늘날까지 여러 가지 형태로 분화, 특히, 콜롬부스에 의해 호박의 종류는 전 세",
+     "prchCheatDtl": "■ 품종특성- 단비스 : 가장 많이 재배, 조생종이자 다수확 품종.○ 무게는 1.7~1.9kg, 겉은 짙은 녹색 바탕에 옅은 녹색 반점이 있음.",
+     "cstdyMthDtl": "■ 보관법- 직사광선을 피해 서늘한 곳에 보관.- 오래 보관해야 할 때는 씨와 내용을 긁어내고 랩으로 싸서 냉동실에 보관.■ 손질법- 깨끗이 씻",
+     "etcInfoDtl": "- 유사재료 : 늙은 호박(단호박과 함께 가장 많이 이용되는 호박의 종류로 일반 호박을 늦가을까지 숙성시킨 것으로 외피가 황토 빛깔을 나타내며 "
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 튀겨먹거나 쪄먹는 일반적인 방법 이외에 떡을 만들거나 호박김치, 호박선 등의 재료로도 이용.■ 엿류, 건조류, 즙류, 단호박류, 반찬류 및 ",
+     "ntrIrdntEfcyDtl": "■ 호박은 성분이 고르고 맛이 달며 독이 없으면서 오장을 편하게 하고, 산후 혈전통을 낫게 하며 눈을 밝게 함,■ 이뇨작용을 촉진시켜 붓기를 없",
+     "rltRsrchInfoDtl": "■ 단호박을 첨가한 식빵의 품질 및 기호도 특성 한국식생활문화학회지 28(4) (2013). - 종합적인 맛은 6~12%, 향미는 6~9%, 색",
+     "cnsmpqyDtl": "■ 단호박과 애호박의 소비량은 2007년 이후 지속적으로 증가한 것으로 나타남.■ 질병관리본부의 국민건강영양조사 결과에 따르면 늙은 호박의 소비"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "493",
+       "recipeNm": "단호박 영양닭찜",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003421&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m9-57",
+   "month": 9,
+   "fdmtSn": "57",
+   "fdmtNm": "수수",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002359&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "57",
+     "fdmtNm": "수수",
+     "ctvtIndcDtl": "■ 수수는 밀, 쌀, 옥수수, 보리에 이어 세계에서 다섯 번째로 생산량이 많은 중요한 식량 작물이다.■ 수수는 열대 아프리카가 원산지이며 고대에",
+     "prchCheatDtl": "■ 품종특성- 황금찰수수 : 2004년 강원도 농업기술원에서 순계분리에 의해 육성된 ‘황금찰수수’는 조숙종이며, 다수성인 찰수수로 불포화 지방산",
+     "cstdyMthDtl": "■ 보관법- 수수는 습기에 약하기 때문에 밀봉한 후 건조한 곳에 보관해야 한다. 밀폐 용기에 넣어 냉장 보관하면 조금 더 오래 보관할 수 있다.",
+     "etcInfoDtl": "■ 팥과 함께 섭취하면 콜레스테롤을 억제하고 노폐물 제거에 좋다. 고구마와 함께 섭취하면 소화가 잘되어 속이 편안하다. "
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 흐르는 물에 씻어 이물질을 제거한 뒤 체에 걸러 물기를 빼고 용도에 맞게 사용한다. 수수로 밥을 지을 때는 쌀과 수수의 비율은 8:2가 적당",
+     "ntrIrdntEfcyDtl": "■ 수수는 플라보노이드, 탄닌 등의 폴리페놀 성분이 풍부하고 항산화 활성이 우수한 곡물이다. 콜레스테롤 흡수를 억제하고 비만, 당뇨 등 생활습관",
+     "rltRsrchInfoDtl": "■ 메수수가루 첨가에 따른 생면의 품질특성 및 라디칼 소거활성, 김현영 외 7명, 한국식품과학회지 : 45(4), 2013- 최근 수수에 대한 ",
+     "cnsmpqyDtl": "■ 2008년 수수의 전체 공급량은 1만 7,664톤이며, 수입량 비중은 85%로 나타났다. 전체 수요량에서 67%가 식량과 가공용으로 사용되고"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "422",
+       "recipeNm": "수수배추전",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003280&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m9-109",
+   "month": 9,
+   "fdmtSn": "109",
+   "fdmtNm": "소고기",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002411&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "109",
+     "fdmtNm": "소고기",
+     "ctvtIndcDtl": "■ 가축화된 집소에는 유럽계와 아시아계가 있는데, 기원은 각각 다름. 유럽계는 어깨높이 1.8m 정도의 거대한 흑갈색 오로크스(原牛:B. pri",
+     "prchCheatDtl": "■ 구입요령 - 밝은 선홍색의 고기색 및 유백색의 지방색, 섬세하면서 탄력 있는 고기결로 판단한다.- 고기는 필요한 만큼 소량씩 구입하고 육질등",
+     "cstdyMthDtl": "■ 보관법- 얇게 썬 소고기나 돼지고기는 단면이 넓어 그만큼 상하기도 쉽다. 구입 후 즉시 요리하지 않을 때는 종이타월로 수분을 한 번 닦아 내",
+     "etcInfoDtl": "■ 산적용은 우둔살이 알맞다. 지방량은 중간 정도지만, 붉은 살로 육질이 촘촘해 부드럽고 맛있고, 등심과 연결되는 엉덩이 안쪽 부위로 육질은 부"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 쇠고기는 도축기간을 기준으로 진공포장해 저온냉장온도(0~4℃)에서 10~14일 정도 저장하면 자연 숙성되어 연해지며, 양념육인 경우 열대과일",
+     "ntrIrdntEfcyDtl": "■ 한우에는 양질의 단백질이 풍부할 뿐만 아니라 체내 흡수율이 높아 신체발달과 균형 유지에 효과적이다. 한우에는 지방 연소에 꼭 필요한 비타민 ",
+     "rltRsrchInfoDtl": "■ 이수정 외 3명, 수입 등심육과 유기 한우의 품질특성 및 항산화 활성 비교, 2016, 농업생명과학연구: 50(3)- 본 연구는 유기 한우육",
+     "cnsmpqyDtl": "■ 2004년부터 국내 경기의 침체와 소 값 상승에 따른 수요 감소, 국내외에서 브루셀라, 광우병 등 가축 악성질병의 발생으로 인해 안전성에 대"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "413",
+       "recipeNm": "청양쇠고기함박스테이크",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003262&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m10-131",
+   "month": 10,
+   "fdmtSn": "131",
+   "fdmtNm": "호박",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002433&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "131",
+     "fdmtNm": "호박",
+     "ctvtIndcDtl": "■ 아메리카 대륙에서 태어난 호박은 원주민들에게 중요한 식량으로 약 9,000년부터 재배된 것으로 추정- 중남미 문명을 통칭하는 ‘안데스문명’(",
+     "prchCheatDtl": "■ 품종특성- 전 세계적으로는 30여 종의 호박이 있으며 동양계, 서양계, 페포계의 3종이 가장 널리 재배<동양계(C. moschata)>- 중",
+     "cstdyMthDtl": "■ 보관법- 애호박: 물기를 없애고 수분의 흡수력이 좋은 신문지나 종이에 싸 습기가 없는 곳에 차게 두어 싱싱함을 유지. 썰어놓은 것은 비닐봉투",
+     "etcInfoDtl": null
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 애호박은 나물, 전, 찜, 찌개 등 다양한 요리에 주・부재료로 이용되며 가늘게 채 썰어 국수장국이나 수제비 등의 고명으로 도 이용■ 단호박으",
+     "ntrIrdntEfcyDtl": "■ 소화가 잘 되는 탄수화물이 많고 과육의 색에서 보듯이 강력한 항산화물질인 카로티노이드 함량이 매우 높은 채소 - 늙은 호박의 황색을 나타내는",
+     "rltRsrchInfoDtl": "■ 지방세포에서 늙은호박(Cucubita moschata Duch) 추출물의 항비만 효과   도건표, 이혜진, 도정룡, 김현구. 한국식품저장유통",
+     "cnsmpqyDtl": "■ 과거 호박의 대명사는 ‘늙은 호박’이었다면 현대의 호박은 그 종류가 다양화되고 시장도 세분화되며, 소비량도 증가 - 종류별 출하비중도 과거 "
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "492",
+       "recipeNm": "호박고지잡채",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003419&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m11-123",
+   "month": 11,
+   "fdmtSn": "123",
+   "fdmtNm": "사과",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002425&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "123",
+     "fdmtNm": "사과",
+     "ctvtIndcDtl": "■ 세계인의 대표과일이라고 할 수 있는 사과는 장미과 사과나무속(Malus)에 속하는 낙엽과수.■ 중앙아시아 코카서스 북부를 원산지로 재배환경이",
+     "prchCheatDtl": "■ 품종특성- 국내에서 재배되고 있는 외국 품종을 국산 품종으로 대체하고, 우리 품종을 수출하여 품종 강국으로 거듭나기 위한 노력이 진행.- 수",
+     "cstdyMthDtl": "■ 보관법- 통풍이 잘 되고 직사광선이 없는 서늘한 곳에서 보관하거나 냉장 보관.- 다른 과일과 같이 보관하면 다른 과일이 쉽게 숙성하기 때문에",
+     "etcInfoDtl": "- 부사 : 완전히 익으면 과육 속에 꿀이 생기고 저장성도 뛰어남.- 홍옥 : 껍질이 새빨갛고 과즙이 많으며 상큼한 신맛을 내는 홍옥은 생으로도"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 식초, 젤리, 파이 등의 소재로도 널리 쓰이며, 최근에는 아로마테라피나 천연 화장품, 비누 등으로도 활용.■ 생과로 먹거나 잼, 주스, 샐러",
+     "ntrIrdntEfcyDtl": "■ 당분과 유기산, 펙틴이 중요성분으로 당분은 10~15% 가량인데 대부분 과당과 포도당으로 흡수가 잘 됨.■ 유기산은 0.5% 가량 들어있는데",
+     "rltRsrchInfoDtl": "■ 온도 및 생장조절제가 국내 육성 사과 품종의 호분발아율 및 화분관 신장에 미치는 영향 시설원예 식물공장, 25(3) (2016)- 15℃ 부",
+     "cnsmpqyDtl": "■ 사과 재배면적은 (’05) 933ha -> (‘10) 1,763ha -> (’15) 2,223ha■ 사과 생산량은 (‘12) 394.596톤"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "438",
+       "recipeNm": "사과 콩조림",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003312&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m11-125",
+   "month": 11,
+   "fdmtSn": "125",
+   "fdmtNm": "쌀",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002427&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "125",
+     "fdmtNm": "쌀",
+     "ctvtIndcDtl": "■ 아시아 재배 벼의 기원과 전파 과정이 아직 명확히 밝혀지지는 않았으나 아시아 재배 벼는 약 7,000년 전 양쯔강 하류까지, 그리고 약 5,",
+     "prchCheatDtl": "■ 품종특성- 삼광: 중만생종, 쌀 겉모양 품위가 양호하고, 밥이 부드럽고 차지다. - 운광: 조생, 쌀 겉모양이 매우 맑고 깨끗하며 밥맛이 매",
+     "cstdyMthDtl": "■ 보관법- 쌀은 외부 온도에 민감하게 반응하기 때문에 적절한 방법으로 보관해야 품질변화가 적다. 연구 결과에 따르면 4℃에서 보관한 쌀이 밥맛",
+     "etcInfoDtl": "■ 최근 밀가루 대신 사용할 수 있는 가루쌀 품종(바로미2)이 개발되어 제과제빵은 물론 면류, 부침가루 등으로 사용하기도 한다. 이러한 가루쌀은"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 쌀을 씻을 때 처음에는 물을 붓고 가볍게 씻은 후 빨리 따라 버린다. 그다음 서너 번 가볍게 씻은 후 30분 정도 불려서 사용한다. 물을 맞",
+     "ntrIrdntEfcyDtl": "■ 우리가 주로 먹는 백미는 탄수화물이 75~80% 정도로 영양소 대부분을 차지하고 있다. 그 밖에 성장과 발달에 중요한 역할을 하는 필수아미노",
+     "rltRsrchInfoDtl": "■ 홍국쌀을 첨가한 고콜레스테롤 식이가 흰쥐의 항산화 활성에 미치는 영향, 권정숙, 한국식품영양과학회지: 43(1), 2014- 본 연구에서는 ",
+     "cnsmpqyDtl": "■ 2018년 가구부문 1인당 연간 쌀 소비량은 61.0kg으로 전년대비 1.3% 감소했다. "
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "457",
+       "recipeNm": "토마토밥 브리토",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003349&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m11-132",
+   "month": 11,
+   "fdmtSn": "132",
+   "fdmtNm": "감",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002434&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "132",
+     "fdmtNm": "감",
+     "ctvtIndcDtl": "■ 감나무는 감나무목(Ebenales), 감나무과(Ebenaceae), 감나무속 (Diospyros)에 속한다.■ 감나무는 우리나라를 비롯한 중",
+     "prchCheatDtl": "■ 품종특성- 감풍: 과실은 413g으로 극대과종이고, 당도는 14.7 °Bx 정도이다. 과형은 편원형, 과피색은 옅은 오렌지색이다. 과즙이 풍",
+     "cstdyMthDtl": "■ 보관법- 감을 보관하기에 좋은 온도는 0~2℃이므로 차가운 곳에 보관하는 것이 좋은데, 실내 온도가 맞지 않는다면 비닐팩에 넣어 냉장고에 보",
+     "etcInfoDtl": "■ 감은 변비를 일으킨다는 속설이 있는데 잘못된 정보이다. 감의 떫은맛인 타닌은 폴리페놀 물질로 우리 몸에서 항산화작용을 하는 기능성 성분이면서"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 단감은 주로 생식용으로 이용되며 샐러드나 홍시, 곶감 등으로 가공하기도 한다.■ 잼이나 소스를 만드는 경우에는 잘 숙성되고 떫은맛을 없앤 감",
+     "ntrIrdntEfcyDtl": "■ 감에는 당류와 에너지가 많을 뿐 아니라 비타민 A, C, E, 가용성 타닌과 칼슘, 칼륨, 마그네슘, 식이섬유 등이 풍부하여 설사, 숙취제거",
+     "rltRsrchInfoDtl": "■ 떫은감이 흰쥐의 식이성 이상지질혈증에 미치는 영향, 안영숙 외 3명, 한국영양학회: 50(3), 2017  - 본 연구에서는 고지방/고콜레스",
+     "cnsmpqyDtl": "■ 단감 소비량은 2005년 이후 감소 추세이다.■ 2018년 단감 1인당 연간 소비량은 생산량 적어 전년보다 12% 감소한 1.8kg이다. "
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "508",
+       "recipeNm": "단감 피클",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003448&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m11-133",
+   "month": 11,
+   "fdmtSn": "133",
+   "fdmtNm": "늙은 호박",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002435&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "133",
+     "fdmtNm": "늙은 호박",
+     "ctvtIndcDtl": "■ 호박은 독특한 향미와 조직감으로 오래전부터 국민들에게 친근한 편이다. 대부분 청과 또는 숙과로 이용되며 과육이 유연하고 전분질이 있으며 감미",
+     "prchCheatDtl": "■ 품종특성- 동양계 호박은 청과와 숙과를 모두 식용으로 소비하는 호박으로 우리나라에서 오래전부터 재배되고 있다. 애호박, 풋호박, 늙은 호박 ",
+     "cstdyMthDtl": "■ 보관법- 늙은호박은 저장성이 뛰어나 실온에서 보관이 가능하지만, 빛에 약하므로 직사광선을 피하여 통풍이 잘되는 10℃ 이하의 서늘한 곳에서 ",
+     "etcInfoDtl": "■ 마트에 가서 애호박을 구입할 때, 호박에 비닐을 씌워 놓은 것을 볼 수 있는데, 그 이유는?   - 벌레의 유입도 방지할 수 있고, 정확한 "
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 껍질과 씨를 제거한 후 얇게 채를 썰어 부침개로 먹거나 호박범벅, 호박죽, 강정을 만들어 먹는다. ",
+     "ntrIrdntEfcyDtl": "■ 늙은 호박에는 우리 몸속에서 항이뇨호르몬이 분비되는 것을 억제해 이뇨 작용을 촉진하는 효과가 있으며, 베타카로틴이 풍부해 체내에 불순물을 제",
+     "rltRsrchInfoDtl": "■ 건조방법을 달리한 늙은 호박의 품질 특성 및 항산화 효과, 허유정 외 5명, 한국식품영양학회지: 31(6), 2018- 건조방법을 달리한 늙",
+     "cnsmpqyDtl": "■ 호박 소비량은 2000년 이후 증가 추세를 보였으나, 2016년 이후 생산량 감소로 줄어들었다. 2018년 호박 1인당 연간 소비량은 전년보"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "535",
+       "recipeNm": "늙은 호박 찐빵",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003502&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m11-138",
+   "month": 11,
+   "fdmtSn": "138",
+   "fdmtNm": "무",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002440&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "138",
+     "fdmtNm": "무",
+     "ctvtIndcDtl": "■ 무(Raphanus sativus var. hortensis)는 배추과에 속하는 작물로써 뿌리뿐만 아니라 잎까지 식용이 가능한 대표적인 근채",
+     "prchCheatDtl": "■ 품종특성○ 수확시기(재배기간)에 따라 봄무, 여름무, 가을무가 있음.- 봄무(3, 4월에 파종해 5, 6월에 수확)：그해 처음 출하된다하여 ",
+     "cstdyMthDtl": "■ 보관법- 흙이 묻어 있는 채로 신문지에 싸서 바람이 잘 통하고, 햇볕이 들지 않는 곳에 보관.- 5℃ 정도(냉장고에 넣어 보관)의 온도에 저",
+     "etcInfoDtl": "- 유사재료 : 단무지(무를 시들시들하게 말려 소금에 절여서, 쌀의 속겨로 결지을 지어 담가 만든 일본식 짠지) "
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 무는 옛날부터 김치나 깍두기로 많이 먹었고, 국, 찜, 찌개, 쌈, 나물, 조림, 떡, 무말랭이나 단무지까지 그 이용이 매우 넓고 다양.■ ",
+     "ntrIrdntEfcyDtl": "■ 무는 100g 당 13kcal로 열량이 적고 섬유소가 많고 칼슘과 칼륨과 같은 무기질도 풍부하며 비타민C는 20~25mg, 수분은 약 94%",
+     "rltRsrchInfoDtl": "■ 월동무의 생장, 무기성분 조성과 광합성에 미치는 온도 상승의 영향 원예과학기술지, 35(1):38-45 (2017).- 월동무의 생육은 겨울",
+     "cnsmpqyDtl": "■ 무 재배면적은 90년대 고품질생산으로 증가하다 00년대 중국산 김치 수입 증가, 생산농가의 고령화와 노동력 부족 등으로 감소 추세에 있음.-"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "529",
+       "recipeNm": "무매운볶음",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003490&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m11-139",
+   "month": 11,
+   "fdmtSn": "139",
+   "fdmtNm": "배추",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002441&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "139",
+     "fdmtNm": "배추",
+     "ctvtIndcDtl": "■ 반결구배추나 결구배추의 원산지는 중국 북부지방이나 그 기원은 지중해 연안이고 유럽(북부, 동부, 터키의 고원분포)의 보리밭 등지에서 자라는 ",
+     "prchCheatDtl": "■ 품종특성- 우리나라 시판 품종은 종묘회사에서 육성하여 보급하고 있으며 대부분이 1대 잡종 품종으로 1년에 작형별 1～2품종씩 새로운 품종이 ",
+     "cstdyMthDtl": "■ 보관법- 배추는 기본적으로 서늘한 곳에 보관하는 것이 좋다. 너무 덥지 않을 때는 실외에 보관하도록 하고, 그렇지 않은 경우에는 키친타올이나",
+     "etcInfoDtl": "■ 여름인 8월 중순경에 파종하여 10월 말부터 수확하는 배추를 ‘가을배추’라고 부르며, 특히 11월 중순부터 12월 중순까지 김장철에 출하되는"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 겉의 푸른 잎에도 비타민 C가 풍부하므로 버리지 말고 김치나 국에 넣어 먹으면 좋다. 안의 심 부분은 단맛이 강하므로 생으로 썰어 무치거나 ",
+     "ntrIrdntEfcyDtl": "■ 배추는 수분함량이 약 95%로 매우 높아 원활한 이뇨작용을 도와주며, 열량은 낮고 식이섬유 함유량은 많아 장의 활동을 촉진해 변비와 대장암 ",
+     "rltRsrchInfoDtl": "■ 배추와 양배추 추출물의 생리활성 물질 및 암세포 증식 억제효과 분석, 황은선 외 2명, 2012, 한국식품영양학회지: 25(2)- 본 연구에",
+     "cnsmpqyDtl": "■ 2015년의 경우 연간 1인당 배추 소비량은 49.3kg으로 채소 소비량의 31.2% 수준이다. "
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "545",
+       "recipeNm": "배추말이 전골",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003522&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m11-142",
+   "month": 11,
+   "fdmtSn": "142",
+   "fdmtNm": "잣",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002444&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "142",
+     "fdmtNm": "잣",
+     "ctvtIndcDtl": "■ 잣나무는 소나무과 소나무속에 속하는 한국고유 수종으로 상록침엽교목이다. 홍송이라고도 부른다. ■ 시베리아 동부와 만주, 한반도와 일본 열도 ",
+     "prchCheatDtl": "■ 구입요령 잣(국산)- 씨눈이 붙어 있지 않다.- 낟알의 크기가 일정하다.- 낟알의 색택이 연한 노란색이다.- 맛이 고소하고 향이 강하다.- ",
+     "cstdyMthDtl": "■ 보관법- 어둡고 서늘한 곳에 껍질째로 보관하는 것이 좋다. 냉동 보관 가능하다.  ■ 손질법- 잣 솔방울은 소나무 솔방울보다 크고, 갈색 열",
+     "etcInfoDtl": "■ 소나무와 잣나무는 모두 소나무과에 속하는 식물이지만 이 둘은 잎의 개수에서 확연하게 차이가 난다. 소나무는 2개의 잎이 묶여서 나고 잣나무는"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 잣은 수정과, 탕 등 각종 요리의 고명이나 양념의 재료로 사용하기도 하지만, 기력 회복을 위해 죽으로 만들어 먹기도 한다. 단, 한꺼번에 많",
+     "ntrIrdntEfcyDtl": "■ 국가표준식품성분표에 따르면 잣은 다량의 불포화지방산(30.9g/100g)을 함유하고 있다. ■ 불포화 지방이기 때문에 혈관을 깨끗하게 청소해",
+     "rltRsrchInfoDtl": "■ 잣피 추출물들의 항산화 및 항염증에 미치는 영향, 진중현 외 4명, 한국식품영양과학회지:46(9), 2017- 본 연구에서는 잣피 열수, 2",
+     "cnsmpqyDtl": "■ 2017년 단기소득임산물은 2조 9,136억원으로 전년대비 5.3% 증가■ 약용식물, 버섯류, 산나물 등 청정임산물에 대한 생산액이 증가■ "
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "507",
+       "recipeNm": "잣 셰이크",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003446&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m12-59",
+   "month": 12,
+   "fdmtSn": "59",
+   "fdmtNm": "시금치",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002361&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "59",
+     "fdmtNm": "시금치",
+     "ctvtIndcDtl": "■ 시금치의 원산지는 아프가니스탄 주변의 중앙아시아 지역이라고 알려져 있고, 이란지방에서는 오래전부터 재배되었으며 회교도에 의해 동서에 전파되었",
+     "prchCheatDtl": "■ 품종특성- 동양계 품종 : 원산지에서 동양에 전파되어 아시아 지역에서 개량된 것으로 품종은 비교적 적다. 우리나라의 재래종 시금치와 이를 개",
+     "cstdyMthDtl": "■ 보관법- 사용 전 흙이 묻은 상태로 키친타월에 싼 후 냉장고 신선실에 세워 보관하는 것이 좋다. 냉장 보관 중인 시금치를 꺼내 물을 뿌려주면",
+     "etcInfoDtl": "■ 시금치에 함유된 칼슘은 시금치의 수산과 결합해 체내 흡수율이 낮으므로 물을 사용해 시금치를 데쳐 먹으면 체내 흡수율을 높일 수 있다■ 시금치"
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 시금치는 살짝 데쳐서 갖은 양념을 한 뒤 나물로 먹거나, 된장을 풀어서 국을 끓여 먹는 것을 추천한다. ■ 최근 웰빙, 다이어트 식품으로 샌",
+     "ntrIrdntEfcyDtl": "■ 시금치에는 다양한 영양소가 풍부하게 함유되어 있지만, 이 중 으뜸인 것은 베타카로틴이다. 시금치는 100g당 무려 2,876ug의 베타카로틴",
+     "rltRsrchInfoDtl": "■ 신안 섬초 분말을 대체한 설기떡의 품질 특성, 고상희 외 4명, 한국식품영양학회지 : 43(7), 2014- 신안 섬초는 재래종으로 3월말에",
+     "cnsmpqyDtl": "■ 2016년 기준 시금치의 주 출하도는 ⓵경기도 ⓶ 전라남도 ⓷ 경상북도 순이고, 시군은 ⓵ 경기 포천시 ⓶ 전남 신안군 ⓷ 경기 이천시 순이"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "193",
+       "recipeNm": "시금치그린스무디",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002832&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m12-143",
+   "month": 12,
+   "fdmtSn": "143",
+   "fdmtNm": "고구마",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002445&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "143",
+     "fdmtNm": "고구마",
+     "ctvtIndcDtl": "■ 고구마 기원의 중심지는 재배 역사가 오래된 중앙아메리카의 유카탄 반도와 남미 베네수엘라 오리노코강 하구지역으로 추정■ 페루 칠카(Chilca",
+     "prchCheatDtl": "■ 구입요령- 모양이 고르고 표면이 매끈하고 단단하며 흠집이 없을 것이 좋음",
+     "cstdyMthDtl": "■ 보관법- 부패하거나 싹이 트기 쉬워 직사광선이 들지 않고 통기가 잘되며 온도가 낮지 않은 곳에 저장- 고구마는 냉해를 입으면 부패하기 쉬워 ",
+     "etcInfoDtl": "■ 구황작물(救荒作物)이란?- 흉년이 들어 곡식이 부족할 때 굶주림을 해결하기 위해 주곡 대신 소비할 수 있는 작물로 조, 피, 기장, 메밀, "
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 고구마는 찌거나 굽기, 튀김 요리를 하여 식사 대용이나 간식으로 섭취하는 것이 대부분■ 최근에는 고구마를 쪄서 반건조한 고구마말랭이가 영양간",
+     "ntrIrdntEfcyDtl": "■ 뿌리, 줄기, 잎 등 버릴 것이 하나 없는 구황작물이었던 고구마는 영양이 탁월한 알칼리성 식품■ 탄수화물이 풍부하고, 단백질, 지방, 식이섬",
+     "rltRsrchInfoDtl": "■ 육질색 종류별 고구마 추출물의 항산화 활성김동청, 김재광, 인만진. 한국응용생명화학회지 58권 1호, 2015.- 육질색에 따른 일반고구마,",
+     "cnsmpqyDtl": "■ 과거에는 구황작물(救荒作物)의 이미지가 강해 소비량이 ‘90년까지 급감하다가 이후 건강식품으로 변모하면서 소비량이 증가■ 1인당 연간 소비량"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "599",
+       "recipeNm": "고구마말랭이 북어조림",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003627&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m12-149",
+   "month": 12,
+   "fdmtSn": "149",
+   "fdmtNm": "밤",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002451&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "149",
+     "fdmtNm": "밤",
+     "ctvtIndcDtl": "■ 밤나무는 참나무과(Fagaceae) 밤나무속(Castanea)의 낙엽활엽성 교목으로 원산지는 아시아, 유럽, 북아메리카 등 3개 대륙에 걸쳐",
+     "prchCheatDtl": "■ 품종특성- 밤 과실은 품종에 따라 저장성이 크게 달라지는 것으로 보고되어 있다. 저온저장 8개월 동안 부패과의 비율이 5% 이하로 저장성이 ",
+     "cstdyMthDtl": "■ 보관법- 밤을 먼저 물로 씻어 이물질을 제거한 후, 소금물에 1시간 담가둔다. 소금물은 맛을 보았을 때 짭짤한 정도가 좋으며, 소금물에 뜨는",
+     "etcInfoDtl": "■ 밤은 알맹이뿐만 아니라 밤 속 껍질인 율피도 피부에 큰 도움이 된다. 이 율피에는 모공 축소에 도움을 주는 ‘타닌’ 성분이 함유되어 있다. "
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 생으로 먹거나 굽거나 찌는 것, 죽, 과자, 밤다식, 통조림 등으로 이용된다. ",
+     "ntrIrdntEfcyDtl": "■ 몸에서 만들어지지 않는 필수 지방산인 오메가6와 오메가3 함량이 높아, 체내 중성지방과 혈관에 달라붙은 콜레스테롤 수치를 낮춰 심장 질환을 ",
+     "rltRsrchInfoDtl": "■ 밤 분말을 첨가한 양갱의 품질 특성, 지옥화, 한국조리학회: 22(8), 2016- 본 연구에서는 다양한 영양성분과 건강 기능성을 가진 밤을",
+     "cnsmpqyDtl": "■ 7년간(2010～2016년) 생밤의 가구당 구입액은 평균 15,912원으로 매년 2.3%가 증가했으며, 가공 밤의 가구당 구입액은 7년간 평"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "561",
+       "recipeNm": "밤 크럼블 파이",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003551&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  },
+  {
+   "row_id": "m12-156",
+   "month": 12,
+   "fdmtSn": "156",
+   "fdmtNm": "팥",
+   "fdmtImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000002458&atchmnflSn=0",
+   "detail": {
+    "stdInfo": {
+     "fdmtSn": "156",
+     "fdmtNm": "팥",
+     "ctvtIndcDtl": "■ 콩과에 속하는 일년생 초본식물로 ‘소두’, ‘적소두’라고도 하며 원종(原種)에 대해서는 분명하지 않으나 원산지는 중국일대일 것으로 추정. ■",
+     "prchCheatDtl": "■ 품종특성○ 중원 팥 :　충북 중원지방에서 수집한 재래품종에서 육성, 중생종. 암회색의 다수성 품종, 줄기는 다소 긴편, 바이러스나 흰가루병에",
+     "cstdyMthDtl": "■ 보관법- 습기가 없고 통풍이 잘되는 서늘한 곳에 보관하거나 냉동 보관하는 것이 가장 좋다.■ 손질법- 흐르는 물에 깨끗이 씻어 조리에 이용.",
+     "etcInfoDtl": "■ 팥을 불리지 않고 삶을 때에는 팥 분량의 10% 정도의 소금을 넣고 끓이면 부드럽게 삶을 수 있다. 소금을 넣고 처음 끓인 물은 바로 따라 "
+    },
+    "ntkInfo": {
+     "ntkMthDtl": "■ 보통 쌀과 보리, 잡곡과 섞어 밥을 지어 먹거나, 팥고물, 팥소로 많이 사용한다. 단맛이 강한 팥은 쓴맛의 수수와 함께 조리하면 맛을 보완하",
+     "ntrIrdntEfcyDtl": "■ 팥은 비타민과 아미노산을 함유하고 있어 탄수화물이 풍부한 곡류와 함께 섭취하면 영양적으로 좋다. 팥에는 혈액 속 중성지방 조절에 도움이 되는",
+     "rltRsrchInfoDtl": "■ 팥을 첨가한 막걸리의 품질특성 진영 외2명　한국식품조리과학회 29(6) (2013) - 팥 10%를 첨가하여 제조한 막걸 리가 항산화 활성 ",
+     "cnsmpqyDtl": "■ 팥은 콩 다음으로 중요한 두과작물로서 재배면적은 1969년 39,806ha를 최고로 이후 점차 감소.■ 2001년 후 급격히 감소되어 201"
+    },
+    "connRecipeList": {
+     "recipeInfo": [
+      {
+       "recipeSn": "620",
+       "recipeNm": "팥바나나우유 셰이크",
+       "recipeImgUrl": "https://www.nics.go.kr/food/bsFileDownload.do?atchmnflGroupEsntlCode=KF000000003993&atchmnflSn=0"
+      }
+     ]
+    }
+   },
+   "detail_status": "ok"
+  }
+ ]
+}

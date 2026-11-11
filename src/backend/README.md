@@ -65,6 +65,23 @@ DB 사용자·이름을 바꿨으면 마지막 명령의 인자도 바꾼다. �
 
 세션 기본 만료는 7일이며 `.env`의 `SESSION_TTL_SECONDS`로 조정한다. 토큰은 발급·갱신 응답에서만 반환하고 DB에는 해시만 저장한다. 앱의 보안 저장소에 보관하고 로그에 출력하지 않는다. 관리자는 기본 생성하지 않으며 운영자가 `python -m app.jobs.set_user_role <사용자-UUID> --role admin`으로 지정한다. `--role user`로 해제한다. 카카오 로그인·만료 사용자 복구·관리자 운영 기능은 후속이다.
 
+## 사용자 기록과 운영 자료 저장 구조
+
+Alembic `20261110_01`은 기존 레시피·식품·복지 판본과 사용자 데이터를 보존하고 아래 저장 구조를 추가한다.
+
+| 영역 | 저장 방식 |
+| --- | --- |
+| 섭취 기록 | `meal_logs`와 `meal_log_items`에 섭취 시각, 확정한 식품 판본, g 또는 mL 분량, 영양 계산 결과와 버전을 저장한다. |
+| 저장 목록·식단표 | 저장 목록은 사용자와 레시피·복지 서비스의 고유 조합이다. 식단표는 사용자·날짜·끼니별로 선택 당시 레시피 판본 하나를 보관한다. |
+| 생활 가이드·급식시설·제철 | 출처와 확인일을 기록한다. 새 자료는 기본 미게시다. 제철 자료는 월과 검수한 레시피 재료명 조합으로 구분한다. |
+| 작업 | `job_runs`에 종류·상태·시도 횟수·다음 실행 시각·오류 코드를 기록한다. 사용자 소유 작업과 공통 작업을 구분한다. |
+
+Alembic `20261111_01`은 급식시설·제철 자료에 공공데이터 원천 칸(원천 ID·자료 기준일·품질 표시·정제 레코드)을 더하고, 제철 식재료 상세(`seasonal_foods`)와 레시피 연결(`seasonal_recipe_links`)을 추가한다. 원천 칸이 비어 있는 행은 관리자가 직접 넣은 자료로 보고 적재가 건드리지 않는다. 적재는 `python -m app.jobs.import_meal_facilities`·`import_seasonal`(레시피 적재 뒤)이며 칸 대응·규칙은 `docs/data/facility_seasonal_db_import.md`에 있다.
+
+Alembic `20261111_02`는 레시피 재료 → 식품 매핑(`recipe_ingredient_foods`, 재료 하나·계산에 쓴 식품 판본·g 환산·기여량)과 레시피 계산 영양(`recipe_computed_nutrition`, 레시피 판본 하나)을 추가한다. 원천 레시피가 적은 영양(`recipe_revisions.source_*`)과는 따로 둔다. 계산은 `python -m app.jobs.map_recipe_foods`(레시피·식품 적재 뒤)이며 규칙은 `docs/data/recipe_food_map_db.md`에 있다.
+
+DB에서 사용자를 삭제하면 세션·프로필·기록·저장·식단표·사용자 작업도 삭제된다. 프로필 동의 철회는 기존 API대로 프로필만 삭제한다. 원천 판본과 공통 작업은 보존된다. 새 저장 구조를 사용하는 기능별 API와 작업 실행기는 별도 작업에서 연결한다.
+
 ## API 계약 인계
 
 [API 명세서 8~9절](../../docs/설계/API_명세서.md)에 세션·권한·DTO 규칙을 정리했다. [catalog.openapi.json](../../docs/설계/catalog.openapi.json)은 미구현 카탈로그 경로의 별도 계약이고 [api_examples.json](../../docs/설계/api_examples.json)은 실제 공개 원천을 검증한 표본이다. 실행 `/openapi.json`에는 구현된 경로만 포함한다.

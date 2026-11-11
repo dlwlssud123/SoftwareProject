@@ -9,7 +9,9 @@ from pathlib import Path
 
 from agetech_data import paths
 from agetech_data.collect import welfare
+from agetech_data.collect.meal_facilities import collect_free_meal
 from agetech_data.collect.recipes import collect_recipes
+from agetech_data.collect.seasonal import collect_seasonal
 from agetech_data.nutrition import client as nutrition_client
 
 
@@ -56,6 +58,26 @@ def _welfare_quality(items: list[dict]) -> dict:
     return {"detail_status": dict(Counter(i.get("detail_status") for i in items))}
 
 
+def _meal(key, *, fetch, sleep, log, **_):
+    return collect_free_meal(key, fetch=fetch, sleep=sleep, log=log)
+
+
+def _seasonal(key, *, fetch, sleep, log, **_):
+    return collect_seasonal(key, fetch=fetch, sleep=sleep, log=log)
+
+
+def _seasonal_quality(items: list[dict]) -> dict:
+    return {"by_month": dict(sorted(Counter(i.get("month") for i in items).items())),
+            "detail_status": dict(Counter(i.get("detail_status") for i in items))}
+
+
+def _meal_quality(items: list[dict]) -> dict:
+    def blank(k):
+        return sum(1 for i in items if not (i.get(k) or "").strip())
+    return {"rows": len(items), "coords_missing": blank("latitude"), "phone_missing": blank("phoneNumber"),
+            "reference_years": dict(sorted(Counter((i.get("referenceDate") or "")[:4] for i in items).items()))}
+
+
 SOURCES: dict[str, Source] = {
     s.name: s for s in [
         Source("recipes", "레시피 COOKRCP01 전체", paths.RECIPES_COLLECTED, ("FOODSAFETY_API_KEY",), "RCP_SEQ",
@@ -68,5 +90,9 @@ SOURCES: dict[str, Source] = {
         Source("welfare_local", "지자체 복지 노년층", paths.WELFARE_LOCAL_RAW,
                ("DATA_GO_KR_SERVICE_KEY", "WELFARE_API_KEY"), "servId", _welfare("local"), _welfare_quality,
                welfare.fingerprint),
+        Source("meal_facilities", "전국무료급식소표준데이터", paths.FREE_MEAL_RAW,
+               ("DATA_GO_KR_SERVICE_KEY", "WELFARE_API_KEY"), "row_id", _meal, _meal_quality),
+        Source("seasonal_foods", "농식품 이달의 식재료", paths.SEASONAL_RAW,
+               ("DATA_GO_KR_SERVICE_KEY", "WELFARE_API_KEY"), "row_id", _seasonal, _seasonal_quality),
     ]
 }

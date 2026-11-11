@@ -48,8 +48,23 @@ REFRESH_LOG = PROCESSED_DIR / "refresh_log.jsonl"
 WELFARE_PROCESSED = PROCESSED_DIR / "welfare_elderly.json"
 WELFARE_REGIONAL_REPORT = REPORTS_DIR / "welfare_regional_report.md"
 
+# 무료급식소 표준데이터 수집 원본·정제 결과(gitignore)와 보고서·조회 표본(커밋)
+FACILITY_RAW_DIR = REPO_ROOT / "data" / "raw" / "facilities"
+FREE_MEAL_RAW = FACILITY_RAW_DIR / "free_meal.json"
+MEAL_FACILITIES_PROCESSED = PROCESSED_DIR / "meal_facilities.json"
+MEAL_FACILITY_REPORT = REPORTS_DIR / "meal_facility_report.md"
+MEAL_FACILITY_SAMPLE = REPORTS_DIR / "samples" / "meal_facility_sample.json"
+
+# 농식품 이달의 식재료 수집 원본·정제 결과(gitignore)와 보고서·표본(커밋)
+SEASONAL_RAW_DIR = REPO_ROOT / "data" / "raw" / "seasonal"
+SEASONAL_RAW = SEASONAL_RAW_DIR / "food_month.json"
+SEASONAL_PROCESSED = PROCESSED_DIR / "seasonal_foods.json"
+SEASONAL_REPORT = REPORTS_DIR / "seasonal_report.md"
+SEASONAL_SAMPLE = REPORTS_DIR / "samples" / "seasonal_sample.json"
+
 # 레시피 계약 형식 전체(COOKRCP01 1,156건) — contract --input data/raw/recipes/cookrcp01_all.json 결과
 RECIPES_API_ALL = PROCESSED_DIR / "recipes_api_all.json"
+
 # RAG 검색 인덱스(청크·벡터·목록, gitignore)와 검색 평가 보고서·평가 질문(커밋)
 RAG_INDEX_DIR = PROCESSED_DIR / "rag"
 RAG_SEARCH_REPORT = REPORTS_DIR / "rag_search_report.md"
