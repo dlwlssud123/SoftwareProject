@@ -40,6 +40,10 @@ LIFE_ELDERLY = "006"
 PAGE_SIZE = 500
 MAX_AGE_DAYS = 30
 VOLATILE_FIELDS = ("inqNum",)  # 조회수 — 매일 바뀌므로 변경 판단에서 뺀다
+# 쉼표로 이은 목록 칸 — 원천이 같은 값을 호출마다 다른 순서로 준다(11/05 → 11/12 지자체 252건이 순서만 다름).
+# 변경 판단·상세 캐시 서명에서만 순서를 빼고, 수집본에는 받은 그대로 둔다.
+UNORDERED_FIELDS = ("lifeArray", "lifeNmArray", "trgterIndvdlArray", "trgterIndvdlNmArray",
+                    "intrsThemaArray", "intrsThemaNmArray")
 API = {
     "central": {
         "service": "중앙부처 복지서비스 (NationalWelfareInformationsV001)",
@@ -103,14 +107,29 @@ def _parse_detail(status: int, text: str) -> tuple[dict, str]:
     return _leaf_fields(root), text
 
 
+def _comparable(fields: dict) -> dict:
+    """비교용: 조회수를 빼고 쉼표 목록 칸은 순서를 무시한다."""
+    out = {k: v for k, v in fields.items() if k not in VOLATILE_FIELDS}
+    for k in UNORDERED_FIELDS:
+        if isinstance(out.get(k), str):
+            out[k] = ",".join(sorted(p.strip() for p in out[k].split(",")))
+    return out
+
+
 def list_signature(row: dict) -> str:
+    """상세 캐시 서명 — 목록 행이 이 서명과 같으면 캐시한 상세를 그대로 쓴다."""
+    return sha256_json(_comparable(row))
+
+
+def legacy_list_signature(row: dict) -> str:
+    """2026-11-13 전 서명(쉼표 목록 순서 포함). 이 서명으로 저장된 캐시를 다시 받지 않고 새 서명으로 옮길 때만 쓴다."""
     return sha256_json({k: v for k, v in row.items() if k not in VOLATILE_FIELDS})
 
 
 def fingerprint(item: dict) -> dict:
-    """변경 감지용 내용 (조회수 제외)."""
-    return {"list": {k: v for k, v in item["list"].items() if k not in VOLATILE_FIELDS},
-            "detail": {k: v for k, v in (item.get("detail") or {}).items() if k not in VOLATILE_FIELDS} or None,
+    """변경 감지용 내용 (조회수·쉼표 목록 순서 제외)."""
+    return {"list": _comparable(item["list"]),
+            "detail": _comparable(item.get("detail") or {}) or None,
             "detail_xml": _INQ.sub("", item["detail_xml"]) if item.get("detail_xml") else None}
 
 
@@ -176,6 +195,10 @@ def collect_welfare(kind: Kind, key: str, *, life: str = LIFE_ELDERLY, details: 
 
     cache = DetailCache(cache_path)
     sigs = {r["servId"]: list_signature(r) for r in rows}
+    for r in rows:  # 옛 서명으로 저장된 캐시 중 목록이 그대로인 것은 새 서명으로 옮긴다(다시 받지 않음)
+        c = cache.get(r["servId"])
+        if c is not None and c["sig"] != sigs[r["servId"]] and c["sig"] == legacy_list_signature(r):
+            cache.put(r["servId"], {**c, "sig": sigs[r["servId"]]})
     started = now()
     old_before = (started - timedelta(days=max_age_days)).isoformat(timespec="seconds")
 

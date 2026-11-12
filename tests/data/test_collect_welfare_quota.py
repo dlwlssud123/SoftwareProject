@@ -18,9 +18,9 @@ QUOTA_XML = ("<OpenAPI_ServiceResponse><cmmMsgHeader><errMsg>LIMITED_NUMBER_OF_S
 class Api:
     """목록은 항상 응답, 상세는 quota 회까지만 응답하고 이후 HTTP 429 + 코드 22."""
 
-    def __init__(self, n, quota=10_000, inq="1", names=None, fail_detail_at=None):
+    def __init__(self, n, quota=10_000, inq="1", names=None, fail_detail_at=None, life="노년, 중장년"):
         self.ids = [f"WLF{i:08d}" for i in range(1, n + 1)]
-        self.quota, self.inq, self.names = quota, inq, names or {}
+        self.quota, self.inq, self.names, self.life = quota, inq, names or {}, life
         self.detail_calls, self.fail_detail_at = 0, fail_detail_at
 
     def __call__(self, url):
@@ -36,7 +36,8 @@ class Api:
             return 200, (f"<wantedDtl><resultCode>0</resultCode><servId>{sid}</servId>"
                          f"<inqNum>{self.inq}</inqNum><sprtTrgtCn>대상 {self.names.get(sid, '')}</sprtTrgtCn></wantedDtl>")
         body = "".join(f"<servList><servId>{i}</servId><servNm>{self.names.get(i, '서비스')}</servNm>"
-                       f"<inqNum>{self.inq}</inqNum></servList>" for i in self.ids)
+                       f"<lifeNmArray>{self.life}</lifeNmArray><inqNum>{self.inq}</inqNum></servList>"
+                       for i in self.ids)
         return 200, f"<wantedList><resultCode>0</resultCode><totalCount>{len(self.ids)}</totalCount>{body}</wantedList>"
 
 
@@ -94,3 +95,35 @@ def test_view_count_is_not_a_change(tmp_path):
     d = diff(a, b, lambda it: it["servId"], content_of=fingerprint)
     assert d["changed"] == 0 and d["unchanged"] == 3
     assert diff(a, b, lambda it: it["servId"])["changed"] == 3  # 조회수를 빼지 않으면 전부 변경으로 잡힘
+
+
+def test_list_order_only_change_is_not_refetched_or_counted(tmp_path):
+    # 원천이 '노년, 중장년' ↔ '중장년, 노년'처럼 쉼표 목록 순서만 바꿔 준다(11/12 지자체 252건) — 상세를 다시 받지 않는다
+    cache = tmp_path / "c.json"
+    a = collect_welfare("local", KEY, fetch=Api(3, life="노년, 중장년"), cache_path=cache, **QUIET)
+    api = Api(3, life="중장년, 노년")
+    b = collect_welfare("local", KEY, fetch=api, cache_path=cache, **QUIET)
+    assert api.detail_calls == 0 and set(_status(b).values()) == {"cached"}
+    assert b["items"][0]["list"]["lifeNmArray"] == "중장년, 노년"  # 수집본은 받은 그대로
+    assert diff(a["items"], b["items"], lambda it: it["servId"], content_of=fingerprint)["changed"] == 0
+    # 값이 실제로 바뀌면(목록에 생애주기 추가) 여전히 다시 받는다
+    api = Api(3, life="중장년, 노년, 청년")
+    collect_welfare("local", KEY, fetch=api, cache_path=cache, **QUIET)
+    assert api.detail_calls == 3
+
+
+def test_cache_saved_with_old_signature_is_migrated_without_refetch(tmp_path):
+    from agetech_data.collect.welfare import legacy_list_signature, list_signature
+
+    cache = tmp_path / "c.json"
+    collect_welfare("local", KEY, fetch=Api(3, life="노년, 중장년"), cache_path=cache, **QUIET)
+    saved = json.loads(cache.read_text(encoding="utf-8"))
+    row = {"servId": "WLF00000001", "servNm": "서비스", "lifeNmArray": "노년, 중장년", "inqNum": "1"}
+    for sid in saved["entries"]:  # 11/13 전 코드가 저장한 모양으로 되돌림
+        saved["entries"][sid]["sig"] = legacy_list_signature({**row, "servId": sid})
+    cache.write_text(json.dumps(saved, ensure_ascii=False), encoding="utf-8")
+    api = Api(3, life="노년, 중장년")
+    out = collect_welfare("local", KEY, fetch=api, cache_path=cache, **QUIET)
+    assert api.detail_calls == 0 and set(_status(out).values()) == {"cached"}
+    entries = json.loads(cache.read_text(encoding="utf-8"))["entries"]
+    assert all(e["sig"] == list_signature({**row, "servId": sid}) for sid, e in entries.items())
