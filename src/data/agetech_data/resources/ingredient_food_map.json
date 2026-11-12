@@ -1190,6 +1190,408 @@
    "rationale": "규칙으로 붙던 가공식품 '통조림햄'(P117-007010100-F007-002, 수집)은 성분 합이 기준량의 111%이고 포화지방이 지방보다 많아 일관성이 없음 → 같은 수분·회분 값을 가진 원재료성 분석 행(스팸과 같은 행)",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-09"
+  },
+  {
+   "ingredient": "버터",
+   "food_code": "R121-027060100-0000",
+   "food_name": "버터, 가염",
+   "rationale": "종류 미기재 버터는 시판에 흔한 가염 버터로 봄(무염버터는 무가염으로 따로 매핑)"
+  },
+  {
+   "ingredient": "생강",
+   "food_code": "R106-101002501-0000",
+   "food_name": "생강, 뿌리줄기, 생것",
+   "rationale": "형태 미기재 생강은 생것(다진 생강·생강즙과 같은 항목)"
+  },
+  {
+   "ingredient": "생강다진것",
+   "food_code": "R106-101002501-0000",
+   "food_name": "생강, 뿌리줄기, 생것",
+   "rationale": "다진 생강과 같음"
+  },
+  {
+   "ingredient": "후추",
+   "food_code": "R118-041010006-0000",
+   "food_name": "후추, 검은색, 가루",
+   "rationale": "색 미기재 후추는 후춧가루와 같이 검은 후추 가루로 봄"
+  },
+  {
+   "ingredient": "통후추",
+   "food_code": "R118-041010006-0000",
+   "food_name": "후추, 검은색, 가루",
+   "rationale": "통후추 항목 없음 → 같은 열매인 검은 후추 가루로 근사"
+  },
+  {
+   "ingredient": "올리고당",
+   "food_code": "R121-022030000-0000",
+   "food_name": "시럽, 올리고당",
+   "rationale": "요리당과 같은 원재료성 올리고당 시럽(가공식품 '올리고당'보다 우선)"
+  },
+  {
+   "ingredient": "찹쌀가루",
+   "food_code": "R101-038000306-0000",
+   "food_name": "찹쌀, 백미, 가루",
+   "rationale": "도정 미기재 → 찹쌀과 같이 백미, 가루"
+  },
+  {
+   "ingredient": "쌀가루",
+   "food_code": "R101-008000306-0000",
+   "food_name": "멥쌀, 백미, 가루",
+   "rationale": "종류 미기재 쌀가루는 쌀과 같이 멥쌀 백미, 가루"
+  },
+  {
+   "ingredient": "밥",
+   "food_code": "R101-008000349-0000",
+   "food_name": "멥쌀, 백미, 밥",
+   "rationale": "종류 미기재 밥은 흰쌀밥(멥쌀 백미, 밥)으로 봄"
+  },
+  {
+   "ingredient": "현미",
+   "food_code": "R101-008000501-0000",
+   "food_name": "멥쌀, 현미, 생것",
+   "rationale": "찹쌀 표기 없는 현미는 멥쌀 현미, 조리 전 분량이므로 생것"
+  },
+  {
+   "ingredient": "전분",
+   "food_code": "R102-014010006-0000",
+   "food_name": "전분, 감자, 가루",
+   "rationale": "종류 미기재 전분은 녹말과 같이 감자전분으로 봄(옥수수전분과 열량 차이 작음)"
+  },
+  {
+   "ingredient": "녹말가루",
+   "food_code": "R102-014010006-0000",
+   "food_name": "전분, 감자, 가루",
+   "rationale": "녹말가루 = 녹말(감자전분)"
+  },
+  {
+   "ingredient": "빵가루",
+   "food_code": "R121-002040000-0000",
+   "food_name": "밀, 빵가루",
+   "rationale": "원재료성 '밀, 빵가루'를 가공식품 빵가루보다 우선(값 같음)"
+  },
+  {
+   "ingredient": "강력분",
+   "food_code": "R101-016010000-0000",
+   "food_name": "밀, 강력밀가루",
+   "rationale": "강력분 = 강력밀가루"
+  },
+  {
+   "ingredient": "박력분",
+   "food_code": "R101-016040000-0000",
+   "food_name": "밀, 박력밀가루",
+   "rationale": "박력분 = 박력밀가루"
+  },
+  {
+   "ingredient": "튀김가루",
+   "food_code": "R121-002050000-0000",
+   "food_name": "밀, 튀김가루",
+   "rationale": "원재료성 '밀, 튀김가루'(부침가루와 같은 기준)"
+  },
+  {
+   "ingredient": "맛간장",
+   "food_code": "R121-033170200-0000",
+   "food_name": "간장, 개량, 양조",
+   "rationale": "맛간장 항목 없음 → 양조간장으로 근사(당류는 실제보다 적게, 나트륨은 많게 잡힘)"
+  },
+  {
+   "ingredient": "진간장",
+   "food_code": "R121-033170200-0000",
+   "food_name": "간장, 개량, 양조",
+   "rationale": "진간장 = 양조간장(간장 항목과 같음)"
+  },
+  {
+   "ingredient": "흑임자",
+   "food_code": "R105-026010058-0000",
+   "food_name": "참깨, 검은색, 볶은것",
+   "rationale": "흑임자 = 검은깨, 양념·고명용 → 볶은 흑임자와 같음"
+  },
+  {
+   "ingredient": "검은깨",
+   "food_code": "R105-026010058-0000",
+   "food_name": "참깨, 검은색, 볶은것",
+   "rationale": "검은깨 = 흑임자, 양념·고명용 → 볶은것"
+  },
+  {
+   "ingredient": "깨",
+   "food_code": "R105-026020058-0000",
+   "food_name": "참깨, 흰색, 볶은것",
+   "rationale": "종류 미기재 깨는 참깨·통깨와 같이 볶은 흰깨로 봄"
+  },
+  {
+   "ingredient": "정종",
+   "food_code": "R121-013040100-0000",
+   "food_name": "발효주, 청주, 알코올 16%",
+   "rationale": "정종 = 청주"
+  },
+  {
+   "ingredient": "레드와인",
+   "food_code": "R121-013010700-0000",
+   "food_name": "발효주, 과실주, 포도주, 적포도주, 알코올 13%",
+   "rationale": "레드와인 = 적포도주"
+  },
+  {
+   "ingredient": "파슬리가루",
+   "food_code": "R118-057000002-0000",
+   "food_name": "파슬리, 말린것",
+   "rationale": "파슬리 가루 항목 없음 → 말린 파슬리"
+  },
+  {
+   "ingredient": "파슬리다진것",
+   "food_code": "R106-193000001-0000",
+   "food_name": "파슬리, 생것",
+   "rationale": "다진 생파슬리"
+  },
+  {
+   "ingredient": "요거트",
+   "food_code": "R121-026061100-0000",
+   "food_name": "요구르트, 호상, 플레인",
+   "rationale": "종류 미기재 → 떠먹는 플레인 요구르트(원재료성, 100g 기준)"
+  },
+  {
+   "ingredient": "계란",
+   "food_code": "R110-003000001-0000",
+   "food_name": "달걀, 생것",
+   "rationale": "계란 = 달걀"
+  },
+  {
+   "ingredient": "달걀흰자",
+   "food_code": "R110-003005001-0000",
+   "food_name": "달걀, 난백, 생것",
+   "rationale": "흰자 = 난백"
+  },
+  {
+   "ingredient": "홍피망",
+   "food_code": "R106-196008101-0000",
+   "food_name": "피망, 빨간색, 생것",
+   "rationale": "홍(빨강) 피망"
+  },
+  {
+   "ingredient": "피망",
+   "food_code": "R106-196008301-0000",
+   "food_name": "피망, 초록색, 생것",
+   "rationale": "색 미기재 피망은 시판에 흔한 초록 피망(청피망과 같음)"
+  },
+  {
+   "ingredient": "브로컬리",
+   "food_code": "R106-092000001-0000",
+   "food_name": "브로콜리, 생것",
+   "rationale": "표기 차이(브로콜리)"
+  },
+  {
+   "ingredient": "샐러리",
+   "food_code": "R106-107000001-0000",
+   "food_name": "셀러리, 생것",
+   "rationale": "표기 차이(셀러리)"
+  },
+  {
+   "ingredient": "실파",
+   "food_code": "R106-191030001-0000",
+   "food_name": "파, 쪽파, 생것",
+   "rationale": "실파 항목 없음 → 가는 파인 쪽파로 근사(파 종류 간 영양 차이 작음)"
+  },
+  {
+   "ingredient": "완두콩",
+   "food_code": "R104-008000001-0000",
+   "food_name": "완두, 생것",
+   "rationale": "조리·가공 미기재 → 완두, 생것"
+  },
+  {
+   "ingredient": "케첩",
+   "food_code": "R121-020130000-0000",
+   "food_name": "토마토 케첩",
+   "rationale": "케첩 = 토마토 케첩(원재료성)"
+  },
+  {
+   "ingredient": "키위",
+   "food_code": "R108-090020001-0000",
+   "food_name": "키위, 그린, 생것",
+   "rationale": "종류 미기재 → 그린 키위"
+  },
+  {
+   "ingredient": "마",
+   "food_code": "R102-011030001-0000",
+   "food_name": "마, 장마, 생것",
+   "rationale": "종류 미기재 → 산마와 같이 가장 흔한 장마"
+  },
+  {
+   "ingredient": "영양부추",
+   "food_code": "R106-091060001-0000",
+   "food_name": "부추, 솔부추, 생것",
+   "rationale": "영양부추 = 솔부추"
+  },
+  {
+   "ingredient": "함초소금",
+   "food_code": "R121-033090300-0000",
+   "food_name": "소금, 가공염, 퉁퉁마디(함초)",
+   "rationale": "함초소금 = 함초 가공염"
+  },
+  {
+   "ingredient": "볶은소금",
+   "food_code": "R121-033090200-0000",
+   "food_name": "소금, 구운소금",
+   "rationale": "볶은소금 = 구운소금"
+  },
+  {
+   "ingredient": "천일염",
+   "food_code": "R118-020030000-0000",
+   "food_name": "소금, 천일염",
+   "rationale": "천일염(소금꽃·토판염 표기 없음)"
+  },
+  {
+   "ingredient": "베이킹파우더",
+   "food_code": "R120-025030000-0000",
+   "food_name": "팽창제, 베이킹파우더",
+   "rationale": "원재료성 '팽창제, 베이킹파우더'(가공식품과 값 같음)"
+  },
+  {
+   "ingredient": "이스트",
+   "food_code": "R120-025030002-0000",
+   "food_name": "팽창제, 효모, 말린것",
+   "rationale": "제빵용 이스트 = 말린 효모(드라이 이스트)"
+  },
+  {
+   "ingredient": "오레가노",
+   "food_code": "R118-061000002-0000",
+   "food_name": "오레가노, 말린것",
+   "rationale": "향신료 오레가노 = 말린것(생것 항목 없음)"
+  },
+  {
+   "ingredient": "건다시마",
+   "food_code": "R212-819013902-0000",
+   "food_name": "다시마, 말린것",
+   "rationale": "건다시마 = 마른 다시마"
+  },
+  {
+   "ingredient": "현미유",
+   "food_code": "R114-013000000-0000",
+   "food_name": "쌀겨기름(미강유)",
+   "rationale": "현미유 = 미강유(쌀겨기름)"
+  },
+  {
+   "ingredient": "국멸치",
+   "food_code": "R211-105013904-0000",
+   "food_name": "멸치, 대멸치, 삶아서 말린것",
+   "rationale": "국멸치 = 국물용 멸치(대멸치)"
+  },
+  {
+   "ingredient": "다진 소고기",
+   "food_code": "R109-027068801-0000",
+   "food_name": "소고기, 한우(1등급), 앞다리, 생것",
+   "rationale": "부위·등급 미기재 → 소고기와 같이 앞다리 1등급"
+  },
+  {
+   "ingredient": "돼지등심",
+   "food_code": "R109-014008301-0000",
+   "food_name": "돼지고기, 등심, 생것",
+   "rationale": "부위(등심) 명시"
+  },
+  {
+   "ingredient": "닭다리살",
+   "food_code": "R109-008000701-0000",
+   "food_name": "닭고기, 다리(넓적다리), 생것",
+   "rationale": "닭다리살 = 넓적다리 정육"
+  },
+  {
+   "ingredient": "닭고기살",
+   "food_code": "R109-008008601-0000",
+   "food_name": "닭고기, 살코기, 생것",
+   "rationale": "닭고기살 = 살코기"
+  },
+  {
+   "ingredient": "새우살",
+   "food_code": "R211-717133901-0000",
+   "food_name": "새우, 대하, 생것",
+   "rationale": "껍질 벗긴 새우살 → 칵테일새우와 같이 대하, 생것"
+  },
+  {
+   "ingredient": "수삼",
+   "food_code": "R120-021020001-0000",
+   "food_name": "인삼, 수삼, 생것",
+   "rationale": "수삼 = 생인삼(인삼과 같음)"
+  },
+  {
+   "ingredient": "건표고버섯",
+   "food_code": "R107-027000002-0000",
+   "food_name": "표고버섯, 배지재배, 말린것",
+   "rationale": "재배 방식 미기재 → 표고버섯과 같이 배지재배, 말린것"
+  },
+  {
+   "ingredient": "양파다진것",
+   "food_code": "R106-132000001-0000",
+   "food_name": "양파, 생것",
+   "rationale": "다진 양파 = 양파, 생것(양파 규칙 매핑과 같음)"
+  },
+  {
+   "ingredient": "통마늘",
+   "food_code": "R106-053002201-0000",
+   "food_name": "마늘, 생것",
+   "rationale": "통마늘 = 마늘, 생것(마늘 규칙 매핑과 같음)"
+  },
+  {
+   "ingredient": "토마토페이스트",
+   "food_code": "R106-186000028-0001",
+   "food_name": "토마토, 통조림, 페이스트",
+   "rationale": "원재료성 '토마토, 통조림, 페이스트'(가공식품과 값 같음)"
+  },
+  {
+   "ingredient": "와사비",
+   "food_code": "R106-021000043-0000",
+   "food_name": "고추냉이, 페이스트",
+   "rationale": "와사비 = 고추냉이, 시판 튜브형 페이스트"
+  },
+  {
+   "ingredient": "연겨자",
+   "food_code": "R118-052000043-0000",
+   "food_name": "겨자 페이스트",
+   "rationale": "연겨자 = 시판 튜브형 겨자 페이스트"
+  },
+  {
+   "ingredient": "미숫가루",
+   "food_code": "R121-029070100-0000",
+   "food_name": "미숫가루, 혼합곡물",
+   "rationale": "가루 상태(음료 아님)"
+  },
+  {
+   "ingredient": "캐슈넛",
+   "food_code": "R121-003010158-0000",
+   "food_name": "캐슈너트, 조미, 볶은것",
+   "rationale": "캐슈너트 항목은 조미 볶은것 하나 → 근사(나트륨이 실제보다 많을 수 있음)"
+  },
+  {
+   "ingredient": "아몬드가루",
+   "food_code": "R105-020000002-0000",
+   "food_name": "아몬드, 말린것",
+   "rationale": "아몬드 가루 항목 없음 → 아몬드와 같이 말린것으로 근사"
+  },
+  {
+   "ingredient": "아몬드슬라이스",
+   "food_code": "R105-020000002-0000",
+   "food_name": "아몬드, 말린것",
+   "rationale": "썬 아몬드 → 아몬드와 같이 말린것"
+  },
+  {
+   "ingredient": "적채",
+   "food_code": "R106-129010001-0000",
+   "food_name": "양배추, 적색, 생것",
+   "rationale": "적채 = 적양배추"
+  },
+  {
+   "ingredient": "도라지",
+   "food_code": "R106-044007601-0000",
+   "food_name": "도라지, 뿌리, 생것",
+   "rationale": "부위 미기재 → 흔히 먹는 뿌리, 생것"
+  },
+  {
+   "ingredient": "취나물",
+   "food_code": "R106-177030001-0000",
+   "food_name": "취나물, 참취, 생것",
+   "rationale": "종류 미기재 → 가장 흔한 참취"
+  },
+  {
+   "ingredient": "상추",
+   "food_code": "R106-101173701-0000",
+   "food_name": "상추, 잎상추, 적색, 생것",
+   "rationale": "종류 미기재 → 쌈용 잎상추(적색 기본 항목). 잎상추 종류 간 영양 차이 작음"
   }
  ]
 }
