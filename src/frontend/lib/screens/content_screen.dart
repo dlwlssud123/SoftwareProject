@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'playground_games.dart';
 
 class ContentScreen extends StatefulWidget {
   const ContentScreen({this.playground = false, super.key});
@@ -43,13 +44,6 @@ class _ContentScreenState extends State<ContentScreen> {
     ),
   ];
   static const play = [
-    (
-      title: '같은 그림을 찾아보세요',
-      category: '두뇌체조',
-      query: '',
-      icon: Icons.grid_view_rounded,
-      color: Color(0xFFE4EEDC),
-    ),
     (
       title: '추억의 풍경을 만나요',
       category: '그때 그 시절',
@@ -135,11 +129,48 @@ class _ContentScreenState extends State<ContentScreen> {
       children: [
         if (widget.playground) ...[
           const Notice(
-            '보고 싶은 주제를 골라보세요.\n두뇌체조는 앱에서 바로 시작할 수 있어요.',
+            '게임은 앱에서 바로 즐길 수 있어요.\n시간 제한 없이 천천히 해 보세요.',
             icon: Icons.sports_esports_outlined,
             color: blue,
           ),
           const SizedBox(height: 18),
+          const SectionTitle('가볍게 즐기는 게임'),
+          ServiceGrid(
+            children: [
+              ServiceButton(
+                title: '두뇌체조',
+                subtitle: '같은 그림을 찾아보세요',
+                icon: Icons.grid_view_rounded,
+                background: const Color(0xFFE4EEDC),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const MemoryGame()),
+                ),
+              ),
+              ServiceButton(
+                key: const Key('number-game-start'),
+                title: '숫자 놀이',
+                subtitle: '1부터 9까지 순서대로 눌러요',
+                icon: Icons.touch_app_outlined,
+                background: const Color(0xFFE5EDF5),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const NumberOrderGame(),
+                  ),
+                ),
+              ),
+              ServiceButton(
+                key: const Key('proverb-game-start'),
+                title: '속담 퀴즈',
+                subtitle: '익숙한 속담을 이어 맞혀요',
+                icon: Icons.chat_bubble_outline_rounded,
+                background: const Color(0xFFFAEACF),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const ProverbGame()),
+                ),
+              ),
+            ],
+          ),
+          const SectionTitle('영상으로 즐기는 취미'),
           ServiceGrid(
             children: [
               for (final item in items)
@@ -148,22 +179,12 @@ class _ContentScreenState extends State<ContentScreen> {
                   subtitle: item.title,
                   icon: item.icon,
                   background: item.color,
-                  onTap: () {
-                    if (item.query.isEmpty) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const MemoryGame(),
-                        ),
-                      );
-                    } else {
-                      openLink(
-                        context,
-                        Uri.https('www.youtube.com', '/results', {
-                          'search_query': item.query,
-                        }),
-                      );
-                    }
-                  },
+                  onTap: () => openLink(
+                    context,
+                    Uri.https('www.youtube.com', '/results', {
+                      'search_query': item.query,
+                    }),
+                  ),
                 ),
             ],
           ),
@@ -332,9 +353,9 @@ class _MemoryGameState extends State<MemoryGame> {
                   child: Center(
                     child: Text(
                       visible ? cards[index] : '?',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 36,
-                        color: Colors.white,
+                        color: visible ? ink : Colors.white,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
