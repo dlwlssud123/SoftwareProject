@@ -96,6 +96,11 @@ def ingredient_nutrition(ingredients, index: FoodIndex, by_code: dict[str, FoodR
     g_used = sum(i["grams"]["grams"] for i in conv if i["contribution"] is not None)
     non_water = [i for i in items if i["match"]["status"] != "water"]
     complete = bool(non_water) and all(i["contribution"] is not None for i in non_water)
+    # 약간·적당량은 g을 지어내지 않는다. 대신 무엇이 빠졌는지와, 그것만 빠졌는지를 따로 남긴다
+    # (complete 는 그대로 엄격 — 소금 '적당량'이 빠지면 나트륨이 실제보다 낮게 잡히므로 화면이 알려야 한다)
+    qualitative = [i for i in non_water if i["grams"]["status"] == "qualitative"]
+    quantified = [i for i in non_water if i["grams"]["status"] != "qualitative"]
+    complete_except_qualitative = bool(quantified) and all(i["contribution"] is not None for i in quantified)
     return {
         "ingredients": items,
         "computed": {k: round(v, 2) for k, v in totals.items()},
@@ -107,6 +112,9 @@ def ingredient_nutrition(ingredients, index: FoodIndex, by_code: dict[str, FoodR
             "grams_used": round(g_used, 2),
             "grams_used_pct": round(100 * g_used / g_total, 1) if g_total else None,
             "complete": complete,
+            "complete_except_qualitative": complete_except_qualitative,
+            "qualitative_items": [{"name": i["name"], "amount_text": i["amount_text"],
+                                   "food_code": i["match"].get("food_code")} for i in qualitative],
         },
     }
 

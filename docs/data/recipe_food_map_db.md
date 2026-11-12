@@ -16,7 +16,7 @@
   - 쓰는 매핑이면 `food_id`·`food_revision_id`(**계산에 쓴 식품 판본**)가 있고, 아니면 둘 다 NULL(CHECK). `candidate`는 `candidates`에 상위 5개 후보.
   - `reviewed_by`·`reviewed_on` = 수동 매핑표의 확인자·확인일(정의서 6절 "curated → reviewed 전환 이력"). `reviewed`일 때만 있다(CHECK). 매핑표 자체의 바뀐 이력은 git에 있다.
   - `grams`·`gram_status`·`gram_basis` = g 환산과 근거 문장(정의서 3절). `contribution` = 성분별 기여량(g ÷ 기준량 × 함량), 계산에 들어간 재료만. `basis_ml_approx` = mL 기준 식품을 1mL≈1g으로 계산했는지.
-- **레시피 판본 하나 = `recipe_computed_nutrition` 한 행**: `computed`(11개 성분 합계), `computed_missing`(성분별 값 없는 재료 수), `coverage`, `complete`(물을 뺀 모든 재료가 계산에 들어갔는지), `items`·`items_used`·`grams_used_pct`, 계산기 판본·매핑표 해시·`mapping_sha256`.
+- **레시피 판본 하나 = `recipe_computed_nutrition` 한 행**: `computed`(11개 성분 합계), `computed_missing`(성분별 값 없는 재료 수), `coverage`(정성 분량 `qualitative_items`·`complete_except_qualitative` 포함 — 정의서 3절), `complete`(물을 뺀 모든 재료가 계산에 들어갔는지), `items`·`items_used`·`grams_used_pct`, 계산기 판본·매핑표 해시·`mapping_sha256`.
   - 원천 레시피가 적어 둔 영양(`recipe_revisions.source_*`)과는 **다른 값**이다. 섞어 쓰지 않는다. 화면은 `complete = false`면 "일부 재료 기준"으로 보여 준다(정의서 3절).
 - **옛 판본 행은 지우지 않는다.** 레시피가 새 판본이 되면 새 판본 행을 만들고, 옛 판본 행은 남긴다 — 식단표(#18 `meal_plan_entries`)가 고른 당시 판본을 가리킬 수 있어서.
 
@@ -98,6 +98,10 @@ g 환산에 `resources/unit_weights.json`을 쓴다(정의서 7.6절 끝·8절):
 - 근거 문장은 행마다 `gram_basis`에 남는다(예: `원문 (1개) → 1개=60g(식품의약품안전처: '달걀 크기로 1개(60 g)'(16쪽), …)`).
 - 1mL≈1g 근사라 가루 양념(후춧가루 ⅓Ts → 5 g)은 실제보다 무겁게 잡힌다.
 - 남은 개수 단위 552줄(레몬·양파·버섯·새우 '마리'·깻잎 '장'·대추 '알' 등)은 출처가 더 필요하다(한국보건산업진흥원 2007 눈대중량 DB — 원문·이용 조건 확인 전).
+
+### 4.3 정성 분량 따로 남기기 (2026-11-13, 계산기 `recipe-food-map-v3`)
+
+'약간·적당량'(201줄)은 g을 지어내지 않고, `complete`도 엄격하게 둔다. 대신 `coverage.qualitative_items`(이름·분량 원문·매핑된 식품코드)와 `complete_except_qualitative`를 남긴다. 실DB(4.2와 같은 입력): `complete` 170건, `complete_except_qualitative` **185건**(정성 분량만 빠진 15건 — 빠진 것은 소금 7·후추 2·참기름 2 …). 매핑 결과 JSON에 `complete_except_qualitative_recipes`.
 
 ## 5. 남은 것
 
