@@ -78,7 +78,7 @@ Alembic `20261110_01`은 기존 레시피·식품·복지 판본과 사용자 �
 
 Alembic `20261111_01`은 급식시설·제철 자료에 공공데이터 원천 칸(원천 ID·자료 기준일·품질 표시·정제 레코드)을 더하고, 제철 식재료 상세(`seasonal_foods`)와 레시피 연결(`seasonal_recipe_links`)을 추가한다. 원천 칸이 비어 있는 행은 관리자가 직접 넣은 자료로 보고 적재가 건드리지 않는다. 적재는 `python -m app.jobs.import_meal_facilities`·`import_seasonal`(레시피 적재 뒤)이며 칸 대응·규칙은 `docs/data/facility_seasonal_db_import.md`에 있다.
 
-Alembic `20261111_02`는 레시피 재료 → 식품 매핑(`recipe_ingredient_foods`, 재료 하나·계산에 쓴 식품 판본·g 환산·기여량)과 레시피 계산 영양(`recipe_computed_nutrition`, 레시피 판본 하나)을 추가한다. 원천 레시피가 적은 영양(`recipe_revisions.source_*`)과는 따로 둔다. 계산은 `python -m app.jobs.map_recipe_foods`(레시피·식품 적재 뒤)이며 규칙은 `docs/data/recipe_food_map_db.md`에 있다.
+Alembic `20261111_02`는 레시피 재료 → 식품 매핑(`recipe_ingredient_foods`, 재료 하나·계산에 쓴 식품 판본·g 환산·기여량)과 레시피 계산 영양(`recipe_computed_nutrition`, 레시피 판본 하나)을 추가한다. 원천 레시피가 적은 영양(`recipe_revisions.source_*`)과는 따로 둔다. 계산은 `python -m app.jobs.map_recipe_foods`(레시피·식품 적재 뒤)이며 규칙은 `docs/data/recipe_food_map_db.md`에 있다. Alembic `20261113_01`은 g 환산 상태에 `unit_weight`(출처 있는 개당 중량, 예: 달걀 1개 60 g)를 더한다.
 
 DB에서 사용자를 삭제하면 세션·프로필·기록·저장·식단표·사용자 작업도 삭제된다. 프로필 동의 철회는 기존 API대로 프로필만 삭제한다. 원천 판본과 공통 작업은 보존된다. 새 저장 구조를 사용하는 기능별 API와 작업 실행기는 별도 작업에서 연결한다.
 

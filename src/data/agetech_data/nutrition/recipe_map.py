@@ -19,7 +19,7 @@ from agetech_data.nutrition.foods import FoodRecord
 from agetech_data.nutrition.match import FoodIndex, _manual, load_ingredient_map
 from agetech_data.textutil import sha256_json
 
-MAPPER_VERSION = "recipe-food-map-v1"
+MAPPER_VERSION = "recipe-food-map-v2"  # v2: 계량 단위(큰술·작은술·Ts·ts·컵)·출처 있는 개당 중량(unit_weight) 환산
 
 
 def food_records(normalized: list[dict]) -> list[FoodRecord]:

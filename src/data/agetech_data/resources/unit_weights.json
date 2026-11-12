@@ -1,0 +1,30 @@
+{
+ "description": "레시피 재료의 개수·계량 단위 → g·mL 환산표. 출처가 단위와 무게를 함께 적은 것만 둔다(지어내지 않음). count_units 는 (재료명, 단위) 하나당 1단위 무게(g), volume_units 는 1단위 부피(mL — 1mL≈1g 근사는 환산기에서). 재료명은 공백을 지우고 비교한다.",
+ "sources": {
+  "mfds_nq_elderly": "식품의약품안전처, 「건강·식생활 향상을 위한 노인 영양지수 교육자료」(2023, 1회 분량 출처 표기: 한국인 영양소 섭취기준), https://various.foodsafetykorea.go.kr/nq/ebook/oldman/oldman_balance.pdf",
+  "measure_spoon": "계량스푼 1큰술 15 mL·1작은술 5 mL — 미국 FDA 「Guidelines for Determining Metric Equivalents of Household Measures」(1 Tbsp = 15 mL, 1 tsp = 5 mL), 농촌진흥청 「한식 재료 정보」(data.go.kr 15137344)의 물 1큰술 14 g·3⅔큰술 54 g과 맞음",
+  "measure_cup": "국내 계량컵 1컵 200 mL — 식약처 노인 영양지수 교육자료 '우유(200 mL)'·'과일주스 1/2컵(100 mL)'. 종이컵(약 180 mL)·미국 컵(240 mL)과 다르므로 근사로 표시"
+ },
+ "count_units": [
+  {"ingredient": "달걀", "unit": "개", "grams": 60, "source": "mfds_nq_elderly", "evidence": "'달걀 크기로 1개(60 g)'(16쪽), '달걀 1개(60 g)'(21쪽)"},
+  {"ingredient": "계란", "unit": "개", "grams": 60, "source": "mfds_nq_elderly", "evidence": "계란 = 달걀, '달걀 1개(60 g)'(21쪽)"},
+  {"ingredient": "사과", "unit": "개", "grams": 200, "source": "mfds_nq_elderly", "evidence": "'1회 분량은 사과 1/2개'·'사과(100 g)'(8쪽) → 1개 200 g"},
+  {"ingredient": "귤", "unit": "개", "grams": 100, "source": "mfds_nq_elderly", "evidence": "'귤(중) 1개'·'귤(100 g)'(8쪽)"},
+  {"ingredient": "참외", "unit": "개", "grams": 300, "source": "mfds_nq_elderly", "evidence": "'참외 1/2개'·'참외(150 g)'(8쪽) → 1개 300 g"},
+  {"ingredient": "포도", "unit": "송이", "grams": 300, "source": "mfds_nq_elderly", "evidence": "'포도 1/3 송이'·'포도(100 g)'(8쪽) → 1송이 300 g"},
+  {"ingredient": "밥", "unit": "공기", "grams": 210, "source": "mfds_nq_elderly", "evidence": "'밥으로 1공기(210 g)'(25쪽)"},
+  {"ingredient": "쌀밥", "unit": "공기", "grams": 210, "source": "mfds_nq_elderly", "evidence": "'밥으로 1공기(210 g)'(25쪽)"}
+ ],
+ "volume_units": [
+  {"unit": "큰술", "ml": 15, "source": "measure_spoon"},
+  {"unit": "작은술", "ml": 5, "source": "measure_spoon"},
+  {"unit": "티스푼", "ml": 5, "source": "measure_spoon"},
+  {"unit": "Ts", "ml": 15, "source": "measure_spoon"},
+  {"unit": "T", "ml": 15, "source": "measure_spoon"},
+  {"unit": "Tbsp", "ml": 15, "source": "measure_spoon"},
+  {"unit": "ts", "ml": 5, "source": "measure_spoon"},
+  {"unit": "t", "ml": 5, "source": "measure_spoon"},
+  {"unit": "tsp", "ml": 5, "source": "measure_spoon"},
+  {"unit": "컵", "ml": 200, "source": "measure_cup"}
+ ]
+}

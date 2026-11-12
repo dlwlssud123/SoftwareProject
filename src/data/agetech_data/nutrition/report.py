@@ -16,7 +16,7 @@ MATCH_LABEL = {
 }
 GRAM_LABEL = {
     "direct": "원문 g 그대로", "direct_paren": "원문 괄호의 g", "approx_ml": "mL → 1mL≈1g 근사",
-    "count_unit": "개수 단위(환산 안 함)", "qualitative": "약간·적당량(환산 안 함)",
+    "unit_weight": "개당 중량표(출처 있음)", "count_unit": "개수 단위(환산 안 함)", "qualitative": "약간·적당량(환산 안 함)",
     "missing": "분량 없음", "unparsed": "단위 읽기 실패",
 }
 NUTRIENT_LABEL = {k: label for k, (_f, label) in NUTRIENT_FIELDS.items()}
