@@ -60,6 +60,23 @@ def test_detail_text_change_changes_content_hash(payload):
     assert [k for k in before if before[k] != after[k]] == [item["row_id"]]
 
 
+def test_related_recipe_order_from_source_does_not_change_content_hash(payload):
+    # 원천은 같은 관련 레시피를 호출마다 다른 순서로 준다(2026-11-13 실수집 123개 중 48개) → 매일 적재 때 가짜 변경
+    two = copy.deepcopy(payload)
+    item = next(i for i in two["items"] if i["fdmtNm"] == "시금치")
+    item["detail"]["connRecipeList"]["recipeInfo"] = [
+        {"recipeSn": "1093", "recipeNm": "시금치 프리타타"}, {"recipeSn": "193", "recipeNm": "시금치그린스무디"}]
+    flipped = copy.deepcopy(two)
+    next(i for i in flipped["items"] if i["fdmtNm"] == "시금치")["detail"]["connRecipeList"]["recipeInfo"].reverse()
+    rows, rows_flipped = seasonal_rows(two, RECIPES), seasonal_rows(flipped, RECIPES)
+    assert [r["content_sha256"] for r in rows] == [r["content_sha256"] for r in rows_flipped]
+    spinach = next(r for r in rows if r["name"] == "시금치")
+    assert spinach["official_related_recipes"] == ["시금치그린스무디", "시금치 프리타타"]    # 레시피 번호 193 < 1093
+    item["detail"]["connRecipeList"]["recipeInfo"].pop()                                 # 레시피가 빠지면 변경
+    assert next(r for r in seasonal_rows(two, RECIPES) if r["name"] == "시금치")["content_sha256"] \
+        != spinach["content_sha256"]
+
+
 def test_one_ingredient_name_cannot_belong_to_two_items_in_a_month(payload):
     twin = copy.deepcopy(payload)
     spinach = next(i for i in twin["items"] if i["fdmtNm"] == "시금치")

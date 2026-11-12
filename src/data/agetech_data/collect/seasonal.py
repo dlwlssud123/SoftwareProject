@@ -97,6 +97,21 @@ class _Caller:
                                 backoff=RETRY_BACKOFF)
 
 
+def related_recipe_order(recipe: dict) -> tuple:
+    """관련 레시피(상세 connRecipeList.recipeInfo) 정렬 키 — 레시피 번호(recipeSn) 순.
+    원천이 같은 목록을 호출마다 다른 순서로 준다(2026-11-13 두 번 수집: 123개 중 48개가 순서만 다름).
+    수집본은 받은 그대로 두고, 정제·변경 감지에서 이 순서로 고정한다."""
+    sn = str(recipe.get("recipeSn") or "")
+    return not sn.isdigit(), int(sn) if sn.isdigit() else 0, sn, str(recipe.get("recipeNm") or "")
+
+
+def related_recipes(detail: dict | None) -> list[dict]:
+    """상세의 관련 레시피 목록(하나면 dict로 오는 경우 포함)을 related_recipe_order 순으로."""
+    related = ((detail or {}).get("connRecipeList") or {}).get("recipeInfo") or []
+    related = [related] if isinstance(related, dict) else related
+    return sorted((r for r in related if isinstance(r, dict)), key=related_recipe_order)
+
+
 def collect_seasonal(key: str, *, fetch: Fetcher = http_fetch, sleep=time.sleep, log=print, details: bool = True,
                      min_interval: float = MIN_INTERVAL) -> dict:
     """1~12월 목록 + 식재료 상세 → {"meta", "items"}. 항목 = (월, 식재료) 한 줄, row_id = 'm{월}-{fdmtSn}'.

@@ -20,7 +20,7 @@ from agetech_data.seasonal.normalize import build_records, load_rules
 from agetech_data.snapshot import collected_on
 from agetech_data.textutil import sha256_json
 
-NORMALIZER_VERSION = "refresh-seasonal-v1"
+NORMALIZER_VERSION = "refresh-seasonal-v2"          # v2: 관련 레시피를 레시피 번호 순으로 고정
 PROVIDER = "data.go.kr:15168024"                # 농식품 이달의 식재료
 SOURCE_URL = DOCUMENTATION
 LINK_FIELDS = ("matched_ingredients", "recipe_count", "recipes")

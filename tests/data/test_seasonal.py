@@ -100,6 +100,26 @@ def test_refresh_source_registered():
     assert src.id_field == "row_id" and src.latest.name == "food_month.json"
 
 
+def test_refresh_change_detection_ignores_related_recipe_order():
+    import copy
+
+    from agetech_data.refresh.changes import diff
+    from agetech_data.refresh.sources import SOURCES
+
+    src = SOURCES["seasonal_foods"]
+    old = [{"row_id": "m1-1", "month": 1, "fdmtSn": "1", "fdmtNm": "곶감", "detail_status": "ok",
+            "detail": {"stdInfo": {"fdmtNm": "곶감"}, "ntkInfo": {},
+                       "connRecipeList": {"recipeInfo": [{"recipeSn": "9", "recipeNm": "곶감장아찌"},
+                                                         {"recipeSn": "12", "recipeNm": "곶감토르티야피자"}]}}},
+           {"row_id": "m1-2", "month": 1, "fdmtSn": "2", "fdmtNm": "무", "detail": None, "detail_status": "failed"}]
+    new = copy.deepcopy(old)
+    new[0]["detail"]["connRecipeList"]["recipeInfo"].reverse()
+    assert diff(old, new, src.id_of, content_of=src.content_of)["changed"] == 0
+    assert new[0]["detail"]["connRecipeList"]["recipeInfo"][0]["recipeSn"] == "12"     # 수집본은 받은 그대로
+    new[0]["detail"]["stdInfo"]["fdmtNm"] = "곶감(바뀜)"
+    assert diff(old, new, src.id_of, content_of=src.content_of)["changed"] == 1
+
+
 # ── 연결 규칙 ────────────────────────────────────────────────────────────
 
 def test_official_terms_and_ingredient_cleaning():
