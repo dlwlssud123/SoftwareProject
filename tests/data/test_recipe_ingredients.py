@@ -81,6 +81,31 @@ def test_serving_prefix_and_commas_inside_paren():
     assert r.ingredients[2].section == "양념장"
 
 
+def test_new_format_serving_line_bracket_sections_and_br_tags():
+    # 2026-11 수집본의 새 형식(예: RCP_SEQ 3459): 'N인분 기준' 줄, '• [구획] …', 줄 끝 <br>
+    text = ("2인분 기준<br>\n\n• [가정 간편식 재료] 누들 떡볶이 떡(20개, 130g), 어묵(1장, 40g)<br>\n\n"
+            "• [추가 재료] 쌈두부(100g), 식용유(2큰술)")
+    r = parse_ingredients(text)
+    assert [(i.section, i.name, i.amount_text, i.line_no) for i in r.ingredients] == [
+        ("가정 간편식 재료", "누들 떡볶이 떡", "(20개, 130g)", 3),
+        ("가정 간편식 재료", "어묵", "(1장, 40g)", 3),
+        ("추가 재료", "쌈두부", "(100g)", 5),
+        ("추가 재료", "식용유", "(2큰술)", 5),
+    ]
+    assert [(s.title, s.style) for s in r.sections] == [("가정 간편식 재료", "bracket"), ("추가 재료", "bracket")]
+    assert all("<" not in i.raw_item for i in r.ingredients)
+
+
+def test_mid_line_br_and_strong_tags_are_line_breaks():
+    # 줄 중간 태그는 줄바꿈: 뒤의 '조림장:' 이 섹션이 되고 '[드래싱]' 은 대괄호 섹션이 된다 (RCP_SEQ 851·986)
+    r = parse_ingredients("양념:요구르트 6g, 후춧가루 0.03g<br /> 조림장:간장 3g, 설탕 5g")
+    assert [(i.section, i.name, i.amount_text) for i in r.ingredients] == [
+        ("양념", "요구르트", "6g"), ("양념", "후춧가루", "0.03g"), ("조림장", "간장", "3g"), ("조림장", "설탕", "5g")]
+    r = parse_ingredients("캔참치 20g<strong>[드래싱]</strong> 올리브오일 2g, 설탕적당량")
+    assert [(i.section, i.name, i.amount_text) for i in r.ingredients] == [
+        ("", "캔참치", "20g"), ("드래싱", "올리브오일", "2g"), ("드래싱", "설탕", "적당량")]
+
+
 def test_format_anomalies_detected():
     r = parse_ingredients(
         "돼지고기(50g), 당근(20g),\n표고버섯(2개), 후춧가루(0.5g\n"

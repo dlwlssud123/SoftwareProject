@@ -11,7 +11,10 @@
   B  돼지고기(50g)                분량이 괄호 안
   C  닭고기(가슴살, 120g)          괄호 안에 설명+분량
   Q  참깨 약간                     정성 분량
-  섹션: "●양념장 : …", "•육수 : …", "재료 닭가슴살(60g)…"(콜론 없음), 메뉴명·소제목 줄
+  섹션: "●양념장 : …", "•육수 : …", "재료 닭가슴살(60g)…"(콜론 없음), "• [주재료] 감자(100g)…"(대괄호),
+        메뉴명·소제목 줄
+  재료가 아닌 줄: "[1인분]" 머리표, "2인분 기준" 줄 (분량 기준 표기는 fields 의 ingredient_servings_stated)
+  HTML 태그: 원문에 그대로 온 <br>·<br />·<strong> 은 줄바꿈, </strong> 은 지움 (2026-11 수집본 27건)
 """
 
 from __future__ import annotations
@@ -44,6 +47,11 @@ _AMOUNT_RE = re.compile(rf"(?P<num>{_NUM})\s*(?P<unit>{_UNIT})?")
 _QUAL_RE = re.compile("|".join(map(re.escape, QUALITATIVE)))
 _BULLET_RE = re.compile(r"^[●•·▶■◆□○◎※★☆▣►]\s*")
 _SERVING_RE = re.compile(r"^\[[^\]]*인분[^\]]*\]\s*")
+_SERVING_LINE_RE = re.compile(r"^\d+(?:\.\d+)?\s*인분(?:\s*기준)?$")      # "2인분 기준" 줄 전체
+_BRACKET_SECTION_RE = re.compile(r"^\[(?P<sec>[^\[\]]+)\]\s*")            # "[주재료] 감자(100g), …"
+_MARKUP_CLOSE_RE = re.compile(r"<\s*/\s*strong\s*>", re.I)
+_MARKUP_BREAK_RE = re.compile(r"<\s*(?:br|strong)\s*/?\s*>", re.I)
+_MARKUP_EOL_RE = re.compile(r"<\s*(?:br|strong)\s*/?\s*>[ \t]*(?=\n|$)", re.I)
 _INLINE_SECTION_RE = re.compile(
     r"^(?P<sec>" + "|".join(map(re.escape, sorted(INLINE_SECTION_WORDS, key=len, reverse=True)))
     + r")\s+(?=\S)"
@@ -78,7 +86,7 @@ class Section:
     line_no: int
     raw_line: str
     title: str
-    style: Literal["colon", "inline_word", "title_line"]
+    style: Literal["colon", "inline_word", "title_line", "bracket"]
 
 
 @dataclass
@@ -205,6 +213,9 @@ def parse_ingredients(text: str | None) -> IngredientResult:
     if is_blank(text):
         return IngredientResult([], [], [Issue("ingredients_none")])
     source = nfc(text).replace("\r\n", "\n").replace("\r", "\n")
+    # HTML 줄바꿈 태그: 줄 끝 태그는 지우기만 하고(줄 번호 그대로), 줄 중간 태그는 줄바꿈으로 본다
+    source = _MARKUP_EOL_RE.sub("", _MARKUP_CLOSE_RE.sub("", source))
+    source = _MARKUP_BREAK_RE.sub("\n", source)
     ingredients: list[Ingredient] = []
     sections: list[Section] = []
     issues: list[Issue] = []
@@ -214,8 +225,15 @@ def parse_ingredients(text: str | None) -> IngredientResult:
         line = clean_text(raw_line)
         line = _SERVING_RE.sub("", line)          # "[1인분]" 표기는 섹션·재료가 아님
         line = _BULLET_RE.sub("", line).strip()
-        if not line:
+        if not line or _SERVING_LINE_RE.match(line):   # "2인분 기준" 줄은 재료가 아님
             continue
+        m = _BRACKET_SECTION_RE.match(line)            # 대괄호 섹션 이름이 첫 재료 이름에 붙지 않게
+        if m:
+            section = m.group("sec").strip()
+            sections.append(Section(line_no, raw_line, section, "bracket"))
+            line = line[m.end():].strip()
+            if not line:
+                continue
         # "양념장 : 간장 …" / "●방울토마토 소박이 :" (머리말에 숫자 없음)
         if ":" in line or "：" in line:
             head, rest = re.split(r"\s*[:：]\s*", line, maxsplit=1)
