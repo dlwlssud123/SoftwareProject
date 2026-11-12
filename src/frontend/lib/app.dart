@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'data/demo_repository.dart';
+import 'data/recipe_api.dart';
 import 'services/settings.dart';
 import 'theme.dart';
 import 'screens/meal_screen.dart';
@@ -13,10 +14,14 @@ class ValueFlowApp extends StatelessWidget {
   const ValueFlowApp({
     required this.repository,
     required this.settings,
+    this.recipeApi,
     super.key,
   });
   final DemoRepository repository;
   final AppSettings settings;
+
+  /// null이면 서버 없이 데모 데이터만 쓴다.
+  final RecipeApi? recipeApi;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: settings,
@@ -24,7 +29,9 @@ class ValueFlowApp extends StatelessWidget {
       title: '오늘동행 · ValueFlow',
       debugShowCheckedModeBanner: false,
       theme: appTheme(),
-      scrollBehavior: const MaterialScrollBehavior().copyWith(overscroll: false),
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        overscroll: false,
+      ),
       locale: const Locale('ko'),
       supportedLocales: const [Locale('ko')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -34,15 +41,25 @@ class ValueFlowApp extends StatelessWidget {
         ).copyWith(textScaler: TextScaler.linear(settings.textScale)),
         child: child!,
       ),
-      home: AppShell(repository: repository, settings: settings),
+      home: AppShell(
+        repository: repository,
+        settings: settings,
+        recipeApi: recipeApi,
+      ),
     ),
   );
 }
 
 class AppShell extends StatefulWidget {
-  const AppShell({required this.repository, required this.settings, super.key});
+  const AppShell({
+    required this.repository,
+    required this.settings,
+    this.recipeApi,
+    super.key,
+  });
   final DemoRepository repository;
   final AppSettings settings;
+  final RecipeApi? recipeApi;
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -52,7 +69,11 @@ class _AppShellState extends State<AppShell> {
   final visitedTabs = <int>{0};
   final navigators = List.generate(5, (_) => GlobalKey<NavigatorState>());
   late final List<Widget> pages = [
-    MealScreen(repository: widget.repository, settings: widget.settings),
+    MealScreen(
+      repository: widget.repository,
+      settings: widget.settings,
+      recipeApi: widget.recipeApi,
+    ),
     NutritionScreen(repository: widget.repository, settings: widget.settings),
     AssistantScreen(repository: widget.repository, settings: widget.settings),
     const ContentScreen(),
