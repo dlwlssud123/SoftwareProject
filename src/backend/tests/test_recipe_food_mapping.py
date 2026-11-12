@@ -150,8 +150,9 @@ def test_postgres_mapping_stores_matches_grams_and_computed_nutrition(
             and summary.items_used == 3
         )
         onion = mapping(db, "2")[1][0]
-        # 1개 → 개수 단위라 환산하지 않음
-        assert onion.match_status == "exact" and onion.grams is None
+        # 양파 1개 → 한국보건산업진흥원 눈대중량 DB의 중 1개 가식부 181 g
+        assert onion.match_status == "exact" and onion.gram_status == "unit_weight"
+        assert onion.grams == Decimal("181.0")
 
         # 식품 판본이 바뀌면 그 식품을 쓰는 레시피만 다시 계산하고 새 판본을 가리킨다
         changed = [food("R1", "시금치, 생것", "35", "50"), *FOODS[1:]]
@@ -214,18 +215,20 @@ def test_postgres_unit_weight_is_stored_with_its_source(tmp_path, pg_connection)
         result = map_recipe_foods.apply_mapping(db, ())
         _, items, summary = mapping(db, "3")
         egg, onion, salt = items
-        # '약간'은 g이 없어 계산에 안 들어가고, coverage 에 따로 남는다(양파 '1개'가 있어 그것만 빠진 건 아님)
+        # '약간'은 g이 없어 계산에 안 들어가고 coverage 에 따로 남는다 — 그것만 빠진 레시피
         assert salt.gram_status == "qualitative" and salt.contribution is None
         assert summary.coverage["qualitative_items"] == [
             {"name": "소금", "amount_text": "약간", "food_code": None}
         ]
-        assert summary.coverage["complete_except_qualitative"] is False
-        assert result["complete_except_qualitative_recipes"] == 0
+        assert summary.coverage["complete_except_qualitative"] is True
+        assert result["complete_except_qualitative_recipes"] == 1
         assert (egg.gram_status, egg.grams) == ("unit_weight", Decimal("120.0"))
         assert "1개=60g" in egg.gram_basis and "식품의약품안전처" in egg.gram_basis
         assert egg.contribution["energy_kcal"] == 168.0
-        assert (onion.gram_status, onion.grams) == ("count_unit", None)  # 표에 없음
-        assert not summary.complete and summary.computed["energy_kcal"] == 168.0
+        assert (onion.gram_status, onion.grams) == ("unit_weight", Decimal("181.0"))
+        assert "한국보건산업진흥원" in onion.gram_basis
+        assert not summary.complete
+        assert summary.computed["energy_kcal"] == 168.0 + 72.4
         assert map_recipe_foods.verify_mapping(db, ())["verified"]
 
 
