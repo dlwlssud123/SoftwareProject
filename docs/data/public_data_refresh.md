@@ -92,12 +92,12 @@ uv run python -m agetech_data.refresh --rollback welfare_local 20261101T030000Z
 | `item_count`, `previous_count` | 마지막 성공 판본 건수, 그 이전 건수 |
 | `changes` | `{first_snapshot, added, removed, changed, unchanged, samples:{added, removed, changed}}` (예시 ID 최대 20개) |
 | `quality` | 소스별 품질 요약. 레시피는 레시피 품질 검증 판정 건수 `{ok, flagged, hold}`, 복지는 `{detail_status: {fresh, cached, stale, pending}}`, 무료급식소는 `{rows, coords_missing, phone_missing, reference_years}`, 이달의 식재료는 `{by_month, detail_status}` |
-| `details` | 복지만: `{counts, fetched_this_run, remaining, stopped_by_quota, daily_limit, max_age_days}` — `remaining > 0`이면 다음 실행에서 이어 받음 |
+| `details` | 수집본 meta의 상세 요약(소스마다 모양이 다름, 없으면 `null`). 복지: `{counts, fetched_this_run, remaining, stopped_by_quota, daily_limit, max_age_days}` — `remaining > 0`이면 다음 실행에서 이어 받음. 이달의 식재료: `{requested, failed}` — `failed > 0`이면 수집본 `complete: false`(DB 적재는 `--allow-partial-details`일 때만) |
 | `rolled_back_at` | 되돌리기를 했으면 그 시각 |
 | `last_warnings` | 마지막 실행의 경고(게시는 됐지만 오래된 판본 정리·백업 삭제 실패 등). 없으면 `[]` |
 | `last_repair` | 실행 시작 점검에서 최신본을 다시 맞췄으면 `{at, note}` |
 
-**관리자 화면 권장 표시**: 소스별 `serving.snapshot_id`·`fetched_at`(원천 확인 시각), `last_status`, `consecutive_failures ≥ 1`이면 경고, `last_warnings`가 있으면 주의, `changes`의 추가·삭제·변경 건수, 레시피 `quality.hold` 건수, 복지 `details.remaining`(상세 미수집 건수).
+**관리자 화면 권장 표시**: 소스별 `serving.snapshot_id`·`fetched_at`(원천 확인 시각), `last_status`, `consecutive_failures ≥ 1`이면 경고, `last_warnings`가 있으면 주의, `changes`의 추가·삭제·변경 건수, 레시피 `quality.hold` 건수, 복지 `details.remaining`(상세 미수집 건수), 이달의 식재료 `details.failed`(상세 받기 실패 건수).
 
 **2026-11-01 첫 실행 결과**: 레시피 1,156건·영양 8,807건 정상(두 번째 실행 변경 0건). 복지는 상세 한도를 첫 시도에서 소진해 목록만 게시(중앙 130·지자체 1,338건, 상세 `pending`) — 다음 실행부터 상세를 채운다.
 
