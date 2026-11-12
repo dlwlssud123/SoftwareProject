@@ -44,6 +44,11 @@ WELFARE_LOCAL_RAW = WELFARE_RAW_DIR / "local_elderly.json"
 REFRESH_STATUS = PROCESSED_DIR / "refresh_status.json"
 REFRESH_LOG = PROCESSED_DIR / "refresh_log.jsonl"
 
+# 매일 갱신 명령(backend app.jobs.daily_refresh): 마지막 실행 상태·실행 기록·단계별 마지막 출력 — gitignore 대상
+DAILY_REFRESH_STATUS = PROCESSED_DIR / "daily_refresh_status.json"
+DAILY_REFRESH_LOG = PROCESSED_DIR / "daily_refresh_log.jsonl"
+DAILY_REFRESH_OUTPUT_DIR = PROCESSED_DIR / "daily_refresh"
+
 # 복지 정제 결과(gitignore)와 지역별 보고서(커밋)
 WELFARE_PROCESSED = PROCESSED_DIR / "welfare_elderly.json"
 WELFARE_REGIONAL_REPORT = REPORTS_DIR / "welfare_regional_report.md"
