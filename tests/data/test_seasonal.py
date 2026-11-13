@@ -120,10 +120,21 @@ def test_official_terms_and_ingredient_cleaning():
     ("홍고추", {"고추"}), ("고추장", set()), ("고추냉이", set()), ("고춧가루", set()),
     ("냉이", {"냉이"}), ("진달래꽃", set()), ("2가지색 파프리카", set()), ("가지", {"가지"}),
     ("깻잎장아찌", {"깻잎", "장아찌"}), ("미더덕", set()), ("돼지고기 목살", {"돼지고기(수제 소시지)"}),
+    ("그린빈", {"풋콩/껍질콩"}), ("그린빈스", {"풋콩/껍질콩"}), ("흰강낭콩", set()),
 ])
 def test_matcher_rules(matcher, payload, ingredient, expected):
     names = {i["row_id"]: i["fdmtNm"] for i in payload["items"]}
     assert {names[k] for k, _, _ in matcher.match(ingredient)} == expected
+
+
+@pytest.mark.parametrize("ingredient,linked", [
+    ("무청시래기 불린 것", True), ("시래기", True), ("호박고지", True), ("건가지", True), ("묵나물", True),
+    ("고사리", False), ("도라지", False), ("가지", False),   # 생것과 이름이 같아 묵은나물로 보지 않음
+])
+def test_dried_vegetable_aliases_for_mugeun_namul(ingredient, linked):
+    # 공식 상세 글: 묵은나물은 호박고지·가지·고사리·도라지·시래기 등 말려 둔 채소로 만듦 — 말린 것만 뜻하는 이름만 별칭
+    m = Matcher([{"row_id": "m3-1", "fdmtNm": "묵은나물"}], load_rules())
+    assert bool(m.match(ingredient)) is linked
 
 
 def test_build_records_links_recipes_with_share_and_skips_hold(payload):
