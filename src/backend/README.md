@@ -80,6 +80,8 @@ Alembic `20261111_01`은 급식시설·제철 자료에 공공데이터 원천 �
 
 Alembic `20261111_02`는 레시피 재료 → 식품 매핑(`recipe_ingredient_foods`, 재료 하나·계산에 쓴 식품 판본·g 환산·기여량)과 레시피 계산 영양(`recipe_computed_nutrition`, 레시피 판본 하나)을 추가한다. 원천 레시피가 적은 영양(`recipe_revisions.source_*`)과는 따로 둔다. 계산은 `python -m app.jobs.map_recipe_foods`(레시피·식품 적재 뒤)이며 규칙은 `docs/data/recipe_food_map_db.md`에 있다. Alembic `20261113_01`은 g 환산 상태에 `unit_weight`(출처 있는 개당 중량, 예: 달걀 1개 60 g)를 더한다.
 
+매일 갱신은 `python -m app.jobs.daily_refresh` 하나로 돌린다: 공공데이터 수집 → 위 적재들(복지·레시피·식품·급식시설·제철) → 재료 매핑 → RAG 인덱스·적재. 단계마다 기존 명령을 별도 프로세스로 실행하고 `job_runs`(`kind = 'public_data_daily'`)에 실행 상태·처음 실패한 단계(`error_code`)를 남긴다. worker는 `queued` 행을 만들고 `--job-id`로 넘기면 된다. 단계·건너뛰는 조건·RAG 파이썬·psql·기록 파일은 `docs/data/public_data_refresh.md` 5절에 있다.
+
 DB에서 사용자를 삭제하면 세션·프로필·기록·저장·식단표·사용자 작업도 삭제된다. 프로필 동의 철회는 기존 API대로 프로필만 삭제한다. 원천 판본과 공통 작업은 보존된다. 새 저장 구조를 사용하는 기능별 API와 작업 실행기는 별도 작업에서 연결한다.
 
 ## API 계약 인계
