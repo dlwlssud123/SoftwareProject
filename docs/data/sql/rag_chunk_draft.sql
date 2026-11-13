@@ -10,6 +10,10 @@
 --   4. 원본 표 게시 상태 연결: 청크에 원본 레코드 해시(source_record_sha256)를 두고, 검색은 원본 표에
 --      '지금 게시 중이고 해시가 같은' 레코드의 청크만 쓴다(rag_source_active 뷰 JOIN).
 --      원본 표 판본 전환과 RAG 판본 전환은 한 트랜잭션으로 묶지 않는다 — 아래 '원본 표와 맞추기' 참고
+-- v3 보완 (2026-11-13)
+--   1. source_type 'seasonal'(이달의 식재료) 추가 — seasonal_foods 게시 행의 content_sha256 으로 대조
+--   2. 레시피 지문은 effective_sha256(보완 후 행)만 대조 — 청크를 보완표 적용 행으로 만들어 보완 레시피도 들어감
+--   3. 검색 예 2를 음식 묶음(레시피 + 제철)으로 — 제철 식재료도 이름으로 알레르기를 표시해 같은 조건으로 거름
 --
 -- 임베딩 모델: nlpai-lab/KURE-v1 (revision 8b418a58414668e75532ed045c22d9ca018ae2b2)
 --   1024차원, CLS pooling, 길이 1로 정규화한 벡터 → 코사인 거리(<=>) 사용
@@ -26,7 +30,7 @@ CREATE TABLE rag_index_version (
     embedding_model   text         NOT NULL,      -- 이 판본 모든 청크의 'nlpai-lab/KURE-v1@<revision>'
     chunk_count       integer      NOT NULL,      -- 실제로 넣은 청크 수(manifest 청크 중 게시 판본 지문이 붙은 것) — 전환·되돌리기 때 실제 행 수와 대조
     manifest_sha256   char(64)     NOT NULL,
-    data_versions     jsonb        NOT NULL,      -- 원천 판본 목록 (복지·레시피 원문 sha256 앞 12자리)
+    data_versions     jsonb        NOT NULL,      -- 원천 판본 목록 (복지·레시피·제철 원문 sha256 앞 12자리)
     status            text         NOT NULL DEFAULT 'loading'
                       CHECK (status IN ('loading', 'active', 'retired', 'failed')),
     created_at        timestamptz  NOT NULL DEFAULT now(),
@@ -39,10 +43,11 @@ CREATE TABLE rag_chunk (
     index_version     text         NOT NULL REFERENCES rag_index_version (index_version) ON DELETE CASCADE,
     chunk_id          text         NOT NULL,      -- '<source_type>:<source_id>:<section>:<번호>'. 다시 만들어도 같은 값
     source_type       text         NOT NULL
-                      CHECK (source_type IN ('welfare_central', 'welfare_local', 'recipe')),
+                      CHECK (source_type IN ('welfare_central', 'welfare_local', 'recipe', 'seasonal')),
                                                   -- 종류가 늘면(예: 기관 자체 안내) 값만 추가
-    source_id         text         NOT NULL,      -- 복지 serv_id(WLF…) / 레시피 recipe_id → 원본 표와 연결하는 키
+    source_id         text         NOT NULL,      -- 복지 serv_id(WLF…) / 레시피 recipe_id / 제철 row_id(m<월>-<순번>) → 원본 표 키
     section           text         NOT NULL,      -- 'all'(나누지 않음) | 'overview' | 'benefits' | 'apply' | 'steps'
+                                                  -- | 'buy_store' | 'intake'(제철)
     chunk_no          smallint     NOT NULL,      -- 같은 원본 안에서의 순서(1부터)
     title             text         NOT NULL,      -- 사업명·레시피명 (답변에서 인용)
     content           text         NOT NULL,      -- 임베딩한 글 그대로 = 대화 AI에 근거로 넣는 글
@@ -128,9 +133,11 @@ $$;
 -- 적재: `uv run python -m agetech_data.rag.export` 가 rag_chunk.csv 와 load_index.sql 을 만든다.
 --   load_index.sql = ① 임시 표에 \copy → 행 수·모델이 manifest와 같은지 확인(다르면 아무것도 안 남김)
 --                    ② 원본 표 활성 판본의 fingerprint 를 source_record_sha256 에 붙이고, 붙은 청크만 새 판본(loading)으로
---                       넣는다(아직 검색 안 됨). 레시피는 recipe_revisions 의 raw_sha256·effective_sha256 이 둘 다 청크
---                       원본 행 해시와 같을 때만. 복지는 welfare_revisions 의 content_sha256(정제 레코드 내용 해시)이
---                       같을 때만 — DB 적재와 청크가 같은 갱신 수집본·같은 정제를 쓴다(rag_index_contract.md 4절)
+--                       넣는다(아직 검색 안 됨). 레시피는 recipe_revisions 의 effective_sha256(보완 후 행 해시, 보완이
+--                       없으면 원문 해시와 같음)이 청크 원본 행 해시와 같을 때만. 복지는 welfare_revisions 의
+--                       content_sha256(정제 레코드 내용 해시)이 같을 때만 — DB 적재와 청크가 같은 갱신 수집본·같은 정제를
+--                       쓴다(rag_index_contract.md 4절). 이달의 식재료는 게시 중인 seasonal_foods 의 content_sha256 이
+--                       같을 때만(이 표엔 판본 fingerprint 가 없어 content_sha256 을 지문으로 씀)
 --                    ③ 넣은 행 수·모델이 맞으면 이전 active → retired, 새 판본 → active
 --                    ④ 검증 실패·연결 종료 시 전체 롤백 — 이전 판본이 계속 검색됨
 --   적재와 전환은 한 트랜잭션에서 처리한다. rag_rollback_index 와 같은 표 잠금으로 동시 쓰기를 막는다.
@@ -158,7 +165,11 @@ $$;
 --   UNION ALL
 --   SELECT 'recipe', r.source_id, v.fingerprint
 --     FROM recipes r JOIN recipe_revisions v ON v.id = r.active_revision_id AND v.recipe_id = r.id
---    WHERE r.provider = 'foodsafetykorea:COOKRCP01' AND v.quality_status <> 'hold';
+--    WHERE r.provider = 'foodsafetykorea:COOKRCP01' AND v.quality_status <> 'hold'
+--   UNION ALL
+--   SELECT 'seasonal', f.source_id, f.content_sha256
+--     FROM seasonal_foods f
+--    WHERE f.provider = 'data.go.kr:15168024' AND f.is_published AND f.detail_status = 'ok';
 -- 공고 저장을 연결할 때 해당 원본의 게시·마감·철회 조건도 뷰에 반영한다.
 -- 원본 표가 생기기 전 시험용(청크에서 채움):
 -- CREATE TABLE rag_source_active (source_type text, source_id text, record_sha256 char(64),
@@ -201,15 +212,18 @@ $$;
 -- ORDER BY distance
 -- LIMIT 5;
 
--- ── 검색 예 2: 레시피 (사용자 알레르기 거르기) ──────────────────────────
--- :allergies = 사용자 알레르기 text[] (예: '{대두,새우}')
--- SELECT c.chunk_id, c.source_id, c.title, c.content, c.quality_status, 1 - (c.embedding <=> :q) AS similarity
+-- ── 검색 예 2: 음식 묶음 = 레시피 + 이달의 식재료 (사용자 알레르기 거르기) ────────
+-- :allergies = 사용자 알레르기 text[] (예: '{대두,새우}'). 레시피는 재료명, 제철은 식재료 이름으로 판정한 값이고,
+-- 판정을 끝내지 못한 것(allergen_analysis_complete 없음 — 재료가 잘린 레시피, 만두·견과류 같은 식재료)은 뺀다.
+-- 복지 질문은 검색 예 1(복지 묶음), 음식 질문은 이 묶음 — 한꺼번에 찾으면 '겨울 난방비'에 제철 식재료가 섞인다.
+-- SELECT c.chunk_id, c.source_type, c.source_id, c.title, c.content, c.quality_status,
+--        1 - (c.embedding <=> :q) AS similarity
 -- FROM rag_chunk c
 -- JOIN rag_index_version v ON v.index_version = c.index_version AND v.status = 'active'
 -- JOIN rag_source_active s ON s.source_type = c.source_type AND s.source_id = c.source_id
 --                         AND s.record_sha256 = c.source_record_sha256
 -- WHERE c.status = 'active' AND c.embedding_model = :embedding_model
---   AND c.source_type = 'recipe'
+--   AND c.source_type IN ('recipe', 'seasonal')
 --   AND (COALESCE(cardinality(:allergies), 0) = 0
 --        OR ('allergen_analysis_complete' = ANY(c.quality_flags) AND NOT (c.allergens && :allergies)))
 -- ORDER BY c.embedding <=> :q

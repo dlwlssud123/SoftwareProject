@@ -83,3 +83,27 @@ def test_real_sample_cases():
     assert payload["cases_not_found"] == []
     ids = [s["recipe"]["recipe_id"] for s in payload["samples"]]
     assert ids == ["108", "29", "33", "271", "276", "636"]
+
+
+@pytest.mark.skipif(not (paths.RECIPES_RAW.is_file() and paths.RECIPE_CORRECTIONS.is_file()), reason="원본 없음")
+def test_corrections_option_builds_db_effective_rows_and_both_hashes():
+    from agetech_data.recipes.correct import apply_corrections
+    from agetech_data.recipes.validate import load_rows
+    from agetech_data.textutil import sha256_json
+
+    plain = {r["recipe_id"]: r for r in build(paths.RECIPES_RAW, paths.RECIPES_SOURCE_META)["records"]}
+    result = build(paths.RECIPES_RAW, paths.RECIPES_SOURCE_META, paths.RECIPE_CORRECTIONS)
+    fixed = {r["recipe_id"]: r for r in result["records"]}
+    assert result["input"]["corrections"]["path"].endswith("recipe_corrections.json")
+    assert "effective_sha256" not in plain["33"]["source"]                      # 옵션이 없으면 지금과 같음
+    manifest = json.loads(paths.RECIPE_CORRECTIONS.read_text(encoding="utf-8"))
+    corrected_ids = {c["source_id"] for c in manifest["corrections"]}
+    effective, _ = apply_corrections(load_rows(paths.RECIPES_RAW), manifest)
+    by_id = {str(r["RCP_SEQ"]): r for r in effective}
+    for rid, rec in fixed.items():
+        src = rec["source"]
+        assert src["raw_sha256"] == plain[rid]["source"]["raw_sha256"]          # 원문 해시는 그대로
+        assert src["effective_sha256"] == sha256_json(by_id[rid])               # = DB recipe_revisions.effective_sha256
+        assert bool(src["corrections"]) == (rid in corrected_ids)
+    assert fixed["33"]["source"]["effective_sha256"] != fixed["33"]["source"]["raw_sha256"]
+    assert fixed["33"]["missing_step_nos"] == [] and plain["33"]["missing_step_nos"]   # 보완으로 빠진 단계가 채워짐

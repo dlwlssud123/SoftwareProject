@@ -15,6 +15,7 @@ from pathlib import Path
 
 from agetech_data import paths
 from agetech_data.rag.search import (
+    FOOD_TYPES,
     NO_EVIDENCE_BELOW,
     RECIPE_TYPES,
     WEAK_BELOW,
@@ -43,7 +44,14 @@ CASES = [
      "우리 동네에 머리 깎는 거 싸게 해 주는 데가 있다던데", ("서울", "노원구"), "welfare", None),
     ("welfare_merged_region", "옛 이름 '광주광역시' 입력 → 전남광주통합특별시로 검색", "혼자 사는 노인 밥 챙겨 주는 서비스 있어요?",
      ("광주광역시", "광산구"), "welfare", None),
+    ("welfare_season_word", "계절 말이 든 복지 질문 — 복지 묶음으로 찾아야 함(전체 검색이면 제철 식재료가 상위 5개를 차지)",
+     "겨울에 난방비가 너무 많이 나와서 걱정이에요", ("대구", "남구"), "welfare", None),
     ("recipe", "레시피 — 부드러운 음식", "속이 안 좋을 때 끓여 먹을 죽 좀 알려 줘", None, "recipe", None),
+    ("food_seasonal", "음식 묶음(레시피 + 제철 식재료) — 제철 식재료 고르는 법이 1위",
+     "김장할 배추는 뭘 보고 골라야 속이 꽉 차 있어요?", None, "food", None),
+    ("food_allergy", "음식 묶음 — 대두 알레르기 사용자. 콩나물 레시피·'9월 콩나물'(제철)이 모두 빠지므로 "
+                     "대화 AI가 '대두 알레르기라 콩나물은 뺐다'고 함께 말해야 함",
+     "콩나물 넣고 하는 요리", None, "food", ["대두"]),
     ("recipe_allergy", "레시피 — 대두·알류 알레르기 사용자. 두부·달걀이 든 레시피는 모두 빠지므로 "
                        "대화 AI가 '대두 알레르기라 두부 요리는 뺐다'고 함께 말해야 함",
      "이가 시원찮아서 부드럽게 넘어가는 두부 반찬 뭐 있을까", None, "recipe", ["대두", "알류"]),
@@ -60,11 +68,13 @@ PROMPT_RULES = [
     "수급 자격을 판정하지 않는다. '대상·기준은 원문과 문의처로 확인'을 함께 안내한다.",
     "근거 번호와 출처(복지로 링크·확인 날짜)를 답 끝에 붙인다.",
     "레시피 영양값은 원문 값이고 기준량이 확인되지 않았다고 말한다. 알레르기는 재료를 직접 확인하라고 안내한다.",
+    "제철 식재료의 영양·효능은 농촌진흥청 자료의 설명이다. '자료에 따르면'으로 전하고 병을 고친다고 단정하지 않는다.",
 ]
 
 
 def _types(kind: str | None):
-    return WELFARE_TYPES if kind == "welfare" else RECIPE_TYPES if kind == "recipe" else None
+    """welfare → 복지 묶음, food → 음식 묶음(레시피 + 제철), recipe → 레시피만, None → 전체."""
+    return {"welfare": WELFARE_TYPES, "food": FOOD_TYPES, "recipe": RECIPE_TYPES}.get(kind)
 
 
 def build_samples(searcher: IndexSearcher, manifest: dict, cases=CASES) -> dict:

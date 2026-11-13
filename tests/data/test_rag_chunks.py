@@ -105,3 +105,72 @@ def test_real_data_chunks():
     assert all(c.ctpv and c.sgg for c in cs if c.region_scope == "district")
     nam = {c.source_id for c in cs if c.ctpv == "대구광역시" and c.sgg == "남구"}
     assert {"WLF00004828", "WLF00006010"} <= nam
+
+
+def test_recipe_chunk_matches_the_corrected_row_hash_when_given():
+    # recipes.contract --corrections 로 만든 레코드는 DB recipe_revisions.effective_sha256 과 같은 해시를 갖는다
+    rec = recipe_rec()
+    rec["source"]["effective_sha256"] = "e" * 64
+    [c] = recipe_chunks(rec, "v")
+    assert c.source_record_sha256 == "e" * 64
+
+
+def _seasonal_rows():
+    from pathlib import Path
+
+    from agetech_data.seasonal.revision import seasonal_rows
+
+    payload = json.loads((Path(__file__).parent / "fixtures" / "seasonal_sample.json").read_text(encoding="utf-8"))
+    return {r["name"]: r for r in seasonal_rows(payload, [])}
+
+
+def test_seasonal_chunk_has_header_sections_and_db_content_hash():
+    from agetech_data.rag.chunks import seasonal_chunks
+
+    row = _seasonal_rows()["시금치"]
+    cs = seasonal_chunks(row, "seasonal:abc")
+    assert cs and all(c.source_type == "seasonal" and c.source_id == row["source_id"] for c in cs)
+    assert all(c.content.startswith("[제철 식재료] 12월 · 시금치\n") for c in cs)
+    assert all(c.source_record_sha256 == row["content_sha256"] for c in cs)     # DB seasonal_foods.content_sha256
+    assert all(c.region_scope == "none" and c.ctpv is None and len(c.content) <= MAX_CHARS for c in cs)
+    text = "\n".join(c.content for c in cs)
+    assert "먹는 법:" in text and "\n■" in text                                  # 원문 '■' 항목은 줄을 바꿔 둔다
+    assert "농촌진흥청 관련 레시피: 시금치그린스무디" in text
+    assert cs[0].source_checked_at == "2026-11-07" and cs[0].title == "12월 시금치"
+    assert seasonal_chunks({**row, "detail_status": "failed"}, "v") == []        # 상세가 없으면 만들지 않음
+    assert seasonal_chunks({**row, "is_published": False}, "v") == []
+    assert all(c.allergens == [] and c.quality_flags == ["allergen_analysis_complete"] for c in cs)
+
+
+@pytest.mark.parametrize("name,allergens,complete", [
+    ("시금치", [], True), ("두부", ["대두"], True), ("콩나물", ["대두"], True), ("달걀", ["알류"], True),
+    ("요거트", ["우유"], True), ("잣", ["잣"], True), ("닭가슴살/닭안심", ["닭고기"], True),
+    ("풋콩/껍질콩", ["대두"], True),           # 모호한 '콩'은 후보(대두)까지 넣는다
+    ("녹두", [], True),                        # '콩' 규칙의 제외어
+    ("만두", [], False), ("견과류", [], False), ("돼지고기(수제 소시지)", [], False),   # 이름만으로 모름 → 판정 불가
+])
+def test_seasonal_allergens_from_name(name, allergens, complete):
+    from agetech_data.rag.chunks import seasonal_allergens
+
+    assert seasonal_allergens(name) == (allergens, complete)
+
+
+def test_build_chunks_adds_seasonal_rows_after_recipes_in_month_order():
+    rows = list(_seasonal_rows().values())
+    cs = build_chunks(None, {"input": {"sha256": "6d0635b4aa4c0fd0"}, "records": [recipe_rec("28")]},
+                      seasonal=(rows, "seasonal:a2a04dbc7bb2"))
+    kinds = [c.source_type for c in cs]
+    assert kinds[0] == "recipe" and set(kinds[1:]) == {"seasonal"}
+    months = [int(c.source_id.split("-")[0][1:]) for c in cs[1:]]
+    assert months == sorted(months) and {c.data_version for c in cs[1:]} == {"seasonal:a2a04dbc7bb2"}
+
+
+@pytest.mark.skipif(not paths.SEASONAL_RAW.exists(), reason="이달의 식재료 수집본 없음 (refresh 필요)")
+def test_real_seasonal_chunks():
+    from agetech_data.rag.chunks import seasonal_chunks
+    from agetech_data.seasonal.revision import seasonal_rows
+
+    rows = seasonal_rows(json.loads(paths.SEASONAL_RAW.read_text(encoding="utf-8")), [])
+    cs = [c for r in rows for c in seasonal_chunks(r, "v")]
+    assert {c.source_id for c in cs} == {r["source_id"] for r in rows if r["detail_status"] == "ok"}
+    assert all(len(c.content) <= MAX_CHARS for c in cs)
