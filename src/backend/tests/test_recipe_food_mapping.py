@@ -140,11 +140,14 @@ def test_postgres_mapping_stores_matches_grams_and_computed_nutrition(
             "최재영",
             date(2026, 11, 9),
         )
-        # 1큰술은 g으로 환산하지 않아 계산에서 빠지고, 그래서 레시피 합계는 일부 재료 기준
-        assert secret.gram_status == "count_unit" and secret.contribution is None
-        assert summary.recipe_id == recipe.id and not summary.complete
+        # 1큰술 = 15 mL → 1mL≈1g 근사(계량 단위, unit_weights.json)로 계산에 들어간다
+        assert (secret.gram_status, secret.grams) == ("approx_ml", Decimal("15.0"))
+        assert "1큰술=15mL" in secret.gram_basis
+        assert secret.contribution["energy_kcal"] == 132.0
+        assert summary.recipe_id == recipe.id and summary.complete
         assert (
-            summary.computed["energy_kcal"] == 60.0 + 44.0 and summary.items_used == 2
+            summary.computed["energy_kcal"] == 60.0 + 44.0 + 132.0
+            and summary.items_used == 3
         )
         onion = mapping(db, "2")[1][0]
         # 1개 → 개수 단위라 환산하지 않음
@@ -159,7 +162,7 @@ def test_postgres_mapping_stores_matches_grams_and_computed_nutrition(
         db.refresh(r1)
         assert items[0].food_revision_id == r1.active_revision_id
         assert items[0].contribution["energy_kcal"] == 70.0
-        assert summary.computed["energy_kcal"] == 70.0 + 44.0
+        assert summary.computed["energy_kcal"] == 70.0 + 44.0 + 132.0
         assert map_recipe_foods.verify_mapping(db, MAP)["verified"]
 
         # 매핑표가 바뀌면(확인 취소 → 근거만 있는 매핑) 그 재료 상태가 바뀌고 확인자가 빠진다
@@ -193,6 +196,30 @@ def test_postgres_mapping_stores_matches_grams_and_computed_nutrition(
         )
         assert kept == 4 and count(db, RecipeComputedNutrition) == 3
         assert map_recipe_foods.verify_mapping(db, MAP)["verified"]
+
+
+def test_postgres_unit_weight_is_stored_with_its_source(tmp_path, pg_connection):
+    # 출처 있는 개당 중량(달걀 1개 60 g)은 새 상태 unit_weight 로 DB CHECK(20261113_01)를 통과한다
+    recipes = [
+        {
+            "RCP_SEQ": "3",
+            "RCP_NM": "달걀찜",
+            "RCP_PARTS_DTLS": "달걀 2개, 양파 1개",
+            "MANUAL01": "1. 찐다.",
+        }
+    ]
+    foods = [food("R4", "달걀, 생것", "140", "137"), food("R3", "양파, 생것", "40")]
+    with Session(pg_connection) as db, db.begin():
+        load(db, tmp_path, recipes=recipes, foods=foods)
+        map_recipe_foods.apply_mapping(db, ())
+        _, items, summary = mapping(db, "3")
+        egg, onion = items
+        assert (egg.gram_status, egg.grams) == ("unit_weight", Decimal("120.0"))
+        assert "1개=60g" in egg.gram_basis and "식품의약품안전처" in egg.gram_basis
+        assert egg.contribution["energy_kcal"] == 168.0
+        assert (onion.gram_status, onion.grams) == ("count_unit", None)  # 표에 없음
+        assert not summary.complete and summary.computed["energy_kcal"] == 168.0
+        assert map_recipe_foods.verify_mapping(db, ())["verified"]
 
 
 def test_postgres_mapping_constraints(tmp_path, pg_connection):
