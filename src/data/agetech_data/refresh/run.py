@@ -146,8 +146,12 @@ def run_sources(names: list[str], *, registry: dict[str, Source] = SOURCES, fetc
             c, d = r["changes"], r.get("notes")
             log(f"[{name}] 정상: {r['item_count']}건 (추가 {c['added']}, 삭제 {c['removed']}, 변경 {c['changed']}) "
                 f"→ 판본 {r['snapshot']['snapshot_id']}")
-            if d:
-                log(f"[{name}] 상세: {d['counts']} / 이번에 받음 {d['fetched_this_run']} / 다음으로 미룸 {d['remaining']}")
+            # meta.details 모양은 소스마다 다르다 — 복지: 상세 나눠 받기, 이달의 식재료: 상세 받기 실패 건수
+            if d and "counts" in d:
+                log(f"[{name}] 상세: {d['counts']} / 이번에 받음 {d.get('fetched_this_run')} / "
+                    f"다음으로 미룸 {d.get('remaining')}")
+            elif d and "failed" in d:
+                log(f"[{name}] 상세 받기 실패 {d['failed']}건")
         else:
             log(f"[{name}] 실패: {r['error']} → 마지막 정상 판본 유지")
     return results

@@ -15,6 +15,8 @@ import re
 from pathlib import Path
 from urllib.parse import quote
 
+from agetech_data.collect.seasonal import related_recipes
+
 RULES_PATH = Path(__file__).resolve().parents[1] / "resources" / "seasonal_terms.json"
 SHOPPING_SEARCH = "https://www.coupang.com/np/search?q="     # 재료명 외부 검색 링크만 (가격·재고 수집 안 함)
 DETAIL_FIELDS = {
@@ -150,9 +152,8 @@ def _text(v) -> str | None:
 def seasonal_record(it: dict, link: dict) -> dict:
     det = it.get("detail") or {}
     detail = {name: _text((det.get(sec) or {}).get(field)) for (sec, field), name in DETAIL_FIELDS.items()}
-    related = ((det.get("connRecipeList") or {}).get("recipeInfo")) or []
-    related = [related] if isinstance(related, dict) else related
-    plain = re.sub(r"\(.*?\)", "", it["fdmtNm"]).strip()
+    related = related_recipes(det)          # 원천 순서가 호출마다 달라서 레시피 번호 순으로 고정
+    plain =re.sub(r"\(.*?\)", "", it["fdmtNm"]).strip()
     return {
         "id": it["row_id"], "month": it["month"], "fdmt_sn": str(it.get("fdmtSn")), "name": it["fdmtNm"].strip(),
         "terms": official_terms(it["fdmtNm"]), "image_url": it.get("fdmtImgUrl"),

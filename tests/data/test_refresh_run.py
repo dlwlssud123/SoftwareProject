@@ -78,6 +78,26 @@ def test_missing_key_and_secret_redaction(tmp_path):
     assert r["status"] == "failed" and "비어 있습니다" in r["error"]
 
 
+def test_detail_summary_shapes_do_not_stop_later_sources(tmp_path):
+    # 이달의 식재료 meta.details 는 {requested, failed}, 복지는 {counts, fetched_this_run, remaining, ...}.
+    # 고치기 전에는 복지 모양만 가정한 요약 출력에서 KeyError → 뒤 소스를 건너뛰고 종료 코드 1.
+    seasonal = _payload([1, 2]) | {"meta": {"fetched_at": "2026-11-01T00:00:00+00:00",
+                                            "details": {"requested": True, "failed": 1}}}
+    welfare = _payload([1]) | {"meta": {"fetched_at": "2026-11-01T00:00:00+00:00",
+                                        "details": {"counts": {"cached": 1}, "fetched_this_run": 0, "remaining": 0}}}
+    reg = _registry(tmp_path, {"seasonal": [seasonal], "welfare": [welfare], "b": [_payload([1])]})
+    lines = []
+    results = run_sources(list(reg), registry=reg, fetch=None, sleep=lambda s: None, log=lines.append,
+                          status_path=tmp_path / "status.json", log_path=tmp_path / "log.jsonl", now=Clock(),
+                          secret_loader=lambda *n: "k")
+    assert [r["status"] for r in results] == ["ok", "ok", "ok"]
+    assert "[seasonal] 상세 받기 실패 1건" in lines
+    assert "[welfare] 상세: {'cached': 1} / 이번에 받음 0 / 다음으로 미룸 0" in lines
+    status = json.loads((tmp_path / "status.json").read_text(encoding="utf-8"))["sources"]
+    assert status["seasonal"]["details"] == {"requested": True, "failed": 1}
+    assert status["b"]["last_status"] == "ok"
+
+
 def test_cli_exit_codes_list_and_rollback(tmp_path, capsys):
     reg = _registry(tmp_path, {"a": [_payload([1, 2]), _payload([1, 2, 3])], "b": [CollectError("x")]})
     common = {"registry": reg, "status_path": tmp_path / "status.json", "log_path": tmp_path / "log.jsonl",

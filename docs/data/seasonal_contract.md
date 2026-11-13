@@ -39,7 +39,7 @@
 | `image_url` | 문자열 | 원천 이미지 주소 |
 | `detail` | 객체 | `origin`(유래), `purchase_tip`(구입 요령), `storage_prep`(손질·보관), `etc`, `intake`(섭취 방법), `efficacy`(영양 성분 효능), `research`(관련 연구), `consumption`(소비량) — 원문(`■` 글머리 포함) |
 | `detail_status` | `ok`/`failed` | 상세 수집 결과 |
-| `official_related_recipes` | 문자열 배열 | 농진청이 붙인 관련 레시피 이름(우리 레시피 DB와 별개) |
+| `official_related_recipes` | 문자열 배열 | 농진청이 붙인 관련 레시피 이름(우리 레시피 DB와 별개). 원천이 호출마다 순서를 바꿔 주므로 농진청 레시피 번호(`recipeSn`) 순으로 고정 — 순서만 바뀐 날은 내용 해시·변경 감지가 그대로 |
 | `shopping_search_url` | 문자열 | `https://www.coupang.com/np/search?q=<재료명>` — 검색 링크만 |
 | `matched_ingredients` | 객체 배열 | 연결된 레시피 재료명 `{name, term, kind: official|alias, recipes}` |
 | `recipe_count`, `recipes` | 정수, 객체 배열 | 연결 레시피(hold 제외) `{recipe_id, name, category, quality_status, ingredients, weight_g, share}` — `share` 높은 순 |
