@@ -15,6 +15,12 @@ exact 규칙 (원재료성 식품명은 "상위, 세부, 상태" 쉼표 계층 �
 - alias    : "X(재료명)[, 생것]" 괄호 별칭 (예: 큰느타리버섯(새송이버섯), 생것)
 - 다진     : "다진 ○○" 은 "○○, 다진것" 을 먼저 찾고, 없으면 ○○ 로 위 규칙 적용
 같은 규칙 안에서 후보가 둘 이상이면 원재료성을 우선하고, 그래도 여럿이면 exact 로 보지 않는다.
+
+손질 표기 (모양만 바뀌고 영양은 같음 — 매핑표에 그 이름이 따로 없을 때)
+- "○○다진것"·"○○갈은것" 은 "다진 ○○" 과, "○○채썬것"·"○○작게자른것"·"○○채친것" 은 "○○" 과 같게 찾는다
+  (규칙 이름 앞에 "손질+"). 데친것·삶은것·말린것처럼 상태가 바뀌는 표기는 해당하지 않는다.
+- "다진 ○○" 은 DB에 "○○, 다진것" 이 따로 없고 매핑표에 "○○" 이 있으면 그 결정을 따른다(규칙 "다진+manual").
+  매핑표의 '다진 소고기'·'다진 홍고추'·'양파다진것' 항목이 모두 기본 재료와 같게 정한 것과 같은 기준이다.
 """
 
 from __future__ import annotations
@@ -130,13 +136,18 @@ class FoodIndex:
             return hits[0][1], prefix + hits[0][0]
         return None
 
+    def chopped(self, base: str) -> FoodRef | None:
+        """DB에 따로 있는 "○○, 다진것" 항목."""
+        key = norm(base)
+        return self._pick([r for r in self.refs if r.tokens == [key, "다진것"]])
+
     def exact(self, name: str) -> tuple[FoodRef, str] | None:
         key = norm(name)
         if not key:
             return None
         if key.startswith("다진") and len(key) > 2:
             base = key[2:]
-            chopped = self._pick([r for r in self.refs if r.tokens == [base, "다진것"]])
+            chopped = self.chopped(base)
             if chopped:
                 return chopped, "다진+state"
             return self._resolve(base, "다진+")
@@ -191,23 +202,73 @@ def _manual(name: str, paren_texts: list[str], entries) -> dict | None:
     return plain[0] if plain else None
 
 
+_SUFFIX_CHOPPED = re.compile(r"^(?P<base>.+?)\s*(?:다진|갈은)\s*것$")
+_SUFFIX_CUT = re.compile(
+    r"^(?P<base>.+?)\s*(?:(?:(?:채|송송|어슷|깍둑|곱게|얇게|굵게|잘게|작게)\s*)?(?:썬|자른)|채\s*친)\s*것$")
+
+
+def prep_alias(name: str) -> str | None:
+    """손질 표기만 다른 이름: '양파다진것'·'쇠고기갈은것' → '다진 양파'·'다진 쇠고기', '양파채썬것' → '양파'."""
+    n = nfc(name or "").strip()
+    m = _SUFFIX_CHOPPED.match(n)
+    if m:
+        return "다진 " + m.group("base").strip()
+    m = _SUFFIX_CUT.match(n)
+    return m.group("base").strip() if m else None
+
+
+def manual_entry(name: str, paren_texts: list[str], entries) -> dict | None:
+    """이 재료명의 매핑을 정한 매핑표 항목 — 이름 그대로, 손질 표기를 푼 이름, '다진 ○○' 의 ○○ 순서.
+    match_ingredient 가 매핑표 결정을 쓴 경우(규칙이 manual 로 끝남)의 확인자·확인일을 찾을 때 쓴다."""
+    e = _manual(name, paren_texts, entries)
+    if e:
+        return e
+    alias = prep_alias(name)
+    if alias:
+        return manual_entry(alias, paren_texts, entries)
+    key = norm(name)
+    if key.startswith("다진") and len(key) > 2:
+        return _manual(key[2:], paren_texts, entries)
+    return None
+
+
+def _from_manual(e: dict, index: FoodIndex, rule: str = "manual", note: str = "") -> MatchResult:
+    rationale = note + (e.get("rationale") or "")
+    if e.get("food_code") is None:  # 매핑하지 않기로 한 결정 (예: 대응 식품 없음)
+        return MatchResult("unmapped", rule=f"{rule}:no_match", rationale=rationale)
+    ref = index.by_code.get(e["food_code"])
+    if ref is None:
+        return MatchResult("unmapped", rule=f"{rule}:missing_code",
+                           rationale=f"매핑표의 식품코드 {e['food_code']} 가 수집본에 없음")
+    status: MatchStatus = "reviewed" if e.get("reviewed_by") else "curated"
+    return MatchResult(status, ref.food_code, ref.name, rule, rationale)
+
+
 def match_ingredient(name: str, index: FoodIndex, paren_texts: list[str] | None = None,
                      entries=None) -> MatchResult:
     """레시피 재료명(괄호 제외 이름) → 매핑 결과. 수동 매핑표가 규칙보다 우선한다."""
     entries = load_ingredient_map() if entries is None else entries
     e = _manual(name, paren_texts or [], entries)
     if e:
-        if e.get("food_code") is None:  # 매핑하지 않기로 한 결정 (예: 대응 식품 없음)
-            return MatchResult("unmapped", rule="manual:no_match", rationale=e.get("rationale"))
-        ref = index.by_code.get(e["food_code"])
-        if ref is None:
-            return MatchResult("unmapped", rule="manual:missing_code",
-                               rationale=f"매핑표의 식품코드 {e['food_code']} 가 수집본에 없음")
-        status: MatchStatus = "reviewed" if e.get("reviewed_by") else "curated"
-        return MatchResult(status, ref.food_code, ref.name, "manual", e.get("rationale"))
+        return _from_manual(e, index)
     if norm(name) in WATER_NAMES:
         return MatchResult("water", rule="water", rationale="물은 영양 계산에서 0으로 취급")
     hit = index.exact(name)
+    if hit and hit[1] in ("full", "다진+state"):   # DB에 이 이름 그대로인 식품(예: '마늘, 다진것')이 먼저
+        return MatchResult("exact", hit[0].food_code, hit[0].name, hit[1], f"규칙 {hit[1]}: 후보 1개")
+    alias = prep_alias(name)
+    if alias:   # "양파다진것" → "다진 양파" 로 같은 순서를 밟는다. 못 찾으면 원래 이름으로 계속
+        r = match_ingredient(alias, index, paren_texts, entries)
+        if r.usable or r.status == "water":
+            r.rule = f"손질+{r.rule}"
+            r.rationale = f"'{name}' = '{alias}' (손질 표기만 다름). " + (r.rationale or "")
+            return r
+    key = norm(name)
+    if key.startswith("다진") and len(key) > 2 and index.chopped(key[2:]) is None:
+        base_entry = _manual(key[2:], paren_texts or [], entries)
+        if base_entry and base_entry.get("food_code"):
+            return _from_manual(base_entry, index, "다진+manual",
+                                f"다진 것 = '{base_entry['ingredient']}' 매핑표 결정과 같음. ")
     if hit:
         ref, rule = hit
         return MatchResult("exact", ref.food_code, ref.name, rule, f"규칙 {rule}: 후보 1개")

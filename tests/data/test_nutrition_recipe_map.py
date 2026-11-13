@@ -48,6 +48,16 @@ def test_reviewed_manual_mapping_carries_reviewer_and_order(sample_foods):
     assert curated["content_sha256"] != row["content_sha256"]
 
 
+def test_mapping_inherited_from_base_manual_entry_carries_its_reviewer(sample_foods):
+    entry = {"ingredient": "감자", "food_code": "R102-001140001-0000", "rationale": "품종 미기재",
+             "reviewed_by": "최재영", "reviewed_at": "2026-11-13"}
+    [row] = recipe_map_rows([_db_recipe(_recipe("1", "감자다진것 50g, 다진 감자 20g, 감자채썬것 10g"))],
+                            sample_foods, (entry,))
+    assert [i["match"]["rule"] for i in row["ingredients"]] == ["손질+다진+manual", "다진+manual", "손질+manual"]
+    assert all(i["match"]["status"] == "reviewed" and i["review"] == {"by": "최재영", "on": "2026-11-13"}
+               for i in row["ingredients"])
+
+
 def test_content_hash_tracks_food_values_and_map(sample_foods):
     recipe = _db_recipe(_recipe("1", "양파 50g"))
     [first] = recipe_map_rows([recipe], sample_foods, ())
