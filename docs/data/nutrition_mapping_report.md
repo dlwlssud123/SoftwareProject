@@ -6,9 +6,9 @@
 |---|---|
 | 영양DB | 식품의약품안전처_식품영양성분DB정보 (03 판본) |
 | 수집 조건 | `DB_CLASS_NM=품목대표` |
-| 수집 시각(UTC) | 2026-11-04T22:23:17+00:00 |
-| 수집 건수 | 8807 / totalCount 8807 |
-| 원본 파일 | `data/raw/nutrition/foodntr_v03_representative.json` (gitignore) sha256 `52542f93f8f878de…` |
+| 수집 시각(UTC) | 2026-11-12T18:04:24+00:00 |
+| 수집 건수 | 9235 / totalCount 9235 |
+| 원본 파일 | `data/raw/nutrition/foodntr_v03_representative.json` (gitignore) sha256 `90bae8f5ece485d0…` |
 | 레시피 입력 | `src/frontend/assets/data/recipes.json` sha256 `d5db8e9435fe6679…` |
 | 가공 결과 | `data/processed/foods_v03.json`, `data/processed/recipe_ingredient_nutrition.json` (gitignore) |
 
@@ -132,7 +132,7 @@
 
 ## 6. 식품영양성분DB 정제 결과
 
-- 정제 식품 8807건. 값은 기준량(100g 또는 100mL)당 함량 그대로이며 g↔mL 환산은 하지 않습니다.
+- 정제 식품 9235건. 값은 기준량(100g 또는 100mL)당 함량 그대로이며 g↔mL 환산은 하지 않습니다.
 - 이상값은 `quality_flags`로 표시합니다. 근거가 있는 원천 오류만 보정표(`src/data/agetech_data/resources/food_corrections.json`)로 고치며, 수집 원본은 바꾸지 않고 원래 값을 `corrections`에 남깁니다.
 
 ### 원천 오류 보정 9건
@@ -151,21 +151,21 @@
 
 | DB군 | 기준량 단위 | 식품 수 |
 |---|---|---|
-| 가공식품 | g | 988 |
-| 가공식품 | mL | 166 |
+| 가공식품 | g | 1073 |
+| 가공식품 | mL | 210 |
 | 원재료성 | g | 3604 |
 | 원재료성 | (형식 오류) | 1 |
-| 음식 | g | 906 |
-| 음식 | mL | 3142 |
+| 음식 | g | 1163 |
+| 음식 | mL | 3184 |
 
 | 품질 표시 | 설명 | 식품 수 |
 |---|---|---|
-| `same_name_multiple_rows` | 같은 식품명이 여러 행(식품코드 계열·기준량 단위가 다름) | 3607 |
+| `same_name_multiple_rows` | 같은 식품명이 여러 행(식품코드 계열·기준량 단위가 다름) | 3932 |
 | `missing_sodium` | 나트륨 결측 | 476 |
 | `energy_macro_mismatch` | 4·4·9 환산 열량과 표기 에너지 차이 35% 초과(참고) | 177 |
 | `sat_fat_exceeds_fat` | 포화지방산 > 지방 | 144 |
 | `proximate_exceeds_basis` | 수분·단백질·지방·회분·탄수화물 합이 기준량(g)의 105% 초과 | 42 |
-| `sugars_exceeds_carbohydrate` | 당류 > 탄수화물 | 22 |
+| `sugars_exceeds_carbohydrate` | 당류 > 탄수화물 | 28 |
 | `corrected` | 근거가 있는 원천 오류를 보정표로 고침(원래 값은 corrections) | 9 |
 | `missing_energy` | 에너지 결측 | 3 |
 | `invalid_basis` | 영양성분함량기준량이 100g/100mL 형식이 아님 | 1 |
@@ -177,13 +177,13 @@
 | 단백질(g) | 0.0% |
 | 지방(g) | 0.2% |
 | 탄수화물(g) | 0.1% |
-| 당류(g) | 16.5% |
-| 식이섬유(g) | 14.8% |
-| 나트륨(mg) | 5.4% |
-| 칼륨(mg) | 7.4% |
-| 칼슘(mg) | 2.0% |
-| 콜레스테롤(mg) | 13.8% |
-| 포화지방산(g) | 14.5% |
+| 당류(g) | 16.0% |
+| 식이섬유(g) | 14.3% |
+| 나트륨(mg) | 5.2% |
+| 칼륨(mg) | 7.0% |
+| 칼슘(mg) | 1.9% |
+| 콜레스테롤(mg) | 13.3% |
+| 포화지방산(g) | 13.8% |
 
 ## 7. 음식명 검색 정답 표본 (사진 분석 연계)
 
@@ -214,10 +214,10 @@
 | 떡국 | 떡국 (g, name, 1.00) | O | 떡국_굴 (mL, family, 0.90) | 떡국_달걀 (mL, family, 0.90) |
 | 삼계탕 | 삼계탕 (g, name, 1.00) | O | 삼계탕 (mL, name, 1.00) | 삼계탕 (mL, name, 1.00) |
 | 육개장 | 육개장 (g, name, 1.00) | O | 육개장 (mL, name, 1.00) | 육개장_닭고기 (g, family, 0.90) |
-| 배추김치 | 김치, 배추 김치 (g, alias_code, 1.00) | O | 양배추김치 (mL, partial, 0.74) | 우동_배추김치 (mL, partial, 0.70) |
+| 배추김치 | 김치, 배추 김치 (g, alias_code, 1.00) | O | 배추김치 (g, name, 1.00) | 배추김치_가을재배 (g, family, 0.90) |
 | 김치 | 김치, 배추 김치 (g, alias_code, 1.00) | O | 김치국 (g, partial, 0.70) | 김치전 (g, partial, 0.70) |
-| 총각김치 | 김치, 총각 김치 (g, ingredient, 0.80) | O | - | - |
-| 깍두기 | 깍두기 (g, name, 1.00) | O | 깍두기 (mL, name, 1.00) | - |
+| 총각김치 | 총각김치 (g, name, 1.00) | O | - | - |
+| 깍두기 | 깍두기 (g, name, 1.00) | O | 깍두기 (g, name, 1.00) | 깍두기 (mL, name, 1.00) |
 | 멸치볶음 | 멸치볶음 (g, name, 1.00) | O | 멸치볶음 (mL, name, 1.00) | 멸치볶음 (mL, name, 1.00) |
 | 시금치나물 | 시금치나물 (g, name, 1.00) | O | 시금치나물 (mL, name, 1.00) | 시금치나물 (mL, name, 1.00) |
 | 도라지나물 | 도라지나물 (mL, name, 1.00) | O | 도라지나물 (mL, name, 1.00) | 도라지나물 (mL, name, 1.00) |
@@ -228,7 +228,7 @@
 | 고등어구이 | 고등어구이 (mL, name, 1.00) | O | 고등어구이 (mL, name, 1.00) | 고등어구이 (mL, name, 1.00) |
 | 고등어조림 | 고등어조림 (g, name, 1.00) | O | 고등어조림 (g, name, 1.00) | 고등어조림 (mL, name, 1.00) |
 | 조기구이 | 조기구이 (g, name, 1.00) | O | 조기구이 (mL, name, 1.00) | 조기구이 (mL, name, 1.00) |
-| 불고기 | 소불고기 (g, partial, 0.72) | O | 꿩불고기 (g, partial, 0.72) | 소불고기 (mL, partial, 0.72) |
+| 불고기 | 소불고기 (g, partial, 0.72) | O | 꿩불고기 (g, partial, 0.72) | 소불고기 (g, partial, 0.72) |
 | 제육볶음 | 제육볶음 (mL, name, 1.00) | O | 제육볶음 (mL, name, 1.00) | 제육볶음 (mL, name, 1.00) |
 | 잡채 | 잡채 (g, name, 1.00) | O | 잡채_어묵 (g, family, 0.90) | 잡채_콩나물 (g, family, 0.90) |
 | 감자조림 | 감자조림 (g, name, 1.00) | O | 감자조림 (mL, name, 1.00) | 감자조림 (mL, name, 1.00) |
@@ -247,9 +247,9 @@
 | 두부 | 두부 (g, ingredient, 1.00) | O | 두부, 유부 (g, ingredient, 1.00) | 두부, 순두부 (g, ingredient, 1.00) |
 | 고구마 | 고구마, 생것 (g, ingredient, 1.00) | O | 고구마, 잎, 생것 (g, ingredient, 1.00) | 고구마, 줄기, 생것 (g, ingredient, 1.00) |
 | 무생채 | 무생채 (g, name, 1.00) | O | 무생채 (mL, name, 1.00) | 무생채 (mL, name, 1.00) |
-| 오이소박이 | 오이소박이 (g, name, 1.00) | O | 오이소박이 (mL, name, 1.00) | - |
+| 오이소박이 | 오이소박이 (g, name, 1.00) | O | 오이소박이 (g, name, 1.00) | 오이소박이 (mL, name, 1.00) |
 | 동치미 | 동치미 (g, name, 1.00) | O | 동치미 (g, name, 1.00) | - |
-| 콩자반 | 콩조림(콩자반) (g, partial, 0.61) | O | 콩조림(콩자반) (g, ingredient, 0.80) | - |
+| 콩자반 | 콩조림(콩자반) (g, partial, 0.61) | O | 콩조림(콩자반) (g, partial, 0.61) | 콩조림(콩자반) (g, ingredient, 0.80) |
 | 어묵볶음 | 어묵볶음 (g, name, 1.00) | O | 어묵볶음 (mL, name, 1.00) | 어묵볶음 (mL, name, 1.00) |
 | 감자볶음 | 감자볶음 (g, name, 1.00) | O | 감자볶음 (mL, name, 1.00) | 감자볶음 (mL, name, 1.00) |
 | 오징어볶음 | 오징어볶음 (g, name, 1.00) | O | 오징어볶음 (g, name, 1.00) | 오징어볶음 (mL, name, 1.00) |
@@ -264,11 +264,11 @@
 | 닭볶음탕 | 닭볶음탕 (g, name, 1.00) | O | 닭볶음 (mL, partial, 0.72) | 닭발볶음 (g, partial, 0.53) |
 | 갈비찜 | 갈비찜_소고기 (g, family, 0.90) | O | 갈비찜_고춧가루 (g, family, 0.90) | 갈비찜_소고기 (g, family, 0.90) |
 | 팥죽 | 팥죽 (g, name, 1.00) | O | 팥죽 (mL, name, 1.00) | 팥죽 (mL, name, 1.00) |
-| 누룽지 | 누룽지 (mL, name, 1.00) | O | - | - |
+| 누룽지 | 누룽지 (mL, name, 1.00) | O | 누룽지_뜨거운물첨가 (g, family, 0.90) | - |
 | 숭늉 | 누룽지, 끓인것, 국물 (g, alias_code, 1.00) | O | - | - |
-| 비빔국수 | 비빔국수 (g, name, 1.00) | O | 비빔국수 (mL, name, 1.00) | 비빔국수 (mL, name, 1.00) |
-| 송편 | 송편_깨 (g, family, 0.90) | O | 송편_깨 (g, family, 0.90) | 송편_콩 (g, family, 0.90) |
-| 인절미 | 인절미 (g, name, 1.00) | O | 빙수_인절미_우유얼음 (g, partial, 0.60) | - |
+| 비빔국수 | 비빔국수 (g, name, 1.00) | O | 비빔국수 (g, name, 1.00) | 비빔국수 (mL, name, 1.00) |
+| 송편 | 송편_깨 (g, family, 0.90) | O | 송편_검정콩 (g, family, 0.90) | 송편_깨 (g, family, 0.90) |
+| 인절미 | 인절미 (g, name, 1.00) | O | 인절미_콩고물 (g, family, 0.90) | 인절미_팥고물 (g, family, 0.90) |
 | 식빵 | 식빵 (g, name, 1.00) | O | 식빵_통밀식빵 (g, family, 0.90) | 식빵튀김 (mL, partial, 0.65) |
 | 요구르트 | 요구르트, 액상 (g, ingredient, 1.00) | O | 요구르트, 액상, 저당 (g, ingredient, 1.00) | 요구르트, 호상, 딸기맛 (g, ingredient, 1.00) |
 | 두유 | 두유, 대두 (g, ingredient, 1.00) | O | 두유, 검은콩 (g, ingredient, 1.00) | 두유, 대두, 무가당 (g, ingredient, 1.00) |
