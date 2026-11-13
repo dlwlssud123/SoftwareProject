@@ -6,7 +6,7 @@ import pytest
 from agetech_data import paths
 from agetech_data.nutrition import build
 from agetech_data.nutrition.build import build_recipe_nutrition
-from agetech_data.nutrition.match import INGREDIENT_MAP_FILE, load_ingredient_map
+from agetech_data.nutrition.match import INGREDIENT_MAP_FILE, load_ingredient_map, norm
 
 
 def _recipe(seq, parts):
@@ -82,7 +82,7 @@ def test_build_applies_verified_recipe_corrections(tmp_path, nutrition_sample):
 
 def test_ingredient_map_file_structure():
     data = json.loads(INGREDIENT_MAP_FILE.read_text(encoding="utf-8"))
-    keys = set()
+    keys, codes = set(), {}
     for e in data["entries"]:
         assert e["ingredient"] and e["rationale"]
         assert e["food_code"] is None or (e["food_code"] and e["food_name"])
@@ -90,6 +90,9 @@ def test_ingredient_map_file_structure():
         key = (e["ingredient"], e.get("when_paren"))
         assert key not in keys, key
         keys.add(key)
+        # 매칭은 공백을 지운 이름으로 찾고 첫 항목을 쓴다 → 공백만 다른 두 항목('닭가슴살'·'닭 가슴살')은 같은 식품이어야 한다
+        same = codes.setdefault((norm(e["ingredient"]), e.get("when_paren")), e["food_code"])
+        assert same == e["food_code"], (e["ingredient"], same, e["food_code"])
 
 
 @pytest.mark.skipif(not paths.NUTRITION_RAW.is_file(), reason="수집 원본 없음 (client 실행 필요)")
