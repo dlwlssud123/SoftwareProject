@@ -9,7 +9,7 @@
 | API 계약 | [API 명세](설계/API_명세서.md), [실행 API OpenAPI](설계/openapi.json), [예정 조회 API OpenAPI](설계/catalog.openapi.json), [요청·응답 예제](설계/api_examples.json) |
 | DB와 수집 | [DB 마이그레이션 계획](설계/DB_마이그레이션_계획.md), [공공데이터 갱신](data/public_data_refresh.md), [레시피·영양 적재](data/public_db_import.md), [복지 적재](data/welfare_db_import.md) |
 | 데이터 계약 | [레시피](data/recipe_contract.md), [식품영양](data/food_nutrition_contract.md) |
-| RAG | [임베딩 모델 결정안](data/rag_embedding_decision.md), [검색 SQL 초안](data/sql/rag_chunk_draft.sql) |
+| RAG | [임베딩 모델 결정안](data/rag_embedding_decision.md), [검색 인덱스 정의서](data/rag_index_contract.md), [검색 SQL](data/sql/rag_search.sql) |
 
 ## 변경 방법
 

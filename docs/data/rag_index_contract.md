@@ -4,7 +4,7 @@
 |---|---|
 | 작성 | 최재영 (데이터) |
 | 대상 | DB 적재·AI 도우미 API(이진녕), 검색 품질·상태 표시(김민찬) |
-| 결정·표 | 모델·서버 결정은 `rag_embedding_decision.md`, 표 초안은 `sql/rag_chunk_draft.sql` |
+| 결정·표 | 모델·서버 결정은 `rag_embedding_decision.md`, 표는 백엔드 Alembic `20261114_03`(4절), 검색 SQL은 `sql/rag_search.sql`(5절) |
 | 입력 | `data/processed/welfare_elderly.json`(복지 정제, `welfare.build`), `data/processed/recipes_api_all.json`(레시피 계약 형식 전체, `recipes.contract --input data/raw/recipes/cookrcp01_all.json --corrections src/frontend/assets/data/recipe_corrections.json` — 보완표 적용 = DB 게시 내용), `data/raw/seasonal/food_month.json`(이달의 식재료 갱신 수집본 — DB `import_seasonal`과 같은 입력, 11/13 추가) |
 | 설치 | `uv sync --extra embed` — torch CPU 전용판 + sentence-transformers. 모델 `nlpai-lab/KURE-v1`(약 2.3GB)은 첫 실행 때 Hugging Face 캐시로 받음 |
 
@@ -15,11 +15,12 @@
 | `uv run python -m agetech_data.rag.index` | 청크 생성 → **바뀐 청크만** 임베딩 → 인덱스 파일·변경 목록 |
 | `uv run python -m agetech_data.rag.index --dry-run` | 모델을 올리지 않고 청크 수·임베딩할 수·변경 건수만 |
 | `uv run python -m agetech_data.rag.evaluate` | 평가 질문으로 Hit@k·문턱값 → `docs/data/rag_search_report.md` |
-| `uv run python -m agetech_data.rag.export` | 인덱스 → `rag_chunk.csv` + 판본 적재·전환 스크립트 `load_index.sql` |
+| `uv run python -m agetech_data.rag.export` | 인덱스 → DB 적재용 `rag_chunk.csv` |
+| `cd src/backend && uv run python -m app.jobs.load_rag_index --apply` | CSV → DB 판본 적재·게시 지문 붙이기·활성 전환(백엔드 파이썬, psql 필요 없음). `--verify` 확인, `--rollback <판본>` 되돌리기, 옵션 없으면 파일만 확인 (4절) |
 | `uv run python -m agetech_data.rag.bench` | 서버 실측(모델 로드·메모리·질문 지연·문서 속도) → 서버를 옮길지 판정. 종료 코드 0 = 유지, 2 = 옮김 |
 | `uv run python -m agetech_data.rag.samples` | AI 도우미 API 인계용 근거 표본 → `docs/data/samples/rag_context_sample.json` (5.1절) |
 
-갱신 순서(복지 하루 1회): `refresh` → `welfare.build`·`recipes.contract --corrections` → `rag.index` → `rag.export` → `psql -f load_index.sql` — 상세가 바뀐 사업·레시피·식재료의 청크만 다시 임베딩되고, DB에는 판본 단위로 통째로 넣은 뒤 활성 판본만 바꾼다(4절). 하루 작업(`app.jobs.daily_refresh`)이 이 순서를 그대로 돈다(`public_data_refresh.md` 5절).
+갱신 순서(복지 하루 1회): `refresh` → `welfare.build`·`recipes.contract --corrections` → `rag.index` → `rag.export` → `app.jobs.load_rag_index --apply` — 상세가 바뀐 사업·레시피·식재료의 청크만 다시 임베딩되고, DB에는 판본 단위로 통째로 넣은 뒤 활성 판본만 바꾼다(4절). 하루 작업(`app.jobs.daily_refresh`)이 이 순서를 그대로 돈다(`public_data_refresh.md` 5절).
 
 ## 2. 출력 파일 — `data/processed/rag/` (gitignore)
 
@@ -29,8 +30,7 @@
 | `chunks.jsonl` | 청크 한 줄에 하나. 칸은 `rag_chunk` 표와 같음(아래 3절, `embedding`·`embedding_model`·`embedded_at` 제외) |
 | `embeddings.npy` | float32 `(count, 1024)`. i번째 행 = `chunks.jsonl` i번째 줄. 길이 1로 정규화됨 |
 | `changes.json` | 직전 인덱스 대비 `added`·`changed`·`removed` chunk_id **전체 목록**, `unchanged` 건수, `first_index`. 변경은 **행 전체** 기준(본문 밖 칸 — 종료일·확인 시각·품질·원본 해시 — 만 바뀌어도 `changed`, 새 판본). 임베딩은 본문이 바뀐 청크만 다시 함 |
-| `rag_chunk.csv` | `rag.export` 결과. 표 칸 순서 그대로(첫 칸 `index_version`), 벡터는 `[...]` 문자열 |
-| `load_index.sql` | `rag.export` 결과. 임시 표에 `\copy` → 게시 판본 지문 붙이기 → 판본 등록(`loading`) → 행 수·모델 확인 → 활성 전환 (4절) |
+| `rag_chunk.csv` | `rag.export` 결과. 표 칸 순서 그대로(첫 칸 `index_version` = manifest 판본), 단 `source_record_sha256` 자리에 청크를 만든 원본 행 해시 `source_row_sha256`(적재 때 게시 지문으로 바꿈). 벡터는 `[...]` 문자열. 예전 `load_index.sql`(psql 스크립트)은 11/14에 없앴고, 남아 있으면 `rag.export`가 지운다 |
 | `embed_cache/` | `content_sha256` → 벡터 캐시. 중간에 멈춰도 다음 실행이 이어서 함. 지금 청크에 없는 것은 끝에 정리 |
 
 - 읽을 때는 `agetech_data.rag.index.load_index()`를 쓰면 manifest의 sha256과 파일을 대조해, 쓰다가 멈춘 파일을 읽지 않는다.
@@ -81,28 +81,29 @@
 
 ## 4. DB 적재와 판본 전환
 
-표는 `sql/rag_chunk_draft.sql` v3: 인덱스 판본 표 `rag_index_version`(상태 `loading`/`active`/`retired`/`failed`, 활성은 하나만) + `rag_chunk`(기본 키 `index_version`, `chunk_id`) + 되돌리기 함수 `rag_rollback_index()`.
+표는 백엔드 **Alembic `20261114_03`**(11/14, SQL 초안 v3을 마이그레이션으로 옮김 — `src/backend/alembic/versions/20261114_03_add_rag_index_tables.py`): 인덱스 판본 표 `rag_index_version`(적재한 판본, 상태 `loading`/`active`/`retired`/`failed`, 활성은 하나만) + `rag_chunk`(기본 키 `index_version`, `chunk_id`, `embedding vector(1024)`) + 되돌리기 함수 `rag_rollback_index(판본)` + 게시 원본 뷰 `rag_source_active(source_type, source_id, record_sha256, row_sha256)`. pgvector 확장이 필요하다(`docker/initdb`가 만들고, 없으면 마이그레이션이 만든다). ORM 모델은 두지 않았다(벡터 칸 때문에 — 검색 API가 ORM으로 다루려면 그때 `pgvector` 파이썬 패키지와 함께).
 
-1. `rag.export` → `cd data/processed/rag && psql -v ON_ERROR_STOP=1 -f load_index.sql` (DB에 백엔드 원본 표 `recipes`·`recipe_revisions`·`welfare_services`·`welfare_revisions`·`seasonal_foods`가 있어야 함)
-2. 스크립트가 하는 일 (판본·청크 표는 `rag_rollback_index`와 같은 잠금으로 쓰기를 막고, 검색 SELECT는 그대로 됨):
-   1. 같은 판본이 이미 있으면 아무것도 안 함
-   2. CSV를 임시 표에 받고 행 수·모델이 manifest와 같은지 확인 → 다르면 아무것도 남기지 않고 종료 코드 3
-   3. **게시 판본 지문 붙이기(v3)**: CSV의 `source_row_sha256`(청크를 만든 원본 행 해시)로 원본 표의 활성 판본을 찾아 그 `fingerprint`를 `source_record_sha256`에 넣는다. 맞는 판본이 없는 청크는 넣지 않는다(검색에 틀린 근거 대신 '없음').
-      - 레시피: `recipes`(`provider = 'foodsafetykorea:COOKRCP01'`, `source_id`) → 활성 `recipe_revisions`의 `effective_sha256`(보완표 적용 후 행 = 앱·API가 보여 주는 내용)이 청크의 보완 후 행 해시와 같을 때만. 11/13부터 청크를 보완 후 행으로 만들어(`recipes.contract --corrections`) 보완표로 고친 레시피(33·36·642·276)도 들어간다. 보완표 없이 만든 입력이면 고친 4건은 해시가 달라 빠진다(틀린 근거 대신 '없음').
-      - 제철 식재료: `seasonal_foods`(`provider = 'data.go.kr:15168024'`, `source_id`, `is_published`, `detail_status = 'ok'`)의 `content_sha256`이 청크 해시와 같을 때만. DB 적재(`app.jobs.import_seasonal`)와 청크가 같은 갱신 수집본·같은 내용 해시(`seasonal.revision`)를 쓴다. 레시피 연결이 바뀐 것은 내용 해시에 들어가지 않아 청크도 그대로다.
-      - 복지: `welfare_services`(중앙 `ssis:NationalWelfareInformationsV001`·`central_nationwide` / 지자체 `ssis:LocalGovernmentWelfareInformations`·`local`, `source_id`) → 활성 `welfare_revisions`의 `content_sha256`이 청크 해시와 같을 때만. DB 적재(`app.jobs.import_welfare`)와 청크가 **같은 갱신 수집본·같은 정제 레코드**를 쓰므로 맞는다(11/11 이진녕 확인: 기준 = 데이터 갱신 수집본, `welfare_db_import.md`). 조회수·확인 시각만 바뀐 날은 DB 새 판본도, 청크 해시 변화도 없다.
-      - 판본별 넣은 건수를 `source_type`별로 출력한다. 하나도 안 맞으면 아무것도 남기지 않고 종료 코드 3
-   4. 넣은 청크로 새 판본을 `loading` 등록(`chunk_count` = 실제로 넣은 수)
-   5. 넣은 행 수·모델이 맞으면 이전 `active` → `retired`, 새 판본 → `active`. 적재부터 활성화까지 **한 트랜잭션**에서 처리하므로 실패하거나 연결이 종료되면 이전 판본을 유지한다. 중단된 기존 `loading` 판본은 같은 적재 파일로 다시 시도할 수 있다.
-3. 되돌리기: `SELECT rag_rollback_index('<판본>');` — 없는·적재 중·실패한·한 번도 활성이 아니었던·건수나 모델이 안 맞는 판본은 오류로 거부하고 지금 활성 판본을 그대로 둔다. 정리: 활성 + 바로 전 판본 하나만 남기고 삭제(청크는 함께 지워짐, SQL은 초안 파일)
-4. **원본 표와 맞추기 — 한 트랜잭션으로 묶지 않는다(11/07 결정).** 원본 표(복지 하루 1회·레시피 주 1회)와 RAG 판본은 따로 전환한다. 묶으면 임베딩 실패가 복지 정보 갱신까지 막고, 주기도 다르다. 대신 검색이 원본 표의 지금 게시 레코드와 레코드 해시를 대조한다(`rag_source_active` 뷰 JOIN).
-   - 순서: ① 원본 수집·정제 → ② 원본 표 적재·전환 → ③ `rag.index`(바뀐 청크만 임베딩) → ④ `load_index.sql`
+1. `rag.export`(RAG 파이썬) → `cd src/backend && uv run python -m app.jobs.load_rag_index --apply`(백엔드 파이썬, **psql 필요 없음** — psycopg `COPY`). 입력은 `data/processed/rag/manifest.json`·`rag_chunk.csv` 글 파일뿐이라 numpy·torch가 없어도 된다. 원본 표(`recipes`·`recipe_revisions`·`welfare_services`·`welfare_revisions`·`seasonal_foods`)가 먼저 적재돼 있어야 한다.
+2. 적재 작업이 하는 일 — **한 트랜잭션**이라 커밋 전까지 이전 활성 판본이 검색되고, 중간에 실패하거나 연결이 끊기면 아무것도 남지 않는다:
+   1. CSV 칸 이름·행 수·판본·모델이 manifest와 같은지 파일에서 확인하고, 임시 표에 COPY한 뒤 한 번 더 확인 → 다르면 적재하지 않고 종료 코드 1
+   2. **게시 판본 지문 붙이기**: CSV의 `source_row_sha256`(청크를 만든 원본 행 해시)이 `rag_source_active.row_sha256`과 같은 청크에 그 행의 `record_sha256`(게시 판본 `fingerprint`)을 `source_record_sha256`으로 붙인다. 맞는 게시 행이 없는 청크는 넣지 않는다(검색에 틀린 근거 대신 '없음'). **'게시 중' 조건은 이 뷰 한 곳에만 있어** 적재와 검색이 어긋나지 않는다:
+      - 레시피: `recipes.provider = 'foodsafetykorea:COOKRCP01'`, 활성 `recipe_revisions`가 `hold` 아님 → 행 해시 `effective_sha256`(보완표 적용 후 행 = 앱·API가 보여 주는 내용). 11/13부터 청크를 보완 후 행으로 만들어(`recipes.contract --corrections`) 보완표로 고친 레시피(33·36·642·276)도 들어간다. 보완표 없이 만든 입력이면 고친 4건은 해시가 달라 빠진다.
+      - 복지: 중앙 `ssis:NationalWelfareInformationsV001`·`central_nationwide` / 지자체 `ssis:LocalGovernmentWelfareInformations`·`local`, `publication_status = 'published'`, 활성 판본 `detail_state = 'ready'`·`hold` 아님 → 행 해시 `content_sha256`(정제 레코드 내용 해시). DB 적재(`app.jobs.import_welfare`)와 청크가 **같은 갱신 수집본·같은 정제 레코드**를 쓰므로 맞는다(11/11 이진녕 확인, `welfare_db_import.md`). 조회수·확인 시각만 바뀐 날은 DB 새 판본도, 청크 해시 변화도 없다.
+      - 제철 식재료: `seasonal_foods.provider = 'data.go.kr:15168024'`, `is_published`, `detail_status = 'ok'` → 행 해시·지문 모두 `content_sha256`(이 표엔 판본 fingerprint가 없음). 레시피 연결이 바뀐 것은 내용 해시에 들어가지 않아 청크도 그대로다.
+      - 하나도 안 붙으면 적재하지 않고 종료 코드 1. 결과 JSON에 `source_type`별 `in_index`(인덱스 청크)·`loaded`(넣은 청크).
+   3. **판본 이름 = `<manifest index_version>.<지문 묶음 sha256 앞 12자리>`** (지문 묶음 = 넣은 청크의 `chunk_id`·지문 줄을 정렬한 sha256, `binding_sha256` 칸 · manifest 판본은 `manifest_version` 칸). `rag.index`는 청크 행이 그대로면 판본 이름을 유지하는데, 레시피 검증 판본이 올라가 재적재되면(예: #41 검증 v4) 내용은 같아도 레시피 1,156건의 게시 지문이 모두 바뀐다. 초안의 psql 스크립트는 manifest 판본만 보고 '이미 있음'으로 건너뛰어 **그 청크가 전부 검색에서 빠졌다**(복지·제철 청크가 그날 하나도 안 바뀌면 다음 변경 때까지) → 지문까지 이름에 넣어 새 판본으로 다시 적재한다. 같은 인덱스·같은 지문이면 이름이 같아 다시 돌려도 아무것도 안 한다(`already_active`). 한 번 활성이었던 이름은 자동으로 다시 활성화하지 않는다(`previously_activated`, 종료 코드 0) — 운영자가 일부러 되돌린 판본을 매일 작업이 되살리지 않게. 게시 지문이 예전 상태로 돌아간 경우도 같아서 `--verify`가 다름을 알리고, 바꾸려면 `--rollback <판본>`.
+   4. `rag_rollback_index`와 같은 표 잠금(EXCLUSIVE — 검색 SELECT는 그대로 됨)을 잡고 `loading` 등록(`chunk_count` = 실제로 넣은 수) → 청크 넣기 → 행 수·모델 확인 → 이전 `active` → `retired`, 새 판본 → `active` → **직전 판본 하나만 남기고** 오래된 `retired`·`failed` 삭제(청크는 함께 지워짐 — 매일 새 판본이 생겨도 DB가 계속 커지지 않음). 결과 JSON에 `previous_active`·`pruned`.
+3. 확인: `--verify` — 활성 판본이 '이 인덱스를 지금 게시 판본에 붙인 것'과 이름·행 내용(벡터까지)이 같은지 보고 되돌린다(쓰지 않음). `searchable`(지금 검색되는 청크 수)·판본 목록을 출력하고, 다르면 종료 코드 1. 매일 갱신을 `--verify`로 돌리면 `rag_load_verify` 단계가 된다.
+4. 되돌리기: `--rollback <판본>`(= `SELECT rag_rollback_index('<판본>')`) — 없는·적재 중·실패한·한 번도 활성이 아니었던·건수나 모델이 안 맞는 판본은 거부하고 지금 활성 판본을 그대로 둔다. 판본 이름은 `--verify` 출력이나 `rag_search.sql` 운영 절의 목록 SQL로 본다.
+5. **원본 표와 맞추기 — 한 트랜잭션으로 묶지 않는다(11/07 결정).** 원본 표(복지 하루 1회·레시피 주 1회)와 RAG 판본은 따로 전환한다. 묶으면 임베딩 실패가 복지 정보 갱신까지 막고, 주기도 다르다. 대신 검색이 원본 표의 지금 게시 레코드와 레코드 해시를 대조한다(`rag_source_active` 뷰 JOIN).
+   - 순서: ① 원본 수집·정제 → ② 원본 표 적재·전환 → ③ `rag.index`(바뀐 청크만 임베딩) → ④ `rag.export` → `load_rag_index --apply`
    - ②~④ 사이: 원본에서 내려간 사업·내용이 바뀐 사업은 해시가 달라 검색에서 바로 빠진다(틀린 근거 대신 '없음'). 새 사업은 ④ 뒤부터 검색된다. RAG가 실패해도 원본 표 갱신은 그대로 진행된다.
-   - `rag_source_active (source_type, source_id, record_sha256)`는 원본 표에 맞춰 이진녕이 정의하는 뷰다(예시는 SQL 초안). `record_sha256`은 게시 판본 `fingerprint`이고, 위 2-3의 지문 붙이기와 같은 값이다.
+   - `rag_source_active`는 원래 원본 표에 맞춰 이진녕이 정의하기로 한 뷰였는데, 적재가 이 뷰를 쓰게 되어 마이그레이션에 넣었다(초안 예시 + provider 조건 + `row_sha256` 칸). 공고 저장 등 근거로 쓸 원본이 늘면 이 뷰에 조건을 더한다.
 
-- 판본마다 청크 전부(약 3,370행, CSV 46MB)를 넣는다. 임베딩은 바뀐 청크만 하므로 DB 적재만 통째로 하는 셈이고, 적재는 수 초다.
+- 판본마다 청크 전부(약 3,370행, CSV 46MB)를 넣는다. 임베딩은 바뀐 청크만 하므로 DB 적재만 통째로 하는 셈이고, 적재는 약 1.6초다(11/14, 이 PC).
 - `changes.json`은 DB 적재에는 쓰지 않고 관리자 화면·기록용(추가·변경·삭제 건수)으로 남긴다.
-- 11/07 실데이터 확인(pgvector 0.8.7): 판본 적재·같은 판본 재실행 건너뜀·적재 중에는 이전 판본만 검색·전환·되돌리기·건수 불일치 `failed`(종료 코드 3)·활성 두 개 거부·정리, 그리고 원본 표에서 사업을 내리거나 원본 해시가 바뀌면 RAG 판본이 그대로여도 그 사업이 바로 검색에서 빠지는 것을 모두 재현했다.
+- 11/07 실데이터 확인(pgvector 0.8.7, 초안 psql 스크립트): 판본 적재·같은 판본 재실행 건너뜀·적재 중에는 이전 판본만 검색·전환·되돌리기·건수 불일치 `failed`(종료 코드 3)·활성 두 개 거부·정리, 그리고 원본 표에서 사업을 내리거나 원본 해시가 바뀌면 RAG 판본이 그대로여도 그 사업이 바로 검색에서 빠지는 것을 모두 재현했다.
+- **11/14 실데이터 확인**(pgvector 0.8.7, 빈 DB → Alembic head → `daily_refresh --skip-refresh --verify` 16단계 전부 정상, 183초): 판본 `20261113T201421Z.817df9cd5186` 3,370청크(레시피 1,153·제철 488·중앙 273·지자체 1,456) 전부 지문이 붙어 활성, `--verify` 통과·검색되는 청크 3,370. 다시 `--apply` → `already_active`. 레시피를 검증 판본만 올려 다시 적재(새 레시피 판본 1,156, 내용 해시 그대로) → 검색되는 청크 3,370 → **2,217**(레시피 1,153개가 전부 빠짐 — 초안 스크립트였으면 여기서 멈춤), `--verify` 실패로 알림 → `--apply`가 같은 manifest를 새 이름 `….184e0a6bf8b0`으로 적재해 3,370 복구, 직전 판본 `retired`. `--rollback` 직전 판본 → 다시 `--apply`는 `previously_activated`(되돌린 판본 유지), 없는 판본 되돌리기 거부(종료 코드 1), 줄이 잘린 CSV 거부 — 모두 활성 판본 그대로. `sql/rag_search.sql`을 평가 질문 38개(주제 묶음, 음식은 대두 알레르기 조건)로 실행 → 상위 5개 순서가 파이썬 검색과 모두 같음(유사도 차이 최대 0.00005 — CSV 소수 7자리).
 
 ## 5. 검색 (AI 도우미 API)
 
@@ -121,30 +122,7 @@ food = searcher.search("콩나물 넣고 하는 요리", source_types=FOOD_TYPES
 # 원본 표 대조(SQL의 rag_source_active와 같음): search(..., active_sources={(source_type, source_id): 레코드 해시})
 ```
 
-SQL(같은 조건 — **활성 판본만, 질문과 같은 모델만**, 같은 원본은 가장 가까운 청크 하나만):
-
-```sql
-SELECT * FROM (
-  SELECT DISTINCT ON (c.source_type, c.source_id)
-         c.chunk_id, c.source_type, c.source_id, c.title, c.content, c.source_url, c.source_checked_at,
-         c.embedding <=> :q AS distance
-  FROM rag_chunk c
-  JOIN rag_index_version v ON v.index_version = c.index_version AND v.status = 'active'
-  JOIN rag_source_active s ON s.source_type = c.source_type AND s.source_id = c.source_id
-                          AND s.record_sha256 = c.source_record_sha256   -- 원본 표에 지금 게시 중인 그 내용만
-  WHERE c.status = 'active'
-    AND c.embedding_model = :embedding_model          -- KureEmbedder.model_id (= manifest.model_id)
-    AND (c.region_scope IN ('national', 'none')
-         OR (c.ctpv = :ctpv AND (c.region_scope = 'province' OR c.sgg = :sgg)))
-    AND (c.period_end IS NULL OR c.period_end >= current_date)
-    AND c.source_type = ANY(:source_types)             -- 주제 묶음: 복지 {welfare_central,welfare_local} / 음식 {recipe,seasonal}
-    AND (c.source_type NOT IN ('recipe', 'seasonal') OR COALESCE(cardinality(:allergies), 0) = 0
-         OR ('allergen_analysis_complete' = ANY(c.quality_flags) AND NOT (c.allergens && :allergies)))
-  ORDER BY c.source_type, c.source_id, c.embedding <=> :q
-) best
-ORDER BY distance
-LIMIT 5;
-```
+SQL은 **`sql/rag_search.sql`** — 같은 조건(**활성 판본만, 게시 중인 원본만(`rag_source_active` JOIN), 질문과 같은 모델만**, 같은 원본은 가장 가까운 청크 하나만, 주제 묶음 `:source_types`, 지역, 종료일, 알레르기). 매개변수는 `CAST(:q AS vector)`처럼 형을 적어 두어 SQLAlchemy `text()`·psycopg에서 그대로 실행된다. 백엔드 시험(`tests/test_load_rag_index.py`)이 이 파일의 SELECT를 마이그레이션한 표에 그대로 돌려 순서·알레르기·묶음·모델 조건을 확인한다.
 
 **검색 묶음 — 질문 주제를 먼저 정한다(11/13 결정).** AI 도우미는 질문을 복지 / 음식 / 그 외로 나누고, 복지는 `WELFARE_TYPES`(`{welfare_central,welfare_local}`), 음식(레시피·식재료·제철)은 `FOOD_TYPES`(`{recipe,seasonal}`)만 검색한다. 그 외(날씨·휴대폰 사용법 등)는 검색하지 않고 "확인되지 않는다 + 문의처"로 답한다.
   - 근거(`rag_search_report.md` 1·3절): 종류 없이 한꺼번에 찾으면 '겨울 난방비'(W12) 같은 복지 질문에서 '겨울'이 든 제철 식재료 글이 상위 5개를 다 차지해 정답이 빠진다(복지 Hit@5 94%). 주제 묶음이면 복지 Hit@5 100%·제철 질문 6개 모두 1위로, 제철을 넣기 전 결과와 같다.
