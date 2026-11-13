@@ -18,7 +18,8 @@ MATCH_LABEL = {
 }
 GRAM_LABEL = {
     "direct": "원문 g 그대로", "direct_paren": "원문 괄호의 g", "approx_ml": "mL → 1mL≈1g 근사",
-    "unit_weight": "개당 중량표(출처 있음)", "count_unit": "개수 단위(환산 안 함)", "qualitative": "약간·적당량(환산 안 함)",
+    "unit_weight": "개당 중량표(출처 있음)", "estimated": "추정(근거는 grams.basis — estimated_amounts.json 등)",
+    "count_unit": "개수 단위(환산 안 함)", "qualitative": "약간·적당량(환산 안 함)",
     "missing": "분량 없음", "unparsed": "단위 읽기 실패",
 }
 NUTRIENT_LABEL = {k: label for k, (_f, label) in NUTRIENT_FIELDS.items()}
@@ -191,7 +192,12 @@ def render_report(inputs: dict, s: dict, recipes: list[dict], dishes: dict) -> s
 
     L += ["", "## 8. 원칙과 제한", "",
           "- 원문 분량(`amount_text`)과 재료명은 바꾸지 않습니다. g 환산·매핑 결과는 근거와 함께 별도 필드로 둡니다.",
-          "- 개수 단위(개·장·알 등)는 출처 있는 개당 중량표가 없어 환산하지 않습니다. 근거 자료가 생기면 추가합니다.",
+          "- 개수 단위(개·장·알 등)는 출처 있는 개당 중량표(`unit_weights.json`)가 먼저이고, 없으면 추정표"
+          "(`estimated_amounts.json` — USDA 분량·눈대중량 DB·레시피 원문 짝·어림값)로 `estimated` 처리합니다. "
+          "'약간·적당량'·분량 없음은 같은 재료·식품을 g으로 적은 레시피 줄의 분포로 추정합니다. 추정은 근거 문장과 함께 "
+          "`coverage.estimated_items`에 남습니다.",
+          "- 튀김기름(매핑표 `frying_oil`, 또는 100g 이상이고 조리방법 '튀기기'거나 다른 재료 무게의 18%를 넘는 기름)은 "
+          "다른 재료 무게 × 9%(식품영양성분DB 생것↔튀긴것 짝의 지방 증가)만 먹는 것으로 봅니다.",
           "- 부위·품종이 적히지 않은 재료(돼지고기·소고기 → 앞다리, 새우 → 대하 등)는 매핑표의 기본값으로 계산하며, 고른 이유는 매핑표 근거에 있습니다.",
           "- 저염 제품 항목이 없는 재료(저염된장·저염소금)는 일반 제품으로 근사해 **나트륨이 실제보다 많게** 잡힙니다.",
           "- 원천 식품과 보정 내역의 DB 적재는 구현되어 있습니다. 재료 매핑·계산 결과의 DB 연결은 후속 작업이며, 필드 정의는 `docs/data/food_nutrition_contract.md`를 따릅니다."]

@@ -1,7 +1,11 @@
 import pytest
 
+from agetech_data.nutrition.estimates import Estimates
 from agetech_data.nutrition.units import to_grams
 from agetech_data.recipes.ingredients import parse_item
+
+
+NO_EST = Estimates({}, {}, {}, None, None)   # 출처 있는 환산만 (추정 없음)
 
 
 def _item(raw):
@@ -20,7 +24,7 @@ def _item(raw):
     ("표고버섯 기둥", None, "missing"),
 ])
 def test_to_grams_from_parsed_items(raw, grams, status):
-    g = to_grams(_item(raw))
+    g = to_grams(_item(raw), estimates=NO_EST)
     assert (g.grams, g.status) == (grams, status)
     assert g.basis  # 근거 문장이 항상 있다
 
@@ -63,13 +67,14 @@ def test_count_units_from_the_khidi_portion_db(raw, grams):
 
 
 def test_unsourced_counts_and_paren_mass_stay_as_before():
-    assert to_grams(_item("레몬(1/4개)")).status == "count_unit"          # 표에 없는 개수 단위는 그대로
-    assert to_grams(_item("새우(3마리)")).status == "count_unit"          # 크기 폭이 넓어 일부러 안 넣음
-    assert to_grams(_item("달걀노른자 1개")).status == "count_unit"       # 재료명이 정확히 같을 때만
+    # 출처 있는 환산표만 쓰면(추정 없음) 표에 없는 개수 단위는 그대로 — 추정은 test_nutrition_estimates
+    assert to_grams(_item("레몬(1/4개)"), estimates=NO_EST).status == "count_unit"
+    assert to_grams(_item("새우(3마리)"), estimates=NO_EST).status == "count_unit"   # 크기 폭이 넓어 환산표엔 없음
+    assert to_grams(_item("달걀노른자 1개"), estimates=NO_EST).status == "count_unit"  # 재료명이 정확히 같을 때만
     g = to_grams(_item("달걀 1개(50g)"))                                  # 원문 괄호 g가 표보다 먼저
     assert (g.grams, g.status) == (50.0, "direct_paren")
     assert to_grams(_item("다진 마늘 1")).status == "unparsed"            # 단위 없는 숫자는 여전히 못 읽음
-    assert to_grams(_item("참깨 약간")).status == "qualitative"
+    assert to_grams(_item("참깨 약간"), estimates=NO_EST).status == "qualitative"
 
 
 def test_unit_weight_table_lists_only_sourced_rows():
