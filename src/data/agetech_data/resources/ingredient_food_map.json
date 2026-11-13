@@ -1,5 +1,5 @@
 {
- "description": "레시피 재료명 → 식약처 식품영양성분DB(03, 품목대표) 식품코드 수동 매핑. reviewed_by 가 비어 있으면 'curated'(근거만 있음, 사람 확인 전)로 계산에 쓰되 보고서에 검토 대기로 표시한다. 사람이 확인하면 reviewed_by·reviewed_at 을 채운다. food_code 가 null 이면 '매핑하지 않음' 결정.",
+ "description": "레시피 재료명 → 식약처 식품영양성분DB(03, 품목대표) 식품코드 수동 매핑. reviewed_by 가 비어 있으면 'curated'(근거만 있음, 사람 확인 전)로 계산에 쓰되 보고서에 검토 대기로 표시한다. 사람이 확인하면 reviewed_by·reviewed_at 을 채운다. food_code 가 null 이면 '매핑하지 않음' 결정. exclude 가 있으면('not_eaten' 먹지 않음 — 건져 내는 월계수잎·국물 우리는 약재 / 'counted_elsewhere' 같은 레시피에서 이미 계산) 물처럼 0으로 취급하고 완전 판정에서 뺀다.",
  "source": "foodntr_v03_representative (DB_CLASS_NM=품목대표, 2026-10-31 수집)",
  "entries": [
   {
@@ -1118,25 +1118,28 @@
    "ingredient": "오가피",
    "food_code": null,
    "food_name": null,
+   "exclude": "not_eaten",
    "rationale": "국물을 우리는 약재 — 건져 내고 먹지 않아 계산하지 않음",
    "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-09"
+   "reviewed_at": "2026-11-13"
   },
   {
    "ingredient": "가시오가피",
    "food_code": null,
    "food_name": null,
+   "exclude": "not_eaten",
    "rationale": "국물을 우리는 약재 — 건져 내고 먹지 않아 계산하지 않음",
    "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-09"
+   "reviewed_at": "2026-11-13"
   },
   {
    "ingredient": "당귀",
    "food_code": null,
    "food_name": null,
+   "exclude": "not_eaten",
    "rationale": "국물을 우리는 약재 — 건져 내고 먹지 않아 계산하지 않음",
    "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-09"
+   "reviewed_at": "2026-11-13"
   },
   {
    "ingredient": "쌀겨",
@@ -1182,9 +1185,10 @@
    "ingredient": "시금치우유 소스",
    "food_code": null,
    "food_name": null,
+   "exclude": "counted_elsewhere",
    "rationale": "같은 레시피의 [시금치우유 소스] 구획(시금치·우유)으로 이미 계산 — 이중 계산 방지",
    "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-09"
+   "reviewed_at": "2026-11-13"
   },
   {
    "ingredient": "닭고기",
@@ -1758,7 +1762,8 @@
    "ingredient": "월계수잎",
    "food_code": null,
    "food_name": null,
-   "rationale": "끓인 뒤 건져 내 먹지 않음 — 영양 계산에 넣지 않음(11/13 #31에서 남긴 이유 그대로, 여기서 '매핑 안 함'으로 적음)",
+   "exclude": "not_eaten",
+   "rationale": "끓인 뒤 건져 내 먹지 않음 — 0으로 취급(11/13 #31에서 남긴 이유 그대로)",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-13"
   },

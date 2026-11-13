@@ -5,8 +5,10 @@
 - curated   : 근거를 적은 수동 매핑, 사람 확인 전 (리뷰에서 확인 필요)  → 사용, 보고서에 '검토 대기'
 - exact     : 아래 규칙으로 후보가 정확히 1개일 때만                   → 사용
 - water     : 물 — 영양 계산에서 0 으로 취급                          → 계산 불필요
+- excluded  : 먹지 않거나(건져 내는 월계수잎·국물 우리는 약재) 같은 레시피에서 이미 계산된 재료
+              — 매핑표 "exclude" 로 정함, 0 으로 취급하고 완전 판정에서 뺀다 → 계산 불필요
 - candidate : 유사 후보만 있음 (검토 목록)                            → 사용 안 함
-- unmapped  : 후보 없음                                               → 사용 안 함
+- unmapped  : 후보 없음 / 매핑표에서 '매핑하지 않음'(DB에 없음 등)    → 사용 안 함 (빠진 재료로 표시)
 
 exact 규칙 (원재료성 식품명은 "상위, 세부, 상태" 쉼표 계층 구조)
 - full     : 식품명 전체 = 재료명 (예: 참기름)
@@ -39,8 +41,10 @@ RESOURCES = Path(__file__).resolve().parents[1] / "resources"
 INGREDIENT_MAP_FILE = RESOURCES / "ingredient_food_map.json"
 DISH_ALIAS_FILE = RESOURCES / "dish_aliases.json"
 
-MatchStatus = Literal["reviewed", "curated", "exact", "water", "candidate", "unmapped"]
+MatchStatus = Literal["reviewed", "curated", "exact", "water", "excluded", "candidate", "unmapped"]
 USABLE: tuple[MatchStatus, ...] = ("reviewed", "curated", "exact")
+NOT_COUNTED: tuple[MatchStatus, ...] = ("water", "excluded")   # 0 으로 취급, 완전 판정·무게 비율에서 뺌
+EXCLUDE_REASONS = ("not_eaten", "counted_elsewhere")            # 매핑표 "exclude" 값
 WATER_NAMES = {"물", "끓는물", "생수", "정수", "쌀뜨물"}  # 쌀뜨물: DB 항목 없음, 영양 미미 → 물로 취급
 RAW_STATE = "생것"
 INGREDIENT_GROUPS = ("원재료성", "가공식품")
@@ -234,6 +238,10 @@ def manual_entry(name: str, paren_texts: list[str], entries) -> dict | None:
 
 def _from_manual(e: dict, index: FoodIndex, rule: str = "manual", note: str = "") -> MatchResult:
     rationale = note + (e.get("rationale") or "")
+    if e.get("exclude"):  # 먹지 않거나 이미 계산됨 — 0 으로 취급
+        if e["exclude"] not in EXCLUDE_REASONS or e.get("food_code") is not None:
+            raise ValueError(f"매핑표 exclude 항목이 잘못됨: {e['ingredient']} ({e['exclude']})")
+        return MatchResult("excluded", rule=f"{rule}:{e['exclude']}", rationale=rationale)
     if e.get("food_code") is None:  # 매핑하지 않기로 한 결정 (예: 대응 식품 없음)
         return MatchResult("unmapped", rule=f"{rule}:no_match", rationale=rationale)
     ref = index.by_code.get(e["food_code"])
@@ -259,7 +267,7 @@ def match_ingredient(name: str, index: FoodIndex, paren_texts: list[str] | None 
     alias = prep_alias(name)
     if alias:   # "양파다진것" → "다진 양파" 로 같은 순서를 밟는다. 못 찾으면 원래 이름으로 계속
         r = match_ingredient(alias, index, paren_texts, entries)
-        if r.usable or r.status == "water":
+        if r.usable or r.status in NOT_COUNTED:
             r.rule = f"손질+{r.rule}"
             r.rationale = f"'{name}' = '{alias}' (손질 표기만 다름). " + (r.rationale or "")
             return r

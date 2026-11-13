@@ -232,6 +232,70 @@ def test_postgres_unit_weight_is_stored_with_its_source(tmp_path, pg_connection)
         assert map_recipe_foods.verify_mapping(db, ())["verified"]
 
 
+def test_postgres_excluded_ingredient_counts_as_zero_and_missing_ones_say_why(
+    tmp_path, pg_connection
+):
+    # 먹지 않는 재료(매핑표 exclude)는 새 상태 excluded 로 DB CHECK(20261114_01)를 통과하고
+    # 완전 판정을 막지 않는다. 몰라서 뺀 재료는 coverage.missing_items 에 이유와 함께 남는다
+    recipes = [
+        {
+            "RCP_SEQ": "4",
+            "RCP_NM": "양파수프",
+            "RCP_PARTS_DTLS": "양파 100g, 월계수잎 1g, 물 300ml",
+            "MANUAL01": "1. 끓인다.",
+        },
+        {
+            "RCP_SEQ": "5",
+            "RCP_NM": "양파튀김",
+            "RCP_PARTS_DTLS": "양파 100g, 튀김기름 200g",
+            "MANUAL01": "1. 튀긴다.",
+        },
+    ]
+    entries = (
+        {
+            "ingredient": "월계수잎",
+            "food_code": None,
+            "exclude": "not_eaten",
+            "rationale": "건져 냄",
+            "reviewed_by": "최재영",
+            "reviewed_at": "2026-11-13",
+        },
+        {"ingredient": "튀김기름", "food_code": None, "rationale": "흡수량 모름"},
+    )
+    with Session(pg_connection) as db, db.begin():
+        load(db, tmp_path, recipes=recipes, foods=[food("R3", "양파, 생것", "40")])
+        result = map_recipe_foods.apply_mapping(db, entries)
+        assert result["match_status"] == {
+            "exact": 2,
+            "excluded": 1,
+            "water": 1,
+            "unmapped": 1,
+        }
+        _, items, summary = mapping(db, "4")
+        onion, bay, water = items
+        assert (bay.match_status, bay.match_rule, bay.food_id, bay.reviewed_by) == (
+            "excluded",
+            "manual:not_eaten",
+            None,
+            None,
+        )
+        assert summary.complete and summary.coverage["missing_items"] == []
+        assert summary.coverage["excluded_items"] == [
+            {"name": "월계수잎", "amount_text": "1g", "note": "건져 냄"}
+        ]
+        _, items, summary = mapping(db, "5")
+        assert not summary.complete
+        assert summary.coverage["missing_items"] == [
+            {
+                "name": "튀김기름",
+                "amount_text": "200g",
+                "reason": "no_food",
+                "note": "흡수량 모름",
+            }
+        ]
+        assert map_recipe_foods.verify_mapping(db, entries)["verified"]
+
+
 def test_postgres_mapping_constraints(tmp_path, pg_connection):
     with Session(pg_connection) as db, db.begin():
         load(db, tmp_path)

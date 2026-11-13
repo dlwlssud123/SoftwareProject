@@ -1,6 +1,13 @@
 import pytest
 
-from agetech_data.nutrition.match import FoodIndex, match_ingredient, prep_alias, search_dishes
+from agetech_data.nutrition.match import (
+    EXCLUDE_REASONS,
+    FoodIndex,
+    load_ingredient_map,
+    match_ingredient,
+    prep_alias,
+    search_dishes,
+)
 
 
 @pytest.fixture(scope="module")
@@ -98,6 +105,24 @@ def test_chopped_names_follow_the_base_manual_decision(index):
     # DB에 '마늘, 다진것'이 따로 있으면 기본 재료 매핑표를 따르지 않는다
     garlic = ({"ingredient": "마늘", "food_code": "R102-001140001-0000", "rationale": "시험"},)
     assert match_ingredient("다진 마늘", index, entries=garlic).food_name == "마늘, 다진것"
+
+
+def test_excluded_entries_are_zero_not_unknown(index):
+    entries = ({"ingredient": "월계수잎", "food_code": None, "exclude": "not_eaten", "rationale": "건져 냄"},
+               {"ingredient": "소스", "food_code": None, "exclude": "counted_elsewhere", "rationale": "구획으로 계산"},
+               {"ingredient": "잘못", "food_code": None, "exclude": "maybe", "rationale": "x"})
+    m = match_ingredient("월계수잎", index, entries=entries)
+    assert (m.status, m.rule, m.rationale, m.usable) == ("excluded", "manual:not_eaten", "건져 냄", False)
+    assert match_ingredient("소스", index, entries=entries).rule == "manual:counted_elsewhere"
+    assert match_ingredient("월계수잎채썬것", index, entries=entries).status == "excluded"   # 손질 표기도 같음
+    with pytest.raises(ValueError):
+        match_ingredient("잘못", index, entries=entries)
+
+
+def test_real_map_exclude_values_are_known():
+    entries = load_ingredient_map()
+    assert {e["exclude"] for e in entries if e.get("exclude")} <= set(EXCLUDE_REASONS)
+    assert all(e["food_code"] is None for e in entries if e.get("exclude"))
 
 
 def test_candidates_are_not_usable(index):

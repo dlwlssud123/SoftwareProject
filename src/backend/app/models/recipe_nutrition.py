@@ -26,7 +26,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.base import Base
 
-MATCH_STATUSES = ("reviewed", "curated", "exact", "water", "candidate", "unmapped")
+MATCH_STATUSES = (
+    "reviewed",
+    "curated",
+    "exact",
+    "water",
+    "excluded",  # Alembic 20261114_01: not eaten / already counted elsewhere (ingredient_food_map exclude)
+    "candidate",
+    "unmapped",
+)
 USABLE_STATUSES = ("reviewed", "curated", "exact")
 GRAM_STATUSES = (
     "direct",

@@ -27,7 +27,7 @@ from agetech_data import paths
 from agetech_data.nutrition.dish_eval import evaluate as evaluate_dish_search
 from agetech_data.nutrition.fields import NUTRIENT_FIELDS, SUM_NUTRIENTS
 from agetech_data.nutrition.foods import FoodRecord, clean_foods
-from agetech_data.nutrition.match import FoodIndex, load_ingredient_map, match_ingredient
+from agetech_data.nutrition.match import NOT_COUNTED, USABLE, FoodIndex, load_ingredient_map, match_ingredient
 from agetech_data.nutrition.units import CONVERTED, to_grams
 from agetech_data.recipes.correct import apply_corrections
 from agetech_data.recipes.validate import check_recipe, load_rows
@@ -91,15 +91,16 @@ def ingredient_nutrition(ingredients, index: FoodIndex, by_code: dict[str, FoodR
             "grams": g.to_dict(), "match": m.to_dict(),
             "contribution": contrib, "basis_ml_approx": ml_approx,
         })
-    conv = [i for i in items if i["grams"]["status"] in CONVERTED and i["match"]["status"] != "water"]
+    # 물·먹지 않는 재료(excluded)는 0 으로 취급 — 무게 비율과 완전 판정에서 뺀다
+    counted = [i for i in items if i["match"]["status"] not in NOT_COUNTED]
+    conv = [i for i in counted if i["grams"]["status"] in CONVERTED]
     g_total = sum(i["grams"]["grams"] for i in conv)
     g_used = sum(i["grams"]["grams"] for i in conv if i["contribution"] is not None)
-    non_water = [i for i in items if i["match"]["status"] != "water"]
-    complete = bool(non_water) and all(i["contribution"] is not None for i in non_water)
+    complete = bool(counted) and all(i["contribution"] is not None for i in counted)
     # 약간·적당량은 g을 지어내지 않는다. 대신 무엇이 빠졌는지와, 그것만 빠졌는지를 따로 남긴다
     # (complete 는 그대로 엄격 — 소금 '적당량'이 빠지면 나트륨이 실제보다 낮게 잡히므로 화면이 알려야 한다)
-    qualitative = [i for i in non_water if i["grams"]["status"] == "qualitative"]
-    quantified = [i for i in non_water if i["grams"]["status"] != "qualitative"]
+    qualitative = [i for i in counted if i["grams"]["status"] == "qualitative"]
+    quantified = [i for i in counted if i["grams"]["status"] != "qualitative"]
     complete_except_qualitative = bool(quantified) and all(i["contribution"] is not None for i in quantified)
     return {
         "ingredients": items,
@@ -115,8 +116,26 @@ def ingredient_nutrition(ingredients, index: FoodIndex, by_code: dict[str, FoodR
             "complete_except_qualitative": complete_except_qualitative,
             "qualitative_items": [{"name": i["name"], "amount_text": i["amount_text"],
                                    "food_code": i["match"].get("food_code")} for i in qualitative],
+            # 정성 분량 말고 계산에서 빠진 재료 — 화면이 "무엇을 몰라서 뺐는지" 말할 수 있게 이유와 함께
+            "missing_items": [_missing(i) for i in quantified if i["contribution"] is None],
+            # 먹지 않거나 이미 계산돼 0 으로 친 재료 (완전 판정에는 영향 없음)
+            "excluded_items": [{"name": i["name"], "amount_text": i["amount_text"], "note": i["match"]["rationale"]}
+                               for i in items if i["match"]["status"] == "excluded"],
         },
     }
+
+
+def _missing(item: dict) -> dict:
+    """빠진 이유: no_food(매핑표에서 '매핑하지 않음' — DB에 없음·먹는 양 모름 등, note = 근거),
+    food_undecided(식품을 아직 못 정함 — 후보만 있거나 없음), grams_unknown(식품은 정했지만 g을 모름 — note = 환산 근거)."""
+    match, grams = item["match"], item["grams"]
+    if match["status"] in USABLE:
+        reason, note = "grams_unknown", grams.get("basis")
+    elif (match.get("rule") or "").endswith(":no_match"):
+        reason, note = "no_food", match.get("rationale")
+    else:
+        reason, note = "food_undecided", None
+    return {"name": item["name"], "amount_text": item["amount_text"], "reason": reason, "note": note}
 
 
 def build_recipe_nutrition(rows: list[dict], foods: list[FoodRecord], entries) -> list[dict]:
@@ -146,7 +165,7 @@ def summarize(recipes: list[dict], foods: list[FoodRecord], entries) -> dict:
     review: dict[str, dict] = {}
     for i in items:
         st = i["match"]["status"]
-        if st in ("candidate", "unmapped", "curated"):
+        if st in ("candidate", "unmapped", "curated", "excluded"):
             key = (st, i["name"])
             d = review.setdefault("|".join(key), {"status": st, "name": i["name"], "count": 0, "grams": 0.0,
                                                   "food_name": i["match"]["food_name"],
