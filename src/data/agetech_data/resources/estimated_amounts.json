@@ -410,14 +410,18 @@
    "unit": "뿌리",
    "grams": 40,
    "source": "estimate",
-   "evidence": "수삼 중간 크기 1뿌리 약 40 g"
+   "evidence": "수삼 중간 크기 1뿌리 약 40 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "수삼",
    "unit": "뿌리",
    "grams": 40,
    "source": "estimate",
-   "evidence": "수삼 중간 크기 1뿌리 약 40 g"
+   "evidence": "수삼 중간 크기 1뿌리 약 40 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "닭고기",
@@ -438,7 +442,9 @@
    "unit": "마리",
    "grams": 240,
    "source": "estimate",
-   "evidence": "중간 크기 고등어 1마리 약 400 g 중 먹는 부분 약 60%"
+   "evidence": "중간 크기 고등어 1마리 약 400 g 중 먹는 부분 약 60%",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "판젤라틴",
@@ -592,21 +598,27 @@
    "unit": "장",
    "grams": 35,
    "source": "estimate",
-   "evidence": "시판 식빵 1장 약 35 g"
+   "evidence": "시판 식빵 1장 약 35 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "식빵",
    "unit": "쪽",
    "grams": 35,
    "source": "estimate",
-   "evidence": "시판 식빵 1장 약 35 g"
+   "evidence": "시판 식빵 1장 약 35 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "라이스페이퍼",
    "unit": "장",
    "grams": 10,
    "source": "estimate",
-   "evidence": "지름 22 cm 라이스페이퍼 1장 약 10 g"
+   "evidence": "지름 22 cm 라이스페이퍼 1장 약 10 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "다시마",
@@ -634,7 +646,9 @@
    "unit": "마리",
    "grams": 400,
    "source": "estimate",
-   "evidence": "손질 전 1 kg 미만 광어 1마리의 살(가식부) 약 400 g"
+   "evidence": "손질 전 1 kg 미만 광어 1마리의 살(가식부) 약 400 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "구운 김",
@@ -648,14 +662,18 @@
    "unit": "포기",
    "grams": 1600,
    "source": "estimate",
-   "evidence": "배추 1포기 2~2.5 kg을 절여 담그면 약 1.6 kg"
+   "evidence": "배추 1포기 2~2.5 kg을 절여 담그면 약 1.6 kg",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "묵은지",
    "unit": "포기",
    "grams": 1600,
    "source": "estimate",
-   "evidence": "배추김치 1포기 약 1.6 kg('김치'와 같음)"
+   "evidence": "배추김치 1포기 약 1.6 kg('김치'와 같음)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "꽈리고추",
@@ -739,7 +757,9 @@
    "unit": "개",
    "grams": 80,
    "source": "estimate",
-   "evidence": "닭다리 1개 뼈 포함 약 110 g, 먹는 살 약 80 g"
+   "evidence": "닭다리 1개 뼈 포함 약 110 g, 먹는 살 약 80 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "닭날개",
@@ -753,7 +773,9 @@
    "unit": "개",
    "grams": 25,
    "source": "estimate",
-   "evidence": "닭봉 1개 뼈 포함 약 40 g, 먹는 살 약 25 g"
+   "evidence": "닭봉 1개 뼈 포함 약 40 g, 먹는 살 약 25 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "대파",
@@ -767,7 +789,9 @@
    "unit": "개",
    "grams": 900,
    "source": "estimate",
-   "evidence": "땅콩호박(버터넛) 1개 약 0.9~1 kg"
+   "evidence": "땅콩호박(버터넛) 1개 약 0.9~1 kg",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "레디쉬",
@@ -851,7 +875,9 @@
    "unit": "개",
    "grams": 350,
    "source": "estimate",
-   "evidence": "미니 단호박 1개 약 400 g, 씨·껍질 빼고 약 350 g"
+   "evidence": "미니 단호박 1개 약 400 g, 씨·껍질 빼고 약 350 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "바게트",
@@ -1012,14 +1038,18 @@
    "unit": "개",
    "grams": 100,
    "source": "estimate",
-   "evidence": "치아바타 1개 약 100 g"
+   "evidence": "치아바타 1개 약 100 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "포카치아빵",
    "unit": "개",
    "grams": 150,
    "source": "estimate",
-   "evidence": "포카치아 1개 약 150 g"
+   "evidence": "포카치아 1개 약 150 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "콜라비",
@@ -1096,7 +1126,9 @@
    "unit": "개",
    "grams": 80,
    "source": "estimate",
-   "evidence": "닭다리(넓적다리) 1개 뼈 포함 약 110 g, 먹는 살 약 80 g"
+   "evidence": "닭다리(넓적다리) 1개 뼈 포함 약 110 g, 먹는 살 약 80 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
   }
  ],
  "qualitative_by_food": {

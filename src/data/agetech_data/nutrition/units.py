@@ -80,6 +80,7 @@ def _name(item) -> str:
 _ODD_VOLUME = re.compile(r"(\d+(?:\.\d+)?)\s*(㎖|ℓ)")                        # 한 글자 단위 기호
 _RANGE = re.compile(r"(\d+(?:\.\d+)?)\s*~\s*(\d+(?:\.\d+)?)\s*([가-힣]+)")    # '6~7쪽'
 _TEXT_MASS = re.compile(r"(\d+(?:\.\d+)?)\s*(kg|g)(?![A-Za-z])")
+_EDIBLE_MASS = re.compile(r"^\s*([가-힣]*살)\s*(?:무게)?\s*(\d+(?:\.\d+)?)\s*g\s*$")   # 괄호 전체가 '○○살 (무게) N g'
 COUNT_TEXT = re.compile(r"(\d+(?:\.\d+)?(?:/\d+)?|[½⅓⅔¼¾⅕⅛])\s*([가-힣]+)")
 
 
@@ -101,7 +102,14 @@ def to_grams(item, unit_weights: tuple[dict, dict, dict] | None = None,
     est = estimates if estimates is not None else load_estimates()
     if kind == "measured" and amount is not None:
         if unit in _MASS:
-            return GramAmount(round(amount * _MASS[unit], 4), "direct", f"원문 {text} → {unit} 그대로")
+            g = round(amount * _MASS[unit], 4)
+            # "꽃게 70g(꽃게살 30g)"·"토막 낸 닭 170g(닭고기살 무게 90g)": 껍데기·뼈 포함 무게 옆의 먹는 살 무게
+            for p in _get(item, "paren_texts") or []:
+                m = _EDIBLE_MASS.search(p)
+                if m and float(m.group(2)) < g:
+                    return GramAmount(float(m.group(2)), "direct_paren",
+                                      f"원문 {text} → 괄호의 먹는 살 무게 '{m.group(1)} {m.group(2)}g'(껍데기·뼈 뺀 것)")
+            return GramAmount(g, "direct", f"원문 {text} → {unit} 그대로")
         if unit in _VOLUME:
             g = round(amount * _VOLUME[unit], 4)
             return GramAmount(g, "approx_ml", f"원문 {text} → 1mL≈1g 근사(밀도 미반영)")

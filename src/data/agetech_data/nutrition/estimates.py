@@ -9,7 +9,7 @@
 - qualitative_by_food : 같은 분포를 매핑한 식품코드로 모은 것 — 이름이 달라 위 표에 없는 '약간'과, 분량 표기가
                 아예 없는 줄(중앙값)에 쓴다(build 가 매핑 뒤에 적용).
 - count_units : 개수 단위의 1단위 무게 — 수입 과일·채소는 USDA FoodData Central 분량, 그 밖에는 레시피 원문에 함께
-                적힌 무게나 근사(근거 문장에 적음)
+                적힌 무게나 근사(근거 문장에 적음). 사람이 확인한 행은 reviewed_by·reviewed_at
 - frying_oil  : 튀김기름의 먹는 양 — 같은 레시피 재료 무게의 비율(식품영양성분DB 생것↔튀긴것 짝의 지방 증가)
 
     uv run python -m agetech_data.nutrition.estimates --write   # qualitative 표를 지금 레시피 원본으로 다시 만듦

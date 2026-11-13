@@ -44,6 +44,7 @@ def foods(sample_foods):
     base = next(f for f in sample_foods if f.name == "양파, 생것")
     return sample_foods + [
         _food(base, "R114-022000000-0000", "콩기름", 900.0),
+        _food(base, "R114-020000000-0000", "참기름", 900.0),
         _food(base, "R106-186000001-0000", "토마토, 생것", 19.0),
         _food(base, "R101-030000002-0000", "스파게티면, 말린것", 380.0),
         _food(base, "R107-027000001-0000", "표고버섯, 배지재배, 생것", 22.0),
@@ -60,6 +61,8 @@ ENTRIES = (
     _entry("스파게티", "R101-030000002-0000"),
     _entry("식용유", "R114-022000000-0000"),
     _entry("포도씨유", "R114-022000000-0000"),
+    _entry("튀김기름", "R114-022000000-0000", frying_oil=True),
+    _entry("참기름", "R114-020000000-0000"),
     _entry("말린 토마토", "R106-186000001-0000", food_factor=14.7),
     _entry("생표고버섯", "R107-027000001-0000"),
     _entry("표고버섯", "R107-027000001-0000"),
@@ -81,6 +84,11 @@ def test_estimated_counts_qualitative_and_text_mass():
     assert (crab.status, crab.grams) == ("estimated", 34.0)
     onion = to_grams(parse_item("양파 1cm 정사각형 14g"), estimates=EST)  # 크기 표기 뒤의 g
     assert (onion.status, onion.grams) == ("direct", 14.0)
+    crab_shell = to_grams(parse_item("꽃게 70g(꽃게살 30g)"), estimates=EST)  # 껍데기 포함 무게 옆의 먹는 살
+    assert (crab_shell.status, crab_shell.grams) == ("direct_paren", 30.0)
+    chicken = to_grams(parse_item("토막 낸 닭 170g(닭고기살 무게 90g)"), estimates=EST)
+    assert chicken.grams == 90.0
+    assert to_grams(parse_item("닭고기(가슴살, 120g)"), estimates=EST).grams == 120.0   # 부위 표기는 그대로
     assert set(load_estimates().sources) >= {"usda_fdc_sr", "khidi_2007_portion", "estimate"}
 
 
@@ -142,6 +150,16 @@ def test_frying_oil_detected_from_amount_or_cooking_method(foods):
     assert got["2"]["grams"] == 150.0                                         # 15% — 볶음 기름으로 봄
     assert got["3"]["grams"] == 90.0 and "튀기기" in got["3"]["basis"]
     assert got["4"]["grams"] == 30.0                                          # 100g 미만은 먹는 기름
+
+
+def test_frying_oil_scope_and_one_absorption_per_recipe(foods):
+    rows = [_recipe("1", "양파 100g, 식용유 40g, 참기름 30g", way="튀기기"),
+            _recipe("2", "양파 100g, 튀김기름 200g, 식용유 300g")]
+    got = {r["source_id"]: _by_name(r) for r in build_recipe_nutrition(rows, foods, ENTRIES, estimates=EST)}
+    # 튀기기 레시피의 식용유류는 100g 미만이어도 튀김기름, 참기름은 양념용으로 보고 다 먹음
+    assert got["1"]["식용유"]["grams"]["grams"] == 9.0 and got["1"]["참기름"]["grams"]["grams"] == 30.0
+    # 튀김기름이 둘이어도 흡수는 한 번(100g × 0.09 = 9g)을 원문 양 비율로 나눔
+    assert (got["2"]["튀김기름"]["grams"]["grams"], got["2"]["식용유"]["grams"]["grams"]) == (3.6, 5.4)
 
 
 def test_food_level_fallbacks_use_the_mapped_food(foods):
