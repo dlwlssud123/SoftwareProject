@@ -107,4 +107,3 @@ def test_corrections_option_builds_db_effective_rows_and_both_hashes():
         assert bool(src["corrections"]) == (rid in corrected_ids)
     assert fixed["33"]["source"]["effective_sha256"] != fixed["33"]["source"]["raw_sha256"]
     assert fixed["33"]["missing_step_nos"] == [] and plain["33"]["missing_step_nos"]   # 보완으로 빠진 단계가 채워짐
-
