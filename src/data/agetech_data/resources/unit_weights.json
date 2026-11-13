@@ -3,28 +3,369 @@
  "sources": {
   "mfds_nq_elderly": "식품의약품안전처, 「건강·식생활 향상을 위한 노인 영양지수 교육자료」(2023, 1회 분량 출처 표기: 한국인 영양소 섭취기준), https://various.foodsafetykorea.go.kr/nq/ebook/oldman/oldman_balance.pdf",
   "measure_spoon": "계량스푼 1큰술 15 mL·1작은술 5 mL — 미국 FDA 「Guidelines for Determining Metric Equivalents of Household Measures」(1 Tbsp = 15 mL, 1 tsp = 5 mL), 농촌진흥청 「한식 재료 정보」(data.go.kr 15137344)의 물 1큰술 14 g·3⅔큰술 54 g과 맞음",
-  "measure_cup": "국내 계량컵 1컵 200 mL — 식약처 노인 영양지수 교육자료 '우유(200 mL)'·'과일주스 1/2컵(100 mL)'. 종이컵(약 180 mL)·미국 컵(240 mL)과 다르므로 근사로 표시"
+  "measure_cup": "국내 계량컵 1컵 200 mL — 식약처 노인 영양지수 교육자료 '우유(200 mL)'·'과일주스 1/2컵(100 mL)'. 종이컵(약 180 mL)·미국 컵(240 mL)과 다르므로 근사로 표시",
+  "khidi_2007_portion": "한국보건산업진흥원(보건복지부 과제), 「식품별 영양성분 DB 구축사업 — 눈대중량의 부피 및 중량 환산 DB 구축」 최종보고서(2007-12), 별첨 1 「식품의 눈대중량 DB」, KISTI ScienceON TRKO201100002804. 가식부 중량을 쓰고, 크기 미기재는 '중'(여러 행이면 평균), '중'이 없으면 대·소 평균 또는 있는 크기만. 보고서 값만 인용(원문은 재배포하지 않음)"
  },
  "count_units": [
-  {"ingredient": "달걀", "unit": "개", "grams": 60, "source": "mfds_nq_elderly", "evidence": "'달걀 크기로 1개(60 g)'(16쪽), '달걀 1개(60 g)'(21쪽)"},
-  {"ingredient": "계란", "unit": "개", "grams": 60, "source": "mfds_nq_elderly", "evidence": "계란 = 달걀, '달걀 1개(60 g)'(21쪽)"},
-  {"ingredient": "사과", "unit": "개", "grams": 200, "source": "mfds_nq_elderly", "evidence": "'1회 분량은 사과 1/2개'·'사과(100 g)'(8쪽) → 1개 200 g"},
-  {"ingredient": "귤", "unit": "개", "grams": 100, "source": "mfds_nq_elderly", "evidence": "'귤(중) 1개'·'귤(100 g)'(8쪽)"},
-  {"ingredient": "참외", "unit": "개", "grams": 300, "source": "mfds_nq_elderly", "evidence": "'참외 1/2개'·'참외(150 g)'(8쪽) → 1개 300 g"},
-  {"ingredient": "포도", "unit": "송이", "grams": 300, "source": "mfds_nq_elderly", "evidence": "'포도 1/3 송이'·'포도(100 g)'(8쪽) → 1송이 300 g"},
-  {"ingredient": "밥", "unit": "공기", "grams": 210, "source": "mfds_nq_elderly", "evidence": "'밥으로 1공기(210 g)'(25쪽)"},
-  {"ingredient": "쌀밥", "unit": "공기", "grams": 210, "source": "mfds_nq_elderly", "evidence": "'밥으로 1공기(210 g)'(25쪽)"}
+  {
+   "ingredient": "달걀",
+   "unit": "개",
+   "grams": 60,
+   "source": "mfds_nq_elderly",
+   "evidence": "'달걀 크기로 1개(60 g)'(16쪽), '달걀 1개(60 g)'(21쪽)"
+  },
+  {
+   "ingredient": "계란",
+   "unit": "개",
+   "grams": 60,
+   "source": "mfds_nq_elderly",
+   "evidence": "계란 = 달걀, '달걀 1개(60 g)'(21쪽)"
+  },
+  {
+   "ingredient": "사과",
+   "unit": "개",
+   "grams": 200,
+   "source": "mfds_nq_elderly",
+   "evidence": "'1회 분량은 사과 1/2개'·'사과(100 g)'(8쪽) → 1개 200 g"
+  },
+  {
+   "ingredient": "귤",
+   "unit": "개",
+   "grams": 100,
+   "source": "mfds_nq_elderly",
+   "evidence": "'귤(중) 1개'·'귤(100 g)'(8쪽)"
+  },
+  {
+   "ingredient": "참외",
+   "unit": "개",
+   "grams": 300,
+   "source": "mfds_nq_elderly",
+   "evidence": "'참외 1/2개'·'참외(150 g)'(8쪽) → 1개 300 g"
+  },
+  {
+   "ingredient": "포도",
+   "unit": "송이",
+   "grams": 300,
+   "source": "mfds_nq_elderly",
+   "evidence": "'포도 1/3 송이'·'포도(100 g)'(8쪽) → 1송이 300 g"
+  },
+  {
+   "ingredient": "밥",
+   "unit": "공기",
+   "grams": 210,
+   "source": "mfds_nq_elderly",
+   "evidence": "'밥으로 1공기(210 g)'(25쪽)"
+  },
+  {
+   "ingredient": "쌀밥",
+   "unit": "공기",
+   "grams": 210,
+   "source": "mfds_nq_elderly",
+   "evidence": "'밥으로 1공기(210 g)'(25쪽)"
+  },
+  {
+   "ingredient": "가지",
+   "unit": "개",
+   "grams": 190.0,
+   "source": "khidi_2007_portion",
+   "evidence": "가지(6004) 중 1개 전체 198.0 g·가식부 190.0 g(별첨 84쪽)"
+  },
+  {
+   "ingredient": "홍고추",
+   "unit": "개",
+   "grams": 11.9,
+   "source": "khidi_2007_portion",
+   "evidence": "붉은고추(6028) 전체 5개 61.5 g·가식부(꼭지 제외) 59.5 g → 1개 11.9 g(별첨 86쪽)"
+  },
+  {
+   "ingredient": "붉은 고추",
+   "unit": "개",
+   "grams": 11.9,
+   "source": "khidi_2007_portion",
+   "evidence": "붉은고추(6028) 5개 가식부 59.5 g → 1개 11.9 g(별첨 86쪽)"
+  },
+  {
+   "ingredient": "풋고추",
+   "unit": "개",
+   "grams": 11.1,
+   "source": "khidi_2007_portion",
+   "evidence": "풋고추(6030) 전체 5개 59.8 g·가식부 55.7 g → 1개 11.1 g(별첨 86쪽)"
+  },
+  {
+   "ingredient": "깻잎",
+   "unit": "장",
+   "grams": 1.83,
+   "source": "khidi_2007_portion",
+   "evidence": "깻잎(6066) 대 10장 가식부 24.9 g·소 10장 11.7 g — 중 없음, 대·소 평균 1장 1.83 g(별첨 91쪽)"
+  },
+  {
+   "ingredient": "당근",
+   "unit": "개",
+   "grams": 144.1,
+   "source": "khidi_2007_portion",
+   "evidence": "당근(6085) 대 1개 가식부 188.9 g·소 1개 99.2 g — 중 없음, 대·소 평균 144.1 g(별첨 91쪽)"
+  },
+  {
+   "ingredient": "마늘",
+   "unit": "쪽",
+   "grams": 8.9,
+   "source": "khidi_2007_portion",
+   "evidence": "마늘(6108) 깐마늘 생것 1알 9.0 g·가식부 8.9 g(10알 88.9 g)(별첨 92쪽)"
+  },
+  {
+   "ingredient": "마늘",
+   "unit": "알",
+   "grams": 8.9,
+   "source": "khidi_2007_portion",
+   "evidence": "마늘(6108) 깐마늘 생것 1알 가식부 8.9 g(별첨 92쪽)"
+  },
+  {
+   "ingredient": "브로콜리",
+   "unit": "개",
+   "grams": 273.0,
+   "source": "khidi_2007_portion",
+   "evidence": "브로콜리(6172) 1송이 통째 396.0 g·가식부(송이만) 273.0 g(별첨 95쪽)"
+  },
+  {
+   "ingredient": "브로콜리",
+   "unit": "송이",
+   "grams": 273.0,
+   "source": "khidi_2007_portion",
+   "evidence": "브로콜리(6172) 1송이 가식부 273.0 g(별첨 95쪽)"
+  },
+  {
+   "ingredient": "브로컬리",
+   "unit": "개",
+   "grams": 273.0,
+   "source": "khidi_2007_portion",
+   "evidence": "브로콜리(6172) 1송이 가식부 273.0 g(별첨 95쪽)"
+  },
+  {
+   "ingredient": "양파",
+   "unit": "개",
+   "grams": 181.0,
+   "source": "khidi_2007_portion",
+   "evidence": "양파(6239) 중 1개 가식부 192.0 g·170.0 g(두 행) 평균 181.0 g(대 289.0·소 123.0)(별첨 98쪽)"
+  },
+  {
+   "ingredient": "오이",
+   "unit": "개",
+   "grams": 202.0,
+   "source": "khidi_2007_portion",
+   "evidence": "다다기오이(6261) 중 1개 전체 202.0 g — 표의 가식부 163.0 g은 껍질 제거라 껍질째 먹는 전체 중량(별첨 99쪽)"
+  },
+  {
+   "ingredient": "토마토",
+   "unit": "개",
+   "grams": 171.3,
+   "source": "khidi_2007_portion",
+   "evidence": "토마토(6322) 중 1개 가식부 171.3 g(꼭지 포함, 대 207.7·소 87.0)(별첨 101쪽)"
+  },
+  {
+   "ingredient": "방울토마토",
+   "unit": "개",
+   "grams": 9.7,
+   "source": "khidi_2007_portion",
+   "evidence": "방울토마토(6328) 중 1개 가식부 9.7 g(꼭지 포함)(별첨 102쪽)"
+  },
+  {
+   "ingredient": "대파",
+   "unit": "대",
+   "grams": 55.7,
+   "source": "khidi_2007_portion",
+   "evidence": "대파(6329) 1뿌리 가식부 55.7 g(5뿌리 324.9 g)(별첨 102쪽)"
+  },
+  {
+   "ingredient": "대파",
+   "unit": "뿌리",
+   "grams": 55.7,
+   "source": "khidi_2007_portion",
+   "evidence": "대파(6329) 1뿌리 가식부 55.7 g(별첨 102쪽)"
+  },
+  {
+   "ingredient": "단호박",
+   "unit": "개",
+   "grams": 794.8,
+   "source": "khidi_2007_portion",
+   "evidence": "단호박(6345) 1개 전체 1,053.4 g·가식부 794.8 g(별첨 103쪽)"
+  },
+  {
+   "ingredient": "피망",
+   "unit": "개",
+   "grams": 69.0,
+   "source": "khidi_2007_portion",
+   "evidence": "피망(녹색, 6339) 소 1개 전체 77.7 g·가식부 69.0 g — 표에 있는 크기만(별첨 103쪽)"
+  },
+  {
+   "ingredient": "청피망",
+   "unit": "개",
+   "grams": 69.0,
+   "source": "khidi_2007_portion",
+   "evidence": "피망(녹색, 6339) 소 1개 가식부 69.0 g(별첨 103쪽)"
+  },
+  {
+   "ingredient": "홍피망",
+   "unit": "개",
+   "grams": 93.6,
+   "source": "khidi_2007_portion",
+   "evidence": "피망(적색, 6340) 중 1개 가식부 93.5 g·93.6 g(두 행) 평균(별첨 103쪽)"
+  },
+  {
+   "ingredient": "애호박",
+   "unit": "개",
+   "grams": 226.7,
+   "source": "khidi_2007_portion",
+   "evidence": "애호박(6346) 중 1개 통째 234.8 g·가식부(꼭지만 제거) 226.7 g(대 336.2)(별첨 104쪽)"
+  },
+  {
+   "ingredient": "호박잎",
+   "unit": "장",
+   "grams": 6.7,
+   "source": "khidi_2007_portion",
+   "evidence": "호박잎(6352) 10장 81.5 g·가식부 67.1 g → 1장 6.7 g(별첨 104쪽)"
+  },
+  {
+   "ingredient": "새송이버섯",
+   "unit": "개",
+   "grams": 53.0,
+   "source": "khidi_2007_portion",
+   "evidence": "새송이버섯(7018) 중 1개 가식부 56.5 g·49.5 g(두 행) 평균(대 67.0·소 40.0)(별첨 106쪽)"
+  },
+  {
+   "ingredient": "양송이버섯",
+   "unit": "개",
+   "grams": 15.6,
+   "source": "khidi_2007_portion",
+   "evidence": "양송이버섯(7023) 생것 5개 가식부 78.0 g → 1개 15.6 g(별첨 106쪽)"
+  },
+  {
+   "ingredient": "양송이",
+   "unit": "개",
+   "grams": 15.6,
+   "source": "khidi_2007_portion",
+   "evidence": "양송이버섯(7023) 생것 5개 가식부 78.0 g → 1개 15.6 g(별첨 106쪽)"
+  },
+  {
+   "ingredient": "표고버섯",
+   "unit": "개",
+   "grams": 16.4,
+   "source": "khidi_2007_portion",
+   "evidence": "표고버섯 생것(7037) 5개 전체 104.0 g·가식부(밑기둥 제외) 81.8 g → 1개 16.4 g(별첨 107쪽)"
+  },
+  {
+   "ingredient": "대추",
+   "unit": "알",
+   "grams": 8.7,
+   "source": "khidi_2007_portion",
+   "evidence": "대추 생과(8029) 1알 9.8 g·가식부(씨 제외) 8.7 g — 매핑 식품이 '대추, 생것'(건과는 1알 5.1 g)(별첨 108쪽)"
+  },
+  {
+   "ingredient": "대추",
+   "unit": "개",
+   "grams": 8.7,
+   "source": "khidi_2007_portion",
+   "evidence": "대추 생과(8029) 1알 가식부 8.7 g(별첨 108쪽)"
+  },
+  {
+   "ingredient": "바나나",
+   "unit": "개",
+   "grams": 100.1,
+   "source": "khidi_2007_portion",
+   "evidence": "바나나(8060) 일반 1개 전체 172.9 g·가식부 100.1 g(소는 몽키바나나 30.6 g)(별첨 109쪽)"
+  },
+  {
+   "ingredient": "배",
+   "unit": "개",
+   "grams": 485.0,
+   "source": "khidi_2007_portion",
+   "evidence": "배 신고(8062) 중 1개 전체 599.0 g·가식부 485.0 g(대 832.8)(별첨 109쪽)"
+  },
+  {
+   "ingredient": "오렌지",
+   "unit": "개",
+   "grams": 169.9,
+   "source": "khidi_2007_portion",
+   "evidence": "오렌지(8117) 대 1개 전체 274.6 g·가식부 169.9 g — 표에 있는 크기만(별첨 111쪽)"
+  },
+  {
+   "ingredient": "고구마",
+   "unit": "개",
+   "grams": 185.4,
+   "source": "khidi_2007_portion",
+   "evidence": "고구마(2015) 중 1개 전체 212.5 g·가식부 185.4 g(대 229.0)(별첨 78쪽)"
+  },
+  {
+   "ingredient": "메추리알",
+   "unit": "개",
+   "grams": 10.3,
+   "source": "khidi_2007_portion",
+   "evidence": "메추리알(10013) 생것 1알 12.2 g·가식부 10.3 g(별첨 123쪽)"
+  },
+  {
+   "ingredient": "메추리알",
+   "unit": "알",
+   "grams": 10.3,
+   "source": "khidi_2007_portion",
+   "evidence": "메추리알(10013) 생것 1알 가식부 10.3 g(별첨 123쪽)"
+  },
+  {
+   "ingredient": "전복",
+   "unit": "개",
+   "grams": 35.7,
+   "source": "khidi_2007_portion",
+   "evidence": "전복(11525) 중 1개 전체 80.7 g·가식부 35.7 g(별첨 135쪽)"
+  }
  ],
  "volume_units": [
-  {"unit": "큰술", "ml": 15, "source": "measure_spoon"},
-  {"unit": "작은술", "ml": 5, "source": "measure_spoon"},
-  {"unit": "티스푼", "ml": 5, "source": "measure_spoon"},
-  {"unit": "Ts", "ml": 15, "source": "measure_spoon"},
-  {"unit": "T", "ml": 15, "source": "measure_spoon"},
-  {"unit": "Tbsp", "ml": 15, "source": "measure_spoon"},
-  {"unit": "ts", "ml": 5, "source": "measure_spoon"},
-  {"unit": "t", "ml": 5, "source": "measure_spoon"},
-  {"unit": "tsp", "ml": 5, "source": "measure_spoon"},
-  {"unit": "컵", "ml": 200, "source": "measure_cup"}
+  {
+   "unit": "큰술",
+   "ml": 15,
+   "source": "measure_spoon"
+  },
+  {
+   "unit": "작은술",
+   "ml": 5,
+   "source": "measure_spoon"
+  },
+  {
+   "unit": "티스푼",
+   "ml": 5,
+   "source": "measure_spoon"
+  },
+  {
+   "unit": "Ts",
+   "ml": 15,
+   "source": "measure_spoon"
+  },
+  {
+   "unit": "T",
+   "ml": 15,
+   "source": "measure_spoon"
+  },
+  {
+   "unit": "Tbsp",
+   "ml": 15,
+   "source": "measure_spoon"
+  },
+  {
+   "unit": "ts",
+   "ml": 5,
+   "source": "measure_spoon"
+  },
+  {
+   "unit": "t",
+   "ml": 5,
+   "source": "measure_spoon"
+  },
+  {
+   "unit": "tsp",
+   "ml": 5,
+   "source": "measure_spoon"
+  },
+  {
+   "unit": "컵",
+   "ml": 200,
+   "source": "measure_cup"
+  }
  ]
 }
