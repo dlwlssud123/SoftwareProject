@@ -91,7 +91,12 @@ def _split_amounts(rows: list[list]) -> None:
     for prev, cur in zip(rows, rows[1:]):
         name = (_get(cur[0], "name") or "").strip()
         m = _AMOUNT_ONLY_NAME.match(name)
-        if not m or prev[1].status in CONVERTED or prev[2].status in NOT_COUNTED:
+        if not m or prev[2].status in NOT_COUNTED or cur[2].status in NOT_COUNTED:
+            continue
+        if prev[1].status in CONVERTED:   # "케찹 5g,10g": 앞 재료에 이미 양이 있어 어느 재료의 양인지 알 수 없음
+            cur[2] = MatchResult("excluded", rule="split_amount:stray",
+                                 rationale=f"이름 없이 양만 남은 항목(원문 '{_get(prev[0], 'name')} …, {name}', 앞 재료엔 "
+                                           "이미 양이 있음) — 어느 재료인지 알 수 없어 0으로 취급")
             continue
         prev[1] = GramAmount(float(m.group("n")), "estimated",
                              f"원문 '{_get(prev[0], 'name')}, {name}' — 쉼표로 떨어진 뒤 항목 '{name}'을 이 재료의 양으로 봄")

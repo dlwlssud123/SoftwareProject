@@ -128,6 +128,9 @@ def test_food_factor_split_amount_and_glued_amount(foods):
     assert by["12g"]["match"]["status"] == "excluded"
     assert by["12g"]["match"]["rule"] == "split_amount:counted_elsewhere"
     assert (by["버터10g"]["grams"]["status"], by["버터10g"]["grams"]["grams"]) == ("direct", 10.0)
+    # 앞 재료에 이미 양이 있으면 이름 없는 양은 어느 재료인지 몰라 0 ("케찹 5g,10g")
+    [stray] = build_recipe_nutrition([_recipe("2", "양파 50g, 감자 5g,10g")], foods, ENTRIES, estimates=EST)
+    assert _by_name(stray)["10g"]["match"]["rule"] == "split_amount:stray" and stray["coverage"]["complete"]
 
 
 def test_bare_numbers_read_as_grams_or_counts(foods):
