@@ -6,7 +6,7 @@ import pytest
 from agetech_data import paths
 from agetech_data.nutrition import build
 from agetech_data.nutrition.build import build_recipe_nutrition
-from agetech_data.nutrition.match import INGREDIENT_MAP_FILE, load_ingredient_map
+from agetech_data.nutrition.match import INGREDIENT_MAP_FILE, load_ingredient_map, norm
 
 
 def _recipe(seq, parts):
@@ -24,13 +24,13 @@ def _by_name(recipe):
 
 def test_contribution_only_for_usable_and_converted(sample_foods):
     onion = next(f for f in sample_foods if f.name == "양파, 생것")
-    rows = [_recipe("1", "양파 50g, 물 300ml, 감자 100g, 대파(1대), 참깨 약간")]
+    rows = [_recipe("1", "양파 50g, 물 300ml, 감자 100g, 레몬(1/4개), 참깨 약간")]
     [r] = build_recipe_nutrition(rows, sample_foods, entries=())
     by = _by_name(r)
     assert by["양파"]["contribution"]["energy_kcal"] == pytest.approx(onion.nutrients["energy_kcal"] / 2)
     assert by["물"]["match"]["status"] == "water" and by["물"]["contribution"] is None
     assert by["감자"]["match"]["status"] == "candidate" and by["감자"]["contribution"] is None
-    assert by["대파"]["grams"]["status"] == "count_unit" and by["대파"]["contribution"] is None
+    assert by["레몬"]["grams"]["status"] == "count_unit" and by["레몬"]["contribution"] is None  # 환산표에 없음
     assert r["computed"]["energy_kcal"] == pytest.approx(onion.nutrients["energy_kcal"] / 2, abs=0.01)
     assert r["coverage"]["complete"] is False
     assert r["coverage"]["grams_used_pct"] == pytest.approx(100 * 50 / 150, abs=0.1)
@@ -82,7 +82,7 @@ def test_build_applies_verified_recipe_corrections(tmp_path, nutrition_sample):
 
 def test_ingredient_map_file_structure():
     data = json.loads(INGREDIENT_MAP_FILE.read_text(encoding="utf-8"))
-    keys = set()
+    keys, codes = set(), {}
     for e in data["entries"]:
         assert e["ingredient"] and e["rationale"]
         assert e["food_code"] is None or (e["food_code"] and e["food_name"])
@@ -90,6 +90,9 @@ def test_ingredient_map_file_structure():
         key = (e["ingredient"], e.get("when_paren"))
         assert key not in keys, key
         keys.add(key)
+        # 매칭은 공백을 지운 이름으로 찾고 첫 항목을 쓴다 → 공백만 다른 두 항목('닭가슴살'·'닭 가슴살')은 같은 식품이어야 한다
+        same = codes.setdefault((norm(e["ingredient"]), e.get("when_paren")), e["food_code"])
+        assert same == e["food_code"], (e["ingredient"], same, e["food_code"])
 
 
 @pytest.mark.skipif(not paths.NUTRITION_RAW.is_file(), reason="수집 원본 없음 (client 실행 필요)")
@@ -129,4 +132,4 @@ def test_real_recipes_regression():
     for i in items:
         if i["contribution"] is not None:
             assert i["match"]["status"] in ("exact", "curated", "reviewed")
-            assert i["grams"]["status"] in ("direct", "direct_paren", "approx_ml")
+            assert i["grams"]["status"] in ("direct", "direct_paren", "approx_ml", "unit_weight")

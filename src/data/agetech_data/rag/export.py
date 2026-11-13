@@ -10,10 +10,13 @@ rag_rollback_index(판본) 함수.
 게시 판본 지문(v3): rag_chunk.source_record_sha256 은 원본 표의 게시 판본 fingerprint 다. 인덱스 파일에는
 청크를 만든 원본 행 해시만 있으므로(CSV 의 source_row_sha256), load_index.sql 이 적재할 때 원본 표의
 활성 판본과 맞춰 fingerprint 를 붙이고, 맞는 판본이 없는 청크는 넣지 않는다.
-  - 레시피: recipes·recipe_revisions 의 활성 판본에서 raw_sha256 과 effective_sha256(보완 후 행) 이 둘 다
-    청크 원본 행 해시와 같을 때만. 보완표로 고친 레시피는 DB 내용이 청크와 달라서 빠진다.
+  - 레시피: recipes·recipe_revisions 의 활성 판본에서 effective_sha256(보완 후 행 해시, 보완이 없으면 원문 행 해시와
+    같음)이 청크 원본 행 해시와 같을 때만. 보완표로 고친 레시피는 계약 파일을 `recipes.contract --corrections` 로
+    만들었을 때만 들어간다(아니면 청크가 원문 내용이라 DB 게시 내용과 달라 빠짐).
   - 복지: welfare_services·welfare_revisions 의 활성 판본에서 content_sha256(정제 레코드 내용 해시,
     welfare.revision.content_sha256) 이 청크의 원본 해시와 같을 때만. DB 적재와 청크가 같은 갱신 수집본·같은 정제를 쓴다.
+  - 이달의 식재료: seasonal_foods 의 게시 행에서 content_sha256(seasonal.revision.content_sha256)이 청크의 원본 해시와
+    같을 때만. 이 표에는 판본 fingerprint 가 없으므로 content_sha256 을 그대로 지문으로 쓴다.
 
 CSV: 빈 칸(따옴표 없는 빈 값)은 NULL, 배열은 '{...}', 벡터는 '[...]' 문자열.
 """
@@ -38,6 +41,7 @@ COLUMNS = [
 # CSV 칸: 게시 판본 지문 대신 청크를 만든 원본 행 해시를 싣는다 — 적재 때 지문으로 바꾼다
 CSV_COLUMNS = ["source_row_sha256" if c == "source_record_sha256" else c for c in COLUMNS]
 RECIPE_PROVIDER = "foodsafetykorea:COOKRCP01"   # 백엔드 recipes.provider (import_public_data.RECIPE_PROVIDER)
+SEASONAL_PROVIDER = "data.go.kr:15168024"         # 백엔드 seasonal_foods.provider (seasonal.revision.PROVIDER)
 
 
 def pg_array(items: list[str]) -> str:
@@ -114,18 +118,23 @@ FROM rag_chunk_stage \\gset
   DO $$ BEGIN RAISE EXCEPTION 'CSV 행 수·판본·모델이 manifest와 다름 — 적재하지 않음 (이전 판본 그대로)'; END $$;
 \\endif
 
--- 레시피: 활성 판본의 원문(raw)·보완 후(effective) 해시가 둘 다 청크 원본 행 해시와 같을 때만 지문을 붙인다
+-- 레시피: 활성 판본의 보완 후(effective) 해시가 청크 원본 행 해시와 같을 때만 지문을 붙인다(보완 없으면 원문과 같음)
 UPDATE rag_chunk_stage s SET source_record_sha256 = v.fingerprint
   FROM recipes r JOIN recipe_revisions v ON v.id = r.active_revision_id AND v.recipe_id = r.id
  WHERE s.source_type = 'recipe' AND r.provider = '{RECIPE_PROVIDER}' AND r.source_id = s.source_id
    AND v.quality_status <> 'hold'
-   AND v.raw_sha256 = s.source_row_sha256 AND v.effective_sha256 = s.source_row_sha256;
+   AND v.effective_sha256 = s.source_row_sha256;
 -- 복지: 활성 welfare_revisions 의 content_sha256(정제 레코드 내용 해시)이 청크의 원본 해시와 같을 때만
 UPDATE rag_chunk_stage s SET source_record_sha256 = v.fingerprint
   FROM welfare_services w JOIN welfare_revisions v ON v.id = w.active_revision_id AND v.service_id = w.id
  WHERE ({welfare_match})
    AND w.publication_status = 'published' AND v.detail_state = 'ready' AND v.quality_status <> 'hold'
    AND w.source_id = s.source_id AND v.content_sha256 = s.source_row_sha256;
+-- 이달의 식재료: 게시 중인 seasonal_foods 행의 content_sha256 이 청크의 원본 해시와 같을 때만(이 값을 지문으로)
+UPDATE rag_chunk_stage s SET source_record_sha256 = f.content_sha256
+  FROM seasonal_foods f
+ WHERE s.source_type = 'seasonal' AND f.provider = '{SEASONAL_PROVIDER}' AND f.source_id = s.source_id
+   AND f.is_published AND f.detail_status = 'ok' AND f.content_sha256 = s.source_row_sha256;
 
 SELECT source_type, count(*) AS in_index, count(source_record_sha256) AS loaded
 FROM rag_chunk_stage GROUP BY source_type ORDER BY source_type;

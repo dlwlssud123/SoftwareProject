@@ -82,7 +82,7 @@ DB 적재는 정제 레코드까지 판본 지문에 포함한다. 원본이 같
 |---|---|
 | `order_no`, `line_no`, `section`, `raw_item`, `name`, `amount_text` | 레시피 원문 보존 필드 (레시피 품질 검증과 같은 값) |
 | `grams.grams` | g 환산값 또는 null |
-| `grams.status` | `direct`(원문 g) / `direct_paren`(원문 괄호 g) / `approx_ml`(mL→1mL≈1g) / `count_unit` / `qualitative` / `missing` / `unparsed` |
+| `grams.status` | `direct`(원문 g) / `direct_paren`(원문 괄호 g) / `approx_ml`(mL 또는 계량 단위 큰술 15·작은술 5·`Ts`·`ts`·컵 200 mL → 1mL≈1g) / `unit_weight`(출처 있는 개당 중량, 예: 달걀 1개 60 g) / `count_unit` / `qualitative` / `missing` / `unparsed` |
 | `grams.basis` | 환산 근거 문장 |
 | `match.status` | `reviewed` / `curated` / `exact` / `water` / `candidate` / `unmapped` |
 | `match.food_code`, `match.food_name` | 매핑된 식품 (`candidate`·`unmapped`이면 null) |
@@ -91,9 +91,9 @@ DB 적재는 정제 레코드까지 판본 지문에 포함한다. 원본이 같
 | `contribution` | 성분별 기여량 = g ÷ 기준량 × 기준량당 함량. 매핑 상태가 `reviewed`/`curated`/`exact`이고 g 환산된 경우만 값, 아니면 null |
 | `basis_ml_approx` | mL 기준 식품을 g 분량으로 계산했으면 true |
 
-`coverage`: `items`, `items_used`, `grams_converted`(물 제외), `grams_used`, `grams_used_pct`, `complete`(물을 뺀 모든 재료가 계산에 들어갔는지)
+`coverage`: `items`, `items_used`, `grams_converted`(물 제외), `grams_used`, `grams_used_pct`, `complete`(물을 뺀 모든 재료가 계산에 들어갔는지), `complete_except_qualitative`(분량이 '약간·적당량'인 재료만 빼면 모두 계산됐는지), `qualitative_items`(그 재료 `[{name, amount_text, food_code}]` — `food_code`는 매핑이 됐을 때만)
 
-**화면 표시 권장**: `complete=false`인 레시피의 `computed`는 "일부 재료 기준"이라고 표시한다. 레시피 원문 `INFO_*`와 섞어 쓰지 않는다.
+**화면 표시 권장**: `complete=false`인 레시피의 `computed`는 "일부 재료 기준"이라고 표시한다. 레시피 원문 `INFO_*`와 섞어 쓰지 않는다. `complete=false`라도 `complete_except_qualitative=true`면 "소금(적당량)·후추(약간)는 계산에 넣지 않았어요"처럼 `qualitative_items`의 이름을 함께 보여 준다. **'약간·적당량'에 g을 지어 넣지 않는다** — 소금·간장류가 빠지면 나트륨이 실제보다 낮게 잡히므로, `food_code`의 식품 나트륨이 높으면(예: 소금·간장) "나트륨은 더 높을 수 있어요"를 붙인다.
 
 **DB 적재**: 같은 계산을 DB 활성 판본(레시피 재료 × 식품)으로 돌려 `recipe_ingredient_foods`(재료 하나)·`recipe_computed_nutrition`(레시피 판본 하나)에 넣는다 — `python -m app.jobs.map_recipe_foods`, 칸 대응·규칙은 [`recipe_food_map_db.md`](recipe_food_map_db.md).
 
@@ -216,11 +216,11 @@ match_ingredient("다진 마늘", ingredient_index)       # → MatchResult(stat
 - **100mL 기준 행만 있는 음식이 있다.** 고등어구이·제육볶음·도라지나물·달걀찜 등. g으로 입력하면 `approx_ml`이다.
 - **원재료성 식품은 결측이 많다.** 당류·포화지방산·식이섬유·콜레스테롤(보고서 6절). 과일 등 `ingredient` 후보는 `missing`이 자주 있다. 음식 100g 기준 행은 906건 중 2건만 합산 성분(7.4절 11개)에 결측이 있다.
 - **기준량 표기가 잘못된 행이 있었다.** 가공식품 `커피믹스`(P109-202020000-0081)는 기준량이 100mL로 적혀 있었지만 값이 커피믹스 가루(원재료성, 100g)와 똑같다(426kcal, 수분 1.7g). 2.1절 보정표로 기준량을 100g으로 고쳤다(수집 원본은 그대로, 원래 값은 `corrections`에 남음). 마시는 믹스커피는 가루가 아니라 원재료성 '물에 탄것(중량 12g)'(51kcal/100g)으로 연결한다.
-- **1인분·개수 단위 환산의 출처 후보 (확인 전)**: 밥 1공기·달걀 1개 같은 눈대중 중량은 농촌진흥청 국가표준식품성분표의 눈대중량 자료가 출처가 될 수 있다. 이용 조건·형식을 아직 확인하지 않았다. 커피믹스 1봉 = 12g은 위 식품명 자체가 근거다.
+- **개수·계량 단위 환산표** (`src/data/agetech_data/resources/unit_weights.json`, 2026-11-13): 출처가 단위와 무게를 함께 적은 것만 둔다. 개수 단위 = 식약처 「건강·식생활 향상을 위한 노인 영양지수 교육자료」(1회 분량, 출처 표기 한국인 영양소 섭취기준)의 달걀(계란) 1개 60 g·사과 1/2개 100 g·귤(중) 1개 100 g·참외 1/2개 150 g·포도 1/3송이 100 g·밥 1공기 210 g. 계량 단위 = 1큰술 15 mL·1작은술 5 mL(영문 `Ts`·`T`·`Tbsp`·`ts`·`t`·`tsp` 포함, 미국 FDA 가정용 계량 지침·농진청 「한식 재료 정보」의 물 1큰술 14~15 g과 맞음), 1컵 200 mL(국내 계량컵 — 종이컵 180 mL·미국 240 mL와 달라 근사). 그 밖의 개수 단위 = 한국보건산업진흥원 「식품별 영양성분 DB 구축사업 — 눈대중량의 부피 및 중량 환산 DB 구축」(2007, 보건복지부 과제, KISTI ScienceON TRKO201100002804) 별첨 1 「식품의 눈대중량 DB」의 **가식부 중량**: 크기 미기재는 '중'(여러 행이면 평균), '중'이 없으면 대·소 평균(깻잎·당근) 또는 있는 크기만(오렌지 대·피망 소), 오이는 껍질째 먹어 전체 중량. 가지·고추·깻잎·당근·마늘(쪽)·브로콜리·양파·오이·토마토·방울토마토·대파(대)·단호박·피망·애호박·호박잎·새송이·양송이·표고·대추·바나나·배·오렌지·고구마·메추리알·전복 27종. 행마다 코드·원문 값·쪽을 `evidence`에 적었다. 새우 '마리'는 표에 있지만(대하 대 1마리 가식부 47 g ~ 중하 소 12 g) 레시피 원천 예가 1마리 3~4 g이라 크기 폭이 넓어 넣지 않았다. 레몬·아보카도·아스파라거스·인삼·청양고추·쪽파는 표에 없다. 농진청 국가표준식품성분 DB의 계량단위 칸은 비어 있다(달걀도). 커피믹스 1봉 = 12g은 위 식품명 자체가 근거다.
 
 ## 8. 알려진 제한
 
-- 개수 단위(개·장·알·뿌리 등)는 출처 있는 개당 중량표가 없어 g으로 환산하지 않는다.
+- 개수 단위(개·장·알·뿌리 등)는 환산표에 출처 있는 1단위 무게가 있는 것(7.6절 끝: 식약처 자료의 달걀·사과·귤·참외·포도·밥, 한국보건산업진흥원 눈대중량 DB의 27종)만 `unit_weight`로 환산하고, 나머지(레몬·새우 '마리'·아스파라거스·인삼 등)는 환산하지 않는다. 원문 괄호에 g이 있으면 그 값이 먼저다. 크기를 모르면 '중'으로 보므로 개별 레시피에서는 실제와 차이가 날 수 있다.
 - 수동 매핑표는 2026-11-09에 모두 확인했다(`reviewed`, 확인자 최재영). 새로 넣는 매핑은 확인 전까지 `curated`이며 보고서(`docs/data/nutrition_mapping_report.md`) 3절에 나온다.
 - 부위·품종이 적히지 않은 재료는 매핑표의 기본값으로 계산한다(돼지고기·소고기 → 앞다리, 새우 → 대하 등, 이유는 매핑표 `rationale`). 저염 제품 항목이 없는 저염된장·저염소금은 일반 제품으로 근사해 나트륨이 실제보다 많게 잡힌다.
 - 먹지 않는 약재(오가피·당귀), 같은 레시피에서 이미 계산되는 소스, DB에 없는 재료는 '매핑하지 않음'(`unmapped`, `rule=manual:no_match`)으로 정했다. 쌀뜨물은 물로 취급한다.

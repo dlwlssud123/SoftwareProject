@@ -1,10 +1,12 @@
-"""복지·레시피 정제 결과 → RAG 검색 청크 (표준 라이브러리만).
+"""복지·레시피·이달의 식재료 정제 결과 → RAG 검색 청크 (표준 라이브러리만).
 
 청크 하나 = docs/data/sql/rag_chunk_draft.sql 의 rag_chunk 한 행(embedding 칸 제외).
 규칙은 docs/data/rag_embedding_decision.md 4절:
 - 복지 사업 1건 = 1청크. 너무 길면 개요·지원 내용·신청 항목 경계로 나눈다.
 - 레시피 1건 = 1청크. 너무 길면 만드는 법을 따로 나눈다. hold 레시피는 만들지 않는다.
-- 모든 청크 앞에 '[복지] 사업명 (지역)' / '[레시피] 이름' 머리말을 붙여, 나눈 조각만 봐도 무엇인지 알게 한다.
+- 이달의 식재료 (월, 식재료) 1건 = 1청크. 너무 길면 유래·효능 / 고르기·보관 / 먹는 법으로 나눈다. 상세가 없으면 만들지 않는다.
+- 모든 청크 앞에 '[복지] 사업명 (지역)' / '[레시피] 이름' / '[제철 식재료] 11월 · 사과' 머리말을 붙여,
+  나눈 조각만 봐도 무엇인지 알게 한다.
 - 대상·기준 문장은 원문 그대로 둔다(수급 자격을 판정하는 문장을 만들지 않는다).
 """
 
@@ -13,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import asdict, dataclass, field
+from functools import lru_cache
 
 from agetech_data.welfare.revision import content_sha256 as welfare_content_sha256
 
@@ -26,9 +29,9 @@ _SENT_END = re.compile(r"(?<=[.!?])\s+|\n+")
 @dataclass
 class Chunk:
     chunk_id: str
-    source_type: str                 # welfare_central / welfare_local / recipe
+    source_type: str                 # welfare_central / welfare_local / recipe / seasonal
     source_id: str
-    section: str                     # all / overview / benefits / apply / steps
+    section: str                     # all / overview / benefits / apply / steps / buy_store / intake
     chunk_no: int
     title: str
     content: str
@@ -43,7 +46,8 @@ class Chunk:
     quality_status: str              # ok / flagged
     data_version: str
     # 원본 표 판본과 맞출 해시 — 복지: 정제 레코드 내용 해시(= DB welfare_revisions.content_sha256),
-    # 레시피: 원본 행 해시(= recipe_revisions.raw_sha256). DB 적재 때 게시 판본 fingerprint 로 바꿔 넣는다
+    # 레시피: 보완 후 행 해시(= recipe_revisions.effective_sha256, 보완 없으면 원문 행 해시와 같음),
+    # 이달의 식재료: 식재료 내용 해시(= seasonal_foods.content_sha256). DB 적재 때 게시 판본 값으로 바꿔 넣는다
     source_record_sha256: str | None = None
     quality_flags: list[str] = field(default_factory=list)
     allergens: list[str] = field(default_factory=list)
@@ -238,8 +242,80 @@ def recipe_chunks(rec: dict, data_version: str, max_chars: int = MAX_CHARS) -> l
             region_scope="none", ctpv=None, sgg=None, source_url=None,
             source_checked_at=src.get("fetched_at"), source_modified=None, period_end=None,
             quality_status="flagged" if q.get("status") == "flagged" else "ok",
-            data_version=data_version, source_record_sha256=src.get("raw_sha256"),
+            # 보완표를 적용해 만든 계약 파일이면 보완 후 행 해시(DB effective_sha256)와 맞춘다
+            data_version=data_version, source_record_sha256=src.get("effective_sha256") or src.get("raw_sha256"),
             quality_flags=sorted(set(flags)), allergens=sorted(allergens),
+        ))
+    return out
+
+
+# ── 이달의 식재료 ────────────────────────────────────────────────────────
+
+def _bulleted(s: str | None) -> str:
+    """원문의 '■' 항목 표시 앞에서 줄을 바꾼다(글자는 그대로) — 긴 설명을 항목 경계로 나눌 수 있게."""
+    return _tidy((s or "").replace("■", "\n■"))
+
+
+@lru_cache(maxsize=1)
+def _seasonal_allergen_rules():
+    from agetech_data.recipes.allergens import load_rules as allergen_rules
+    from agetech_data.seasonal.normalize import load_rules
+
+    undetermined = (load_rules().get("allergen_undetermined") or {}).get("items") or {}
+    return allergen_rules(), frozenset(undetermined)
+
+
+def seasonal_allergens(name: str) -> tuple[list[str], bool]:
+    """식재료 이름 → (알레르기 물질, 판정 완료 여부). 레시피 재료명과 같은 규칙(recipes.allergens)으로 이름에서 정하고,
+    모호한 이름(풋콩 → 대두?)은 후보까지 넣는다. 이름만으로 재료를 알 수 없는 식재료(만두·견과류 …,
+    resources/seasonal_terms.json allergen_undetermined)는 판정 불가 — 알레르기 사용자 검색에서 빠진다."""
+    from agetech_data.recipes.allergens import ambiguous_of, match_name
+    from agetech_data.seasonal.normalize import official_terms
+
+    rules, undetermined = _seasonal_allergen_rules()
+    if name in undetermined:
+        return [], False
+    found: set[str] = set()
+    for term in official_terms(name) or [name]:
+        hits = match_name(term, rules)
+        if hits:
+            found.update(h[0] for h in hits)
+        elif amb := ambiguous_of(term, rules):
+            found.update(amb[1])
+    return sorted(found), True
+
+
+def seasonal_chunks(row: dict, data_version: str, max_chars: int = MAX_CHARS) -> list[Chunk]:
+    """이달의 식재료 한 행(agetech_data.seasonal.revision.seasonal_rows) → 청크. 상세가 없거나 비게시면 []."""
+    if not row.get("is_published") or row.get("detail_status") != "ok":
+        return []
+    d = row.get("detail") or {}
+    title = f"{row['month']}월 {row['name']}"
+    header = f"[제철 식재료] {row['month']}월 · {row['name']}"
+
+    def part(label: str, key: str) -> str:
+        text = _bulleted(d.get(key))
+        return f"{label}:\n{text}" if text else ""
+
+    related = [r for r in row.get("official_related_recipes") or [] if r]
+    allergens, complete = seasonal_allergens(row["name"])
+    sections = [
+        ("overview", [part("유래·특징", "origin"), part("영양·효능", "efficacy")]),
+        ("buy_store", [part("고르는 법", "purchase_tip"), part("보관·손질", "storage_prep")]),
+        ("intake", [part("먹는 법", "intake"),
+                    f"농촌진흥청 관련 레시피: {', '.join(related)}" if related else ""]),
+    ]
+    out = []
+    for no, (section, content) in enumerate(_assemble(header, sections, max_chars), start=1):
+        out.append(Chunk(
+            chunk_id=f"seasonal:{row['source_id']}:{section}:{no}",
+            source_type="seasonal", source_id=row["source_id"], section=section, chunk_no=no,
+            title=title, content=content, content_sha256=sha256_text(content),
+            region_scope="none", ctpv=None, sgg=None, source_url=row.get("source_url"),
+            source_checked_at=str(row["checked_on"]) if row.get("checked_on") else None,
+            source_modified=None, period_end=None, quality_status="ok",
+            data_version=data_version, source_record_sha256=row["content_sha256"],
+            quality_flags=[ALLERGEN_ANALYSIS_COMPLETE] if complete else [], allergens=allergens,
         ))
     return out
 
@@ -252,8 +328,9 @@ def _version(input_meta: dict | None, label: str) -> str:
 
 
 def build_chunks(welfare_payload: dict | None, recipe_payload: dict | None,
-                 max_chars: int = MAX_CHARS) -> list[Chunk]:
-    """정제 파일 내용(welfare_elderly.json, recipes_api_all.json) → 전체 청크. 순서는 원천·ID 순으로 고정."""
+                 max_chars: int = MAX_CHARS, seasonal: tuple[list[dict], str] | None = None) -> list[Chunk]:
+    """정제 파일 내용(welfare_elderly.json, recipes_api_all.json)과 이달의 식재료 행(seasonal_rows, 판본) → 전체 청크.
+    순서는 원천·ID 순으로 고정."""
     chunks: list[Chunk] = []
     if welfare_payload:
         inputs = welfare_payload.get("input") or {}
@@ -264,6 +341,10 @@ def build_chunks(welfare_payload: dict | None, recipe_payload: dict | None,
         version = _version(recipe_payload.get("input"), "recipes")
         for rec in sorted(recipe_payload["records"], key=lambda r: (len(str(r["recipe_id"])), str(r["recipe_id"]))):
             chunks += recipe_chunks(rec, version, max_chars)
+    if seasonal:
+        rows, version = seasonal
+        for row in sorted(rows, key=lambda r: (r["month"], r["source_id"])):
+            chunks += seasonal_chunks(row, version, max_chars)
     ids = [c.chunk_id for c in chunks]
     if len(ids) != len(set(ids)):
         raise ValueError("chunk_id 중복 — 원천 ID가 겹침")

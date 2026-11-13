@@ -5,7 +5,7 @@
 | 작성 | 최재영 (데이터) |
 | 대상 | 레시피 API(이진녕), 레시피 화면·알레르기 필터(김찬형), 품질 평가(김민찬) |
 | 원천 | 식품안전나라 조리식품 레시피 DB `COOKRCP01` ([명세](https://www.foodsafetykorea.go.kr/api/newDatasetDetail.do?svc_no=COOKRCP01)) |
-| 생성 명령 | `uv run python -m agetech_data.recipes.contract` (앱 50건) / `--input data/raw/recipes/cookrcp01_all.json --no-sample` (전체 1,156건) |
+| 생성 명령 | `uv run python -m agetech_data.recipes.contract` (앱 50건) / `--input data/raw/recipes/cookrcp01_all.json --no-sample` (전체 1,156건) / RAG 입력은 `--corrections src/frontend/assets/data/recipe_corrections.json`을 더한다(2.6) |
 | 표본 | [`docs/data/samples/recipe_api_sample.json`](samples/recipe_api_sample.json) — 대표 사례 6건 |
 | 품질 보고서 | [앱 50건](recipe_quality_report.md) · [전체 1,156건](recipe_quality_report_all.md) |
 | 기준 | 기획서 CORE-01 "제외 재료를 우선 적용", CORE-02 "재료·분량·원문 번호를 보존", CORE-04 "영양 수치·기준량·출처는 상세에서 확인" |
@@ -42,7 +42,7 @@
 | `sodium_tip` | 문자열·null | `RCP_NA_TIP` | 저감 조리법 TIP |
 | `allergens` | 객체 | (재료명에서 추정) | 2.4 |
 | `quality` | 객체 | | 2.5 |
-| `source` | 객체 | | `provider`, `service`, `source_id`, `fetched_at`(수집 시각), `raw_sha256`(원문 행 해시) |
+| `source` | 객체 | | `provider`, `service`, `source_id`, `fetched_at`(수집 시각), `raw_sha256`(원문 행 해시). `--corrections`로 만들면 `effective_sha256`(보완 후 행 해시)·`corrections`(고친 칸 목록)가 더 붙는다(2.6) |
 
 ### 2.1 `ingredients[]`
 
@@ -110,6 +110,14 @@
 | `issues[]` | 경고·오류만, `code`·`severity`·`label`·`detail`. 코드 목록은 품질 보고서 2절 |
 | `info_codes` | 참고 수준 코드만 (예: `serving_weight_missing`, `step_text_without_image`) |
 | `missing_fields` | 비어 있는 원천 필드 (명세 순서, 예: `INFO_WGT`, `HASH_TAG`) |
+
+### 2.6 보완표 적용 (`--corrections`, 11/13)
+
+규칙 2(원문을 고치지 않음)의 유일한 예외는 사람이 공식 원문과 대조해 만든 보완표 `src/frontend/assets/data/recipe_corrections.json`이다(`recipe_correction_report.md`). DB 적재(`app.jobs.import_public_data`)는 이 보완표를 적용한 행을 `recipe_revisions`에 게시하므로, DB 게시 내용과 같은 레코드가 필요한 곳(RAG 청크)은 같은 보완표로 만든다.
+
+- `--corrections <파일>`을 주면 보완표를 적용한 행으로 레코드를 만든다. 보완으로 빠진 단계가 채워지면 `quality.status`도 다시 판정된다(11/13: 33·36 `hold` → `ok`, 642 `flagged` → `ok`, 276 재료 표기만 정리).
+- `source.raw_sha256` = 원문 행 해시(그대로), `source.effective_sha256` = 보완 후 행 해시(= DB `recipe_revisions.effective_sha256`), `source.corrections` = 고친 칸(`field`·`kind`·`state`). 보완이 없는 레시피는 두 해시가 같고 `corrections`가 빈 배열이다.
+- `input.corrections`에 보완표 경로·sha256을 남긴다. 옵션을 주지 않으면 이전과 똑같은 결과(원문 그대로, `effective_sha256` 없음)다.
 
 ## 3. 앱 현재 규칙과 다른 점 (화면 담당 확인)
 

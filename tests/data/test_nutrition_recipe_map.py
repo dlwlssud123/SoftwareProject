@@ -59,3 +59,17 @@ def test_content_hash_tracks_food_values_and_map(sample_foods):
     [moved] = recipe_map_rows([recipe], food_records(changed), ())
     assert moved["content_sha256"] != first["content_sha256"]
     assert map_sha256(()) != map_sha256((ENTRY,))
+
+
+def test_qualitative_seasonings_are_listed_and_kept_out_of_complete(sample_foods):
+    # '약간·적당량'은 g을 지어내지 않는다. complete 는 엄격하게 두고, 그것만 빠졌는지를 따로 남긴다
+    rows = [_recipe("1", "양파 50g, 소금 약간, 후춧가루 적당량"),
+            _recipe("2", "양파 50g, 레몬(1개), 소금 약간"),
+            _recipe("3", "양파 50g, 물 100ml")]
+    got = {r["source_id"]: r["coverage"] for r in build_recipe_nutrition(rows, sample_foods, ())}
+    assert (got["1"]["complete"], got["1"]["complete_except_qualitative"]) == (False, True)
+    assert [(q["name"], q["amount_text"]) for q in got["1"]["qualitative_items"]] == [
+        ("소금", "약간"), ("후춧가루", "적당량")]
+    assert (got["2"]["complete"], got["2"]["complete_except_qualitative"]) == (False, False)  # 레몬 '1개'(환산표에 없음)
+    assert (got["3"]["complete"], got["3"]["complete_except_qualitative"], got["3"]["qualitative_items"]) == (
+        True, True, [])

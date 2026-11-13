@@ -1,4 +1,4 @@
-"""RAG 검색 인덱스 생성·갱신: 정제 결과 → 청크 → (바뀐 것만) 임베딩 → 파일 + 변경 목록.
+"""RAG 검색 인덱스 생성·갱신: 정제 결과(복지·레시피)·이달의 식재료 수집본 → 청크 → (바뀐 것만) 임베딩 → 파일 + 변경 목록.
 
 DB 적재·판본 전환은 이진녕 담당이라, 여기서는 적재할 내용을 파일과 함수로 넘긴다.
 
@@ -135,8 +135,12 @@ def new_index_version(now: datetime | None = None) -> str:
     return (now or datetime.now(timezone.utc)).strftime("%Y%m%dT%H%M%SZ")
 
 
-def source_summary(welfare_payload: dict | None, recipe_payload: dict | None, chunks: list[Chunk]) -> dict:
-    """원천별 산출 근거: 원본 건수 → 제외(레시피 hold) → 색인한 원본 → 나뉜 원본 → 청크 수."""
+SOURCE_ORDER = ("welfare_central", "welfare_local", "recipe", "seasonal")
+
+
+def source_summary(welfare_payload: dict | None, recipe_payload: dict | None, chunks: list[Chunk],
+                   seasonal_rows: list[dict] | None = None) -> dict:
+    """원천별 산출 근거: 원본 건수 → 제외(레시피 hold, 제철 상세 없음·비게시) → 색인한 원본 → 나뉜 원본 → 청크 수."""
     per: dict[str, Counter] = {}
     for c in chunks:
         per.setdefault(c.source_type, Counter())[c.source_id] += 1
@@ -148,8 +152,14 @@ def source_summary(welfare_payload: dict | None, recipe_payload: dict | None, ch
         records["recipe"] = len(recipe_payload["records"])
         excluded["recipe"] = {"hold": sum(1 for r in recipe_payload["records"]
                                           if (r.get("quality") or {}).get("status") == "hold")}
+    if seasonal_rows is not None:
+        records["seasonal"] = len(seasonal_rows)
+        excluded["seasonal"] = {k: v for k, v in (
+            ("unpublished", sum(1 for r in seasonal_rows if not r.get("is_published"))),
+            ("no_detail", sum(1 for r in seasonal_rows if r.get("is_published") and r.get("detail_status") != "ok")),
+        ) if v}
     out = {}
-    for st in sorted(set(records) | set(per), key=["welfare_central", "welfare_local", "recipe"].index):
+    for st in sorted(set(records) | set(per), key=SOURCE_ORDER.index):
         counts = per.get(st, Counter())
         out[st] = {
             "records": records.get(st, 0),
@@ -180,12 +190,13 @@ def diff_chunks(prev: dict[str, str], chunks: list[Chunk]) -> dict:
 
 def build_index(welfare_payload: dict | None, recipe_payload: dict | None, embedder, *,
                 index_dir: Path = paths.RAG_INDEX_DIR, inputs: dict | None = None,
-                max_chars: int = MAX_CHARS, dry_run: bool = False, show_progress: bool = False) -> dict:
+                max_chars: int = MAX_CHARS, dry_run: bool = False, show_progress: bool = False,
+                seasonal: tuple[list[dict], str] | None = None) -> dict:
     """청크를 만들고 필요한 것만 임베딩해 인덱스를 다시 쓴다. manifest(dict)를 돌려준다."""
     import numpy as np
 
     t0 = time.perf_counter()
-    chunks = build_chunks(welfare_payload, recipe_payload, max_chars)
+    chunks = build_chunks(welfare_payload, recipe_payload, max_chars, seasonal=seasonal)
     prev_manifest, prev_ids, prev_vecs = _previous(index_dir, embedder.model_id)
     changes = diff_chunks(prev_ids, chunks)
     unchanged = (prev_vecs and prev_manifest.get("index_version")
@@ -244,7 +255,7 @@ def build_index(welfare_payload: dict | None, recipe_payload: dict | None, embed
         "max_chars": max_chars,
         "count": len(chunks),
         "by_source_type": dict(Counter(c.source_type for c in chunks)),
-        "sources": source_summary(welfare_payload, recipe_payload, chunks),
+        "sources": source_summary(welfare_payload, recipe_payload, chunks, seasonal[0] if seasonal else None),
         "by_section": dict(Counter(c.section for c in chunks)),
         "data_versions": sorted({c.data_version for c in chunks}),
         "inputs": inputs or {},
@@ -270,7 +281,10 @@ def _load_json(p: Path) -> dict | None:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="RAG 검색 인덱스(청크·KURE-v1 벡터) 생성·갱신")
     ap.add_argument("--welfare", type=Path, default=paths.WELFARE_PROCESSED, help="복지 정제 결과")
-    ap.add_argument("--recipes", type=Path, default=paths.RECIPES_API_ALL, help="레시피 계약 형식 전체")
+    ap.add_argument("--recipes", type=Path, default=paths.RECIPES_API_ALL,
+                    help="레시피 계약 형식 전체 (보완 레시피까지 넣으려면 recipes.contract --corrections 로 만든 것)")
+    ap.add_argument("--seasonal", type=Path, default=paths.SEASONAL_RAW,
+                    help="이달의 식재료 갱신 수집본 (DB import_seasonal 과 같은 입력·같은 해시)")
     ap.add_argument("--out", type=Path, default=paths.RAG_INDEX_DIR)
     ap.add_argument("--max-chars", type=int, default=MAX_CHARS)
     ap.add_argument("--batch-size", type=int, default=16)
@@ -282,16 +296,24 @@ def main(argv: list[str] | None = None) -> int:
     from agetech_data.rag.embedder import KureEmbedder
 
     welfare, recipes = _load_json(args.welfare), _load_json(args.recipes)
-    if not welfare and not recipes:
+    seasonal_payload = _load_json(args.seasonal)
+    if not welfare and not recipes and not seasonal_payload:
         log.error("입력이 하나도 없음")
         return 1
+    sources = (("welfare", args.welfare), ("recipes", args.recipes), ("seasonal", args.seasonal))
     inputs = {name: {"path": p.resolve().relative_to(paths.REPO_ROOT).as_posix()
                      if p.resolve().is_relative_to(paths.REPO_ROOT) else p.as_posix(),
                      "sha256": _sha256_file(p)}
-              for name, p in (("welfare", args.welfare), ("recipes", args.recipes)) if p.exists()}
+              for name, p in sources if p.exists()}
+    seasonal = None
+    if seasonal_payload:
+        from agetech_data.seasonal.revision import seasonal_rows
+
+        # 레시피 연결은 해시에 들어가지 않으므로 연결 없이 만든다(DB seasonal_foods.content_sha256 과 같은 값)
+        seasonal = (seasonal_rows(seasonal_payload, []), f"seasonal:{inputs['seasonal']['sha256'][:12]}")
     emb = KureEmbedder(batch_size=args.batch_size, threads=args.threads)
     result = build_index(welfare, recipes, emb, index_dir=args.out, inputs=inputs, max_chars=args.max_chars,
-                         dry_run=args.dry_run, show_progress=True)
+                         dry_run=args.dry_run, show_progress=True, seasonal=seasonal)
     print(json.dumps(result, ensure_ascii=False, indent=1))
     return 0
 

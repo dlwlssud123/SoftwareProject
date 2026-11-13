@@ -136,12 +136,16 @@ def test_load_script_binds_published_fingerprint_then_switches_only_when_counts_
              "SET source_record_sha256 = v.fingerprint", "'loading'", "INSERT INTO rag_chunk (", "AS ok"]
     assert [sql.index(s) for s in order] == sorted(sql.index(s) for s in order)
     assert "source_row_sha256 char(64) NOT NULL" in sql and "ON COMMIT DROP" in sql
-    # 레시피는 원문·보완 후 해시가 둘 다 같을 때만, 복지는 붙이지 않음(지문 없는 청크는 넣지 않음)
+    # 레시피는 보완 후(effective) 해시가 같을 때만(보완 없으면 원문 해시와 같음 — 원문 해시는 따로 보지 않음)
     bind = sql[sql.index("SET source_record_sha256 = v.fingerprint"):sql.index("SELECT source_type")]
     assert "s.source_type = 'recipe'" in bind and "r.provider = 'foodsafetykorea:COOKRCP01'" in bind
     assert bind.count("v.quality_status <> 'hold'") == 2
     assert "w.publication_status = 'published' AND v.detail_state = 'ready'" in bind
-    assert "v.raw_sha256 = s.source_row_sha256 AND v.effective_sha256 = s.source_row_sha256" in bind
+    assert "AND v.effective_sha256 = s.source_row_sha256;" in bind and "v.raw_sha256" not in bind
+    # 이달의 식재료는 게시 중인 seasonal_foods 의 content_sha256 을 지문으로
+    assert ("WHERE s.source_type = 'seasonal' AND f.provider = 'data.go.kr:15168024' AND f.source_id = s.source_id"
+            in bind)
+    assert "f.is_published AND f.detail_status = 'ok' AND f.content_sha256 = s.source_row_sha256" in bind
     # 복지는 활성 판본 content_sha256(정제 레코드 내용 해시)과 같을 때만, 출처별 provider·scope 로
     assert "v.content_sha256 = s.source_row_sha256" in bind
     assert ("(s.source_type = 'welfare_central' AND w.provider = 'ssis:NationalWelfareInformationsV001'"
@@ -184,6 +188,56 @@ def test_manifest_sources_explain_chunk_counts(tmp_path):
     assert local["records"] == local["indexed_records"] == 4 and local["split_records"] == 4
     assert local["chunks"] == m["by_source_type"]["welfare_local"] > 4
     assert sum(s["chunks"] for s in m["sources"].values()) == m["count"]
+
+
+def _seasonal_input():
+    from pathlib import Path
+
+    from agetech_data.seasonal.revision import seasonal_rows
+
+    payload = json.loads((Path(__file__).parent / "fixtures" / "seasonal_sample.json").read_text(encoding="utf-8"))
+    rows = seasonal_rows(payload, [])
+    rows[0] = {**rows[0], "detail_status": "failed"}          # 상세를 못 받은 식재료는 색인하지 않음
+    return rows
+
+
+def test_seasonal_source_in_manifest_and_typed_search(tmp_path):
+    from agetech_data.rag.search import SEASONAL_TYPES
+
+    welfare, recipes = payloads()
+    rows = _seasonal_input()
+    m = build_index(welfare, recipes, FakeEmbedder(), index_dir=tmp_path, seasonal=(rows, "seasonal:a2a04dbc7bb2"))
+    s = m["sources"]["seasonal"]
+    assert list(m["sources"])[-1] == "seasonal" and s["records"] == len(rows)
+    assert s["excluded"] == {"no_detail": 1} and s["indexed_records"] == len(rows) - 1
+    assert s["chunks"] == m["by_source_type"]["seasonal"] and "seasonal:a2a04dbc7bb2" in m["data_versions"]
+    searcher = IndexSearcher.from_index(tmp_path, FakeEmbedder())
+    hits = searcher.search("시금치 보관", k=3, source_types=SEASONAL_TYPES)
+    assert hits and {h.chunk["source_type"] for h in hits} == {"seasonal"}
+    assert all(h.chunk["region_scope"] == "none" for h in hits)    # 지역 프로필과 상관없이 검색됨
+
+
+def test_food_group_allergy_filter_covers_seasonal(tmp_path):
+    from agetech_data.rag.search import FOOD_TYPES
+
+    rows = _seasonal_input()
+    rows.append({**rows[1], "source_id": "m3-900", "month": 3, "name": "두부"})
+    rows.append({**rows[1], "source_id": "m1-901", "month": 1, "name": "만두"})
+    build_index(None, None, FakeEmbedder(), index_dir=tmp_path, seasonal=(rows, "seasonal:x"))
+    searcher = IndexSearcher.from_index(tmp_path, FakeEmbedder())
+
+    def ids(allergies):
+        return {h.source_id for h in searcher.search("두부 만두", k=50, source_types=FOOD_TYPES, allergies=allergies)}
+    everything = ids(None)
+    assert {"m3-900", "m1-901"} <= everything
+    filtered = ids(["대두"])
+    assert "m3-900" not in filtered                 # 두부 = 대두
+    assert "m1-901" not in filtered                 # 만두 = 판정 불가 → 알레르기 사용자에게는 뺀다
+    by_id = {c["source_id"]: c for c in searcher.chunks}
+    for sid in everything - filtered:               # 빠진 것은 모두 대두가 있거나 판정을 못 한 것
+        c = by_id[sid]
+        assert "대두" in c["allergens"] or "allergen_analysis_complete" not in c["quality_flags"], c["title"]
+    assert filtered and all("대두" not in by_id[s]["allergens"] for s in filtered)
 
 
 def test_metadata_only_change_makes_new_version_without_reembedding(tmp_path, monkeypatch):
@@ -292,6 +346,9 @@ def test_evaluate_metrics_and_threshold():
     assert gold_ids({"kind": "recipe", "name_any": ["죽"]}, chunks) == {("recipe", "1")}
     assert gold_ids({"kind": "recipe", "name_all": ["버섯", "국"]}, chunks) == {("recipe", "2")}
     assert gold_ids({"kind": "welfare", "ids": ["W1"]}, chunks) == {("welfare", "W1")}
+    seasonal = [{"source_type": "seasonal", "source_id": "m11-148", "title": "11월 늙은 호박"},
+                {"source_type": "seasonal", "source_id": "m10-140", "title": "10월 호박"}]
+    assert gold_ids({"kind": "seasonal", "names": ["늙은 호박"]}, chunks + seasonal) == {("seasonal", "m11-148")}
 
     def row(kind, rank, sim):
         return {"kind": kind, "all": {"rank": rank, "top1_similarity": sim}, "typed": {"rank": rank}}
@@ -318,4 +375,6 @@ def test_evaluate_run_end_to_end(tmp_path):
     manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
     report = render_report(manifest, result, questions)
     assert "| W1 | 이미용 할인 | 1 | **경로우대사업**" in report
+    assert all({"all", "topic", "typed"} <= set(r) for r in result["rows"])
+    assert "| 주제 묶음 | 복지 |" in report and "| 주제 묶음 | 레시피 |" in report
     assert "제안 문턱값" in report

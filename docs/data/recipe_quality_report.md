@@ -52,6 +52,8 @@
 | `ingredient_qualitative_amount` | 참고 | 정성 분량(약간·적당량 등) | 집계만 (원문 보존) |
 | `ingredient_no_space_after_comma` | 참고 | 쉼표 뒤 공백 없음 | 집계만 (원문 보존) |
 | `ingredient_trailing_period` | 참고 | 재료 원문 끝 마침표 | 집계만 (원문 보존) |
+| `ingredient_section_mid_line` | 참고 | 쉼표·줄바꿈 없이 줄 중간에서 구획 시작(`… 9g [소스소개] 소스:…`) — 그 자리에서 나눔 | 집계만 (원문 보존) |
+| `ingredient_comma_missing` | 참고 | 재료 사이 쉼표 빠짐(`떡볶이떡 40g 고추장 8g`) — 분량 뒤에서 나눔 | 집계만 (원문 보존) |
 | `ingredient_mixed_format` | 참고 | 한 레시피 안에 분량 표기 형식이 섞여 있음 | 집계만 (원문 보존) |
 
 ## 3. 조리 단계 누락

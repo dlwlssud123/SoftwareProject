@@ -2,6 +2,8 @@
 
     uv run python -m agetech_data.recipes.contract                 # 앱 50건 → 가공 결과 + 표본
     uv run python -m agetech_data.recipes.contract --input data/raw/recipes/cookrcp01_all.json --no-sample
+    # RAG·DB 게시 내용과 맞추려면 보완표(원문 보완, DB import_public_data 와 같은 파일)를 적용한다
+    uv run python -m agetech_data.recipes.contract --input data/raw/recipes/cookrcp01_all.json --no-sample         --corrections src/frontend/assets/data/recipe_corrections.json --output-json data/processed/recipes_api_all.json
 
 출력
 - data/processed/recipes_api.json           계약 형식 전체 (gitignore)
@@ -20,8 +22,9 @@ from collections.abc import Callable
 from pathlib import Path
 
 from agetech_data import paths
+from agetech_data.recipes.correct import apply_corrections
 from agetech_data.recipes.validate import RecipeCheck, _rel, check_recipe, load_payload, write_json
-from agetech_data.textutil import clean_text
+from agetech_data.textutil import clean_text, sha256_json
 
 SCHEMA_VERSION = 1
 # 식품안전나라 이미지는 http 주소로 오지만 같은 경로가 https로 제공된다(http는 https로 302 이동, 2026-11-05 확인).
@@ -116,15 +119,32 @@ def select_samples(records: list[dict]) -> tuple[list[dict], list[str]]:
     return chosen, missing
 
 
-def build(input_path: Path, source_meta_path: Path | None) -> dict:
+def build(input_path: Path, source_meta_path: Path | None, corrections_path: Path | None = None) -> dict:
+    """corrections_path 를 주면 보완표를 적용한 행(DB recipe_revisions.effective 와 같은 행)으로 레코드를 만들고,
+    source 에 원문 해시(raw_sha256)·보완 후 해시(effective_sha256)·이 레시피에 적용한 보완(corrections)을 남긴다."""
     rows, meta = load_payload(input_path)
     if meta is None and source_meta_path and source_meta_path.is_file():
         meta = json.loads(source_meta_path.read_text(encoding="utf-8-sig"))
-    records = [to_api_record(check_recipe(r), r, meta) for r in rows]
+    inputs = {"path": _rel(input_path), "sha256": hashlib.sha256(input_path.read_bytes()).hexdigest()}
+    if corrections_path is None:
+        records = [to_api_record(check_recipe(r), r, meta) for r in rows]
+    else:
+        manifest_bytes = corrections_path.read_bytes()
+        effective, audit = apply_corrections(rows, json.loads(manifest_bytes))
+        inputs["corrections"] = {"path": _rel(corrections_path),
+                                 "sha256": hashlib.sha256(manifest_bytes).hexdigest()}
+        records = []
+        for raw, row in zip(rows, effective, strict=True):
+            rec = to_api_record(check_recipe(row), row, meta)
+            rec["source"].update(
+                raw_sha256=sha256_json(raw), effective_sha256=sha256_json(row),
+                corrections=[{"field": a["field"], "kind": a["kind"], "state": a["state"]} for a in audit
+                             if str(a["source_id"]) == rec["recipe_id"]])
+            records.append(rec)
     return {
         "schema_version": SCHEMA_VERSION,
         "contract": "docs/data/recipe_contract.md",
-        "input": {"path": _rel(input_path), "sha256": hashlib.sha256(input_path.read_bytes()).hexdigest()},
+        "input": inputs,
         "records": records,
     }
 
@@ -148,12 +168,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--output-json", type=Path, default=paths.RECIPES_API, help="계약 형식 전체 (gitignore)")
     ap.add_argument("--sample", type=Path, default=paths.RECIPE_API_SAMPLE, help="표본 JSON (커밋)")
     ap.add_argument("--no-sample", action="store_true", help="표본을 쓰지 않음")
+    ap.add_argument("--corrections", type=Path, default=None,
+                    help="보완표를 적용해 DB 게시 내용(effective)과 같은 행으로 만든다 (예: RAG 입력)")
     args = ap.parse_args(argv)
     if not args.input.is_file():
         print(f"입력 파일 없음: {args.input}", file=sys.stderr)
         return 1
 
-    result = build(args.input, args.source_meta)
+    result = build(args.input, args.source_meta, args.corrections)
     write_json(args.output_json, result)
     print(f"레시피 {len(result['records'])}건 → {_rel(args.output_json)}")
     if not args.no_sample:
