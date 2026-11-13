@@ -49,6 +49,7 @@ def foods(sample_foods):
         _food(base, "R101-030000002-0000", "스파게티면, 말린것", 380.0),
         _food(base, "R107-027000001-0000", "표고버섯, 배지재배, 생것", 22.0),
         _food(base, "R118-020030000-0000", "소금, 정제염", 0.0),
+        _food(base, "R121-028020000-0000", "다시마 육수", 1.0),
     ]
 
 
@@ -183,3 +184,25 @@ def test_usage_table_by_name_and_by_food():
     by_name, by_food = usage_table(recipes)
     assert by_name == {}                                  # '소금' 줄엔 정성 분량이 없음
     assert by_food["S"] == {"name": "소금, 정제염", "small": 0.5, "normal": 1, "n": 5}
+
+
+def test_fragments_optional_garnish_and_broth_sections(foods):
+    est = dataclasses.replace(EST, counts={**EST.counts, ("미니양배추", "개"): {
+        "ingredient": "미니양배추", "unit": "개", "grams": 19, "source": "estimate", "evidence": "방울양배추 1개"}})
+    entries = ENTRIES + (_entry("미니 양배추", "R106-132000001-0000"), _entry("다시마국물", "R121-028020000-0000"))
+    rows = [_recipe("1", "양파 50g, 미니\n양배추(5개)"),
+            _recipe("2", "양파 50g[장식재료선택] 감자,소금"),
+            _recipe("3", "●멸치육수 : 양파 10g, 감자, 물 300ml"),
+            _recipe("4", "양파 50, 감자 100, 마늘 5, 다시마국물(건다시마 2, 물 450)")]
+    got = {r["source_id"]: r for r in build_recipe_nutrition(rows, foods, entries, estimates=est)}
+    one = _by_name(got["1"])
+    # 갈라진 꾸밈말은 0, 뒤 재료는 '미니 양배추'로 찾되 원문 조각은 그대로
+    assert one["미니"]["match"]["rule"] == "fragment:counted_elsewhere"
+    assert (one["미니 양배추"]["raw_item"], one["미니 양배추"]["grams"]["grams"]) == ("양배추(5개)", 95.0)
+    assert got["1"]["coverage"]["complete"]
+    # 골라 넣는 장식 재료에 양이 없으면 지어 넣지 않고 0
+    assert {i["match"]["rule"] for i in got["2"]["ingredients"][1:]} == {"section:optional"}
+    # 육수 구획에 양 없이 적은 건더기는 건져 내는 것으로 0, 육수는 괄호의 물 양
+    assert _by_name(got["3"])["감자"]["match"]["rule"] == "section:broth_solid"
+    broth = _by_name(got["4"])["다시마국물"]["grams"]
+    assert (broth["status"], broth["grams"]) == ("estimated", 450.0) and "물 450" in broth["basis"]

@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import hashlib
 import json
 import re
@@ -72,6 +73,7 @@ def _get(item, key):
 _BARE_NUMBER = re.compile(r"^\(?\s*\d+(?:\.\d+)?\s*\)?(?:\s*\([^()]*\))?$")      # '50', '(50)', '200(갈비살 70)'
 _EDIBLE_PAREN = re.compile(r"\(\s*([가-힣]*살)\s*(\d+(?:\.\d+)?)\s*\)")
 _GLUED_MASS = re.compile(r"(?<=[가-힣])\s*(\d+(?:\.\d+)?)\s*g$")
+_BROTH_WATER = re.compile(r"(?:^|[\s,(])물\s*(\d+(?:\.\d+)?)\s*(?:g|ml|mL|㎖|cc)?(?=$|[\s,)])")
 OIL_GROUP = "R114-"     # 식품영양성분DB 원재료성 유지류(콩기름·올리브유·들기름 …)
 FRYING_MIN_G = 100      # 이보다 적은 기름은 볶음·무침에 다 먹는 양으로 본다
 FRYING_EXCESS = 2       # 기름이 '다른 재료 × 튀김 흡유 비율'의 이 배수를 넘으면 튀김용 (9% → 18%)
@@ -107,6 +109,23 @@ def _recipe_level_grams(rows: list[list], entries, est: Estimates, cooking_metho
       어느 것도 원문 양을 넘지 않음
     """
     _split_amounts(rows)
+    for r in rows:
+        section = _get(r[0], "section") or ""
+        if r[2].status in NOT_COUNTED:
+            continue
+        # "[장식재료선택] 멜론,자두,생크림": 골라 넣는 재료인데 양도 없음 → 0 (지어 넣지 않음)
+        if "선택" in section and r[1].status in ("missing", "qualitative"):
+            r[2] = MatchResult("excluded", rule="section:optional",
+                               rationale=f"골라 넣는 재료(원문 구획 '{section}')이고 양이 없어 0으로 취급")
+        # "●멸치육수 : 국물용 멸치 5g, …, 표고버섯 기둥": 육수 구획에 양 없이 적은 건더기 → 국물만 쓰고 건져 냄
+        elif section.endswith(("육수", "국물")) and r[1].status == "missing":
+            r[2] = MatchResult("excluded", rule="section:broth_solid",
+                               rationale=f"육수 구획('{section}')에 양 없이 적은 재료 — 국물을 내고 건져 내는 것으로 보고 0으로 취급")
+    for r in rows:   # "다시마국물(건다시마 2, 물 450)": 레시피에서 끓이는 육수 — 양 = 괄호의 물
+        m = _BROTH_WATER.search(" ".join(_get(r[0], "paren_texts") or []))
+        if m and r[1].status in ("unparsed", "missing") and r[2].usable and "육수" in (r[2].food_name or ""):
+            r[1] = GramAmount(float(m.group(1)), "estimated",
+                              f"원문 괄호의 '물 {m.group(1)}' → 끓인 육수 양으로 봄(추정, 건더기는 건져 냄)")
     for r in rows:   # "강력분60g"·"버터10g": 분량이 이름에 붙어 재료 파서가 분량 없음으로 읽은 것
         m = _GLUED_MASS.search((_get(r[0], "name") or "").strip())
         if m and r[1].status == "missing":
@@ -253,6 +272,27 @@ def _food_level_grams(rows: list[list], index: FoodIndex, entries, est: Estimate
                           f"{label} → 같은 식품('{q['name']}')을 g으로 적은 레시피 {q['n']}줄의 {where} {q[word]}g(추정)")
 
 
+# 혼자서는 재료가 아닌 꾸밈말 — 분량·괄호 없이 이것만 있으면 바로 뒤 재료 이름의 앞말이다
+FRAGMENT_PREFIXES = frozenset({"미니"})
+
+
+def _join_fragments(ingredients: list) -> tuple[list, dict]:
+    """줄바꿈·쉼표로 갈라진 '미니' / '양배추(5개)' → 뒤 재료를 '미니 양배추'로 찾는다(원문 조각 raw_item 은 그대로).
+    돌려주는 dict = {꾸밈말 재료 id: 0으로 치는 이유}."""
+    out, fragments = list(ingredients), {}
+    for k, (ing, nxt) in enumerate(zip(ingredients, ingredients[1:])):
+        name = (_get(ing, "name") or "").strip()
+        if (name in FRAGMENT_PREFIXES and _get(ing, "amount_kind") == "none" and not _get(ing, "paren_texts")
+                and _get(ing, "section") == _get(nxt, "section") and id(ing) not in fragments):
+            full = f"{name} {_get(nxt, 'name')}"
+            if isinstance(nxt, dict):
+                out[k + 1] = {**nxt, "name": full, "name_raw": f"{name} {nxt.get('name_raw') or ''}".strip()}
+            else:
+                out[k + 1] = dataclasses.replace(nxt, name_raw=f"{name} {nxt.name_raw}")
+            fragments[id(ing)] = f"원문 '{_get(ing, 'raw_item')}' / '{_get(nxt, 'raw_item')}' 로 갈라진 앞말 — '{full}' 로 계산"
+    return out, fragments
+
+
 def ingredient_nutrition(ingredients, index: FoodIndex, by_code: dict[str, FoodRecord], entries,
                          cache: dict | None = None, estimates: Estimates | None = None,
                          cooking_method: str | None = None) -> dict:
@@ -268,6 +308,7 @@ def ingredient_nutrition(ingredients, index: FoodIndex, by_code: dict[str, FoodR
     missing: Counter = Counter()
     est = estimates if estimates is not None else load_estimates()
     rows = []
+    ingredients, fragments = _join_fragments(list(ingredients))
     for ing in ingredients:
         g = to_grams(ing, estimates=est)
         key = (_get(ing, "name"), tuple(_get(ing, "paren_texts") or ()))
@@ -276,6 +317,8 @@ def ingredient_nutrition(ingredients, index: FoodIndex, by_code: dict[str, FoodR
             m = match_ingredient(key[0], index, list(key[1]), entries)
             if cache is not None:
                 cache[key] = m
+        if id(ing) in fragments:
+            m = MatchResult("excluded", rule="fragment:counted_elsewhere", rationale=fragments[id(ing)])
         rows.append([ing, g, m])
     _recipe_level_grams(rows, entries, est, cooking_method)
     _food_level_grams(rows, index, entries, est)
