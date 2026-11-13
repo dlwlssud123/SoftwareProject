@@ -16,7 +16,8 @@ model's memory does not leak into the next step):
   import_seasonal        app.jobs.import_seasonal --apply         (links against active DB recipes)
   map_recipe_foods       app.jobs.map_recipe_foods --apply        (after recipes and foods)
   welfare_build          agetech_data.welfare.build --no-report   (RAG input; never rewrites tracked docs)
-  recipes_contract       agetech_data.recipes.contract --input <recipes snapshot> --no-sample
+  recipes_contract       agetech_data.recipes.contract --input <recipes snapshot> --no-sample --corrections
+                         (corrected rows = DB recipe_revisions.effective, so the 4 corrected recipes get chunks)
   rag_index              agetech_data.rag.index                   (RAG python: needs numpy + sentence-transformers)
   rag_export             agetech_data.rag.export                  (RAG python)
   rag_load               psql -f load_index.sql                   (needs psql and the RAG tables)
@@ -144,6 +145,9 @@ def build_steps(
                     "--input",
                     str(paths.RECIPES_ALL_RAW),
                     "--no-sample",
+                    # RAG chunks must match the published rows (DB recipe_revisions.effective)
+                    "--corrections",
+                    str(paths.RECIPE_CORRECTIONS),
                     "--output-json",
                     str(paths.RECIPES_API_ALL),
                 ),

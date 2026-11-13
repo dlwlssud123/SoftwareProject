@@ -122,6 +122,9 @@ def test_build_steps_order_and_options():
     # RAG inputs are rebuilt without touching tracked docs/samples
     assert "--no-report" in steps["welfare_build"].args
     assert "--no-sample" in steps["recipes_contract"].args
+    # recipe chunks are built from the corrected rows (= DB recipe_revisions.effective)
+    args = steps["recipes_contract"].args
+    assert args[args.index("--corrections") + 1] == str(dr.paths.RECIPE_CORRECTIONS)
     assert set(steps["rag_index"].needs) == {
         "import_welfare",
         "import_public_data",
