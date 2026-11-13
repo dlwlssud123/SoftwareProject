@@ -43,6 +43,8 @@ ISSUE_RULES: dict[str, tuple[Severity, str]] = {
     "ingredient_qualitative_amount": ("info", "정성 분량(약간·적당량 등)"),
     "ingredient_no_space_after_comma": ("info", "쉼표 뒤 공백 없음"),
     "ingredient_trailing_period": ("info", "재료 원문 끝 마침표"),
+    "ingredient_section_mid_line": ("info", "쉼표·줄바꿈 없이 줄 중간에서 구획 시작(`… 9g [소스소개] 소스:…`) — 그 자리에서 나눔"),
+    "ingredient_comma_missing": ("info", "재료 사이 쉼표 빠짐(`떡볶이떡 40g 고추장 8g`) — 분량 뒤에서 나눔"),
     "ingredient_mixed_format": ("info", "한 레시피 안에 분량 표기 형식이 섞여 있음"),
 }
 

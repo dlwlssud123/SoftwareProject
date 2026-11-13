@@ -62,11 +62,13 @@ def test_ambiguous_goes_to_needs_check_not_detected():
 
 
 def test_item_text_and_section_title_fallback():
-    # 원문 섹션이 줄 중간에 있어 한 항목으로 합쳐진 경우 (970 생선살 완자 찹쌀 찜)
+    # 원문 섹션이 줄 중간에 있는 경우 (970 생선살 완자 찹쌀 찜): 파서가 나눠서 재료 이름으로 바로 잡힌다
     r = _detect("흰살생선 100g [흰 살생선 양념] 달걀흰자 15g, 생강즙 2g")
-    assert r.detected[0]["allergen"] == "알류" and r.detected[0]["evidence"][0]["from"] == "item_text"
-    # 괄호 안 설명이 물질을 정해 준다
-    assert _detect("다진고기(돼지고기) 100g").names == ["돼지고기"]
+    assert r.detected[0]["allergen"] == "알류"
+    assert r.detected[0]["evidence"][0]["ingredient"] == "달걀흰자" and "from" not in r.detected[0]["evidence"][0]
+    # 괄호 안 설명이 물질을 정해 준다 (이름에는 없고 항목 원문에만 있음)
+    r = _detect("다진고기(돼지고기) 100g")
+    assert r.names == ["돼지고기"] and r.detected[0]["evidence"][0]["from"] == "item_text"
     # '(…재료)' 머리말 조각은 근거로 쓰지 않고, 괄호 조각은 항목 전체의 제외 단어와 함께 본다
     assert "밀" not in _detect("(비스킷재료) 박력 쌀가루 100g").names
     assert _detect("양고기(부채살) 200g").names == []

@@ -24,6 +24,7 @@ SECTION_LABEL = {
     "colon": "콜론 `●양념장 : …`",
     "inline_word": "콜론 없는 머리말 `재료 닭가슴살(60g)…`",
     "title_line": "제목만 있는 줄 `고명`",
+    "bracket": "대괄호 `[주재료] 감자(100g)…`",
 }
 MAX_ROWS = 60  # 긴 목록 표의 최대 행 수 (나머지는 가공 결과 JSON)
 INGREDIENT_WARNINGS = [c for c, (s, _) in ISSUE_RULES.items() if c.startswith("ingredient") and s != "info"]
@@ -121,7 +122,8 @@ def render_report(result: dict, output_json: str = "data/processed/recipes_valid
     infos = []
     for r in recipes:
         for i in r["issues"]:
-            if i["code"] in ("ingredient_no_space_after_comma", "ingredient_trailing_period"):
+            if i["code"] in ("ingredient_no_space_after_comma", "ingredient_trailing_period",
+                             "ingredient_section_mid_line", "ingredient_comma_missing"):
                 d = i["detail"]
                 infos.append([r["source_id"], r["name"], f"`{i['code']}`",
                               f"`{d.get('context') or d.get('raw_item', '')}`"])
