@@ -86,7 +86,7 @@ DB 적재는 정제 레코드까지 판본 지문에 포함한다. 원본이 같
 | `grams.basis` | 환산 근거 문장 |
 | `match.status` | `reviewed` / `curated` / `exact` / `water` / `candidate` / `unmapped` |
 | `match.food_code`, `match.food_name` | 매핑된 식품 (`candidate`·`unmapped`이면 null) |
-| `match.rule`, `match.rationale` | 매핑 규칙(`raw`, `variety`, `manual` 등)과 근거 |
+| `match.rule`, `match.rationale` | 매핑 규칙(`raw`, `variety`, `manual` 등)과 근거. 손질 표기만 다른 이름은 앞에 `손질+`(예: `양파채썬것` → `손질+raw`), 기본 재료의 매핑표 결정을 따른 `다진 ○○`은 `다진+manual`(확인자·확인일도 그 항목 것) — `recipe_food_map_db.md` 4.5 |
 | `match.candidates[]` | `candidate`일 때 상위 후보 `{food_code, name, db_group, score}` |
 | `contribution` | 성분별 기여량 = g ÷ 기준량 × 기준량당 함량. 매핑 상태가 `reviewed`/`curated`/`exact`이고 g 환산된 경우만 값, 아니면 null |
 | `basis_ml_approx` | mL 기준 식품을 g 분량으로 계산했으면 true |
@@ -221,7 +221,9 @@ match_ingredient("다진 마늘", ingredient_index)       # → MatchResult(stat
 ## 8. 알려진 제한
 
 - 개수 단위(개·장·알·뿌리 등)는 환산표에 출처 있는 1단위 무게가 있는 것(7.6절 끝: 식약처 자료의 달걀·사과·귤·참외·포도·밥, 한국보건산업진흥원 눈대중량 DB의 27종)만 `unit_weight`로 환산하고, 나머지(레몬·새우 '마리'·아스파라거스·인삼 등)는 환산하지 않는다. 원문 괄호에 g이 있으면 그 값이 먼저다. 크기를 모르면 '중'으로 보므로 개별 레시피에서는 실제와 차이가 날 수 있다.
-- 수동 매핑표는 2026-11-09에 모두 확인했다(`reviewed`, 확인자 최재영). 새로 넣는 매핑은 확인 전까지 `curated`이며 보고서(`docs/data/nutrition_mapping_report.md`) 3절에 나온다.
+- 수동 매핑표는 2026-11-09·11-13에 모두 확인했다(`reviewed`, 확인자 최재영). 새로 넣는 매핑은 확인 전까지 `curated`이며 보고서(`docs/data/nutrition_mapping_report.md`) 3절에 나온다.
+- DB에 없는 재료는 가장 가까운 항목으로 근사한 것이 있다(육수 → 닭 육수, 어린잎 → 비타민채 어린잎, 새싹 → 무순, 어간장·맛간장 → 양조간장 등). 불린 쌀은 생쌀로 계산해 열량이 높게, 깨소금은 볶은 참깨로 계산해 나트륨이 낮게 잡힌다(근거는 매핑표 `rationale`).
+- 튀김기름(원문이 튀길 때 쓰는 기름 전체)과 월계수잎(건져 냄)은 먹는 양을 알 수 없어 계산하지 않는다. 그래서 이 재료가 든 레시피는 `complete = false`다.
 - 부위·품종이 적히지 않은 재료는 매핑표의 기본값으로 계산한다(돼지고기·소고기 → 앞다리, 새우 → 대하 등, 이유는 매핑표 `rationale`). 저염 제품 항목이 없는 저염된장·저염소금은 일반 제품으로 근사해 나트륨이 실제보다 많게 잡힌다.
 - 먹지 않는 약재(오가피·당귀), 같은 레시피에서 이미 계산되는 소스, DB에 없는 재료는 '매핑하지 않음'(`unmapped`, `rule=manual:no_match`)으로 정했다. 쌀뜨물은 물로 취급한다.
 - 가공식품 상용제품(약 33만 건)은 수집하지 않았다. 필요하면 `--db-class 상용제품`으로 별도 수집한다.
