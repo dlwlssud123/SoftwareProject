@@ -91,9 +91,9 @@ DB 적재는 정제 레코드까지 판본 지문에 포함한다. 원본이 같
 | `contribution` | 성분별 기여량 = g ÷ 기준량 × 기준량당 함량. 매핑 상태가 `reviewed`/`curated`/`exact`이고 g 환산된 경우만 값, 아니면 null |
 | `basis_ml_approx` | mL 기준 식품을 g 분량으로 계산했으면 true |
 
-`coverage`: `items`, `items_used`, `grams_converted`(물 제외), `grams_used`, `grams_used_pct`, `complete`(물을 뺀 모든 재료가 계산에 들어갔는지)
+`coverage`: `items`, `items_used`, `grams_converted`(물 제외), `grams_used`, `grams_used_pct`, `complete`(물을 뺀 모든 재료가 계산에 들어갔는지), `complete_except_qualitative`(분량이 '약간·적당량'인 재료만 빼면 모두 계산됐는지), `qualitative_items`(그 재료 `[{name, amount_text, food_code}]` — `food_code`는 매핑이 됐을 때만)
 
-**화면 표시 권장**: `complete=false`인 레시피의 `computed`는 "일부 재료 기준"이라고 표시한다. 레시피 원문 `INFO_*`와 섞어 쓰지 않는다.
+**화면 표시 권장**: `complete=false`인 레시피의 `computed`는 "일부 재료 기준"이라고 표시한다. 레시피 원문 `INFO_*`와 섞어 쓰지 않는다. `complete=false`라도 `complete_except_qualitative=true`면 "소금(적당량)·후추(약간)는 계산에 넣지 않았어요"처럼 `qualitative_items`의 이름을 함께 보여 준다. **'약간·적당량'에 g을 지어 넣지 않는다** — 소금·간장류가 빠지면 나트륨이 실제보다 낮게 잡히므로, `food_code`의 식품 나트륨이 높으면(예: 소금·간장) "나트륨은 더 높을 수 있어요"를 붙인다.
 
 **DB 적재**: 같은 계산을 DB 활성 판본(레시피 재료 × 식품)으로 돌려 `recipe_ingredient_foods`(재료 하나)·`recipe_computed_nutrition`(레시피 판본 하나)에 넣는다 — `python -m app.jobs.map_recipe_foods`, 칸 대응·규칙은 [`recipe_food_map_db.md`](recipe_food_map_db.md).
 

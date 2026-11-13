@@ -204,16 +204,23 @@ def test_postgres_unit_weight_is_stored_with_its_source(tmp_path, pg_connection)
         {
             "RCP_SEQ": "3",
             "RCP_NM": "달걀찜",
-            "RCP_PARTS_DTLS": "달걀 2개, 양파 1개",
+            "RCP_PARTS_DTLS": "달걀 2개, 양파 1개, 소금 약간",
             "MANUAL01": "1. 찐다.",
         }
     ]
     foods = [food("R4", "달걀, 생것", "140", "137"), food("R3", "양파, 생것", "40")]
     with Session(pg_connection) as db, db.begin():
         load(db, tmp_path, recipes=recipes, foods=foods)
-        map_recipe_foods.apply_mapping(db, ())
+        result = map_recipe_foods.apply_mapping(db, ())
         _, items, summary = mapping(db, "3")
-        egg, onion = items
+        egg, onion, salt = items
+        # '약간'은 g이 없어 계산에 안 들어가고, coverage 에 따로 남는다(양파 '1개'가 있어 그것만 빠진 건 아님)
+        assert salt.gram_status == "qualitative" and salt.contribution is None
+        assert summary.coverage["qualitative_items"] == [
+            {"name": "소금", "amount_text": "약간", "food_code": None}
+        ]
+        assert summary.coverage["complete_except_qualitative"] is False
+        assert result["complete_except_qualitative_recipes"] == 0
         assert (egg.gram_status, egg.grams) == ("unit_weight", Decimal("120.0"))
         assert "1개=60g" in egg.gram_basis and "식품의약품안전처" in egg.gram_basis
         assert egg.contribution["energy_kcal"] == 168.0

@@ -173,6 +173,10 @@ def plan_mapping(active: ActiveData, entries=None) -> MappingPlan:
         "used_in_calculation": sum(item["contribution"] is not None for item in items),
         "ml_approx_items": sum(item["basis_ml_approx"] for item in items),
         "complete_recipes": sum(row["coverage"]["complete"] for row in rows),
+        # Only seasonings written as 약간/적당량 are missing (shown as such, never given grams).
+        "complete_except_qualitative_recipes": sum(
+            row["coverage"]["complete_except_qualitative"] for row in rows
+        ),
         "foods": len(active.foods),
         "unresolved_top": unresolved.most_common(BACKLOG),
     }
