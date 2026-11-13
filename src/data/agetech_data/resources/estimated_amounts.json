@@ -1129,6 +1129,13 @@
    "evidence": "닭다리(넓적다리) 1개 뼈 포함 약 110 g, 먹는 살 약 80 g",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "미니양배추",
+   "unit": "개",
+   "grams": 19,
+   "source": "usda_fdc_sr",
+   "evidence": "Brussels sprouts, raw: 1 sprout = 19 g (미니 양배추 = 방울양배추)"
   }
  ],
  "qualitative_by_food": {

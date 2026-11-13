@@ -7459,7 +7459,7 @@
    "ingredient": "미니양배추",
    "food_code": "R106-129000001-0000",
    "food_name": "양배추, 생것",
-   "rationale": "방울양배추 → 양배추",
+   "rationale": "방울양배추(미니 양배추) 항목 없음 → 양배추, 생것(방울양배추가 100g당 열량이 조금 더 높음)",
    "reviewed_by": null,
    "reviewed_at": null
   },
@@ -9602,15 +9602,6 @@
    "reviewed_at": null
   },
   {
-   "ingredient": "미니",
-   "food_code": null,
-   "food_name": null,
-   "exclude": "counted_elsewhere",
-   "rationale": "줄바꿈·쉼표로 잘린 앞말(원문 '미니\\n양배추', '미니,버거빵') — 재료는 다음 항목으로 계산됨",
-   "reviewed_by": null,
-   "reviewed_at": null
-  },
-  {
    "ingredient": "청",
    "food_code": null,
    "food_name": null,
@@ -9640,6 +9631,14 @@
    "food_code": "R102-014010006-0000",
    "food_name": "전분, 감자, 가루",
    "rationale": "파인소프트(제빵용 가공 전분 제품) → 감자 전분으로 근사",
+   "reviewed_by": null,
+   "reviewed_at": null
+  },
+  {
+   "ingredient": "미니 버거빵",
+   "food_code": "P101-014000400-F049-001",
+   "food_name": "햄버거빵",
+   "rationale": "작은 햄버거빵 → '버거빵'과 같음(원문 '미니,버거빵 12g'은 파서가 이어 붙임)",
    "reviewed_by": null,
    "reviewed_at": null
   }
