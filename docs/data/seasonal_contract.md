@@ -67,7 +67,7 @@ months_of = data["recipe_months"].get("28", [])     # 레시피 28이 제철인 
 ```
 
 - 제철 추천: 그달 `records`에서 `share`가 높은(주재료인) 레시피를 고르고, 사용자 알레르기·레시피 품질(`quality_status`)은 기존 추천 규칙대로 거른다.
-- AI 도우미: 제철 재료 질문의 근거로 `detail.intake`·`purchase_tip`을 쓴다(RAG 청크로 넣는 것은 후속).
+- AI 도우미: 제철 재료 질문의 근거는 RAG 청크 `source_type = 'seasonal'`(11/13)로 검색한다. 상세 글(유래·영양·고르는 법·보관·먹는 법·농진청 관련 레시피)을 식재료마다 개요 / 고르기·보관 / 먹는 법으로 나눠 넣었다(`rag_index_contract.md` 3절).
 
 ## 6. 알려진 제한
 

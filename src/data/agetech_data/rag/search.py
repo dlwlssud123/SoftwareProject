@@ -16,6 +16,11 @@ from agetech_data.welfare.query import RegionQuery, resolve_region
 
 WELFARE_TYPES = ("welfare_central", "welfare_local")
 RECIPE_TYPES = ("recipe",)
+SEASONAL_TYPES = ("seasonal",)
+# AI 도우미 검색 묶음(11/13): 복지 질문 → WELFARE_TYPES, 음식·식재료 질문 → FOOD_TYPES.
+# 한꺼번에(종류 없이) 찾으면 '겨울 난방비'처럼 계절 말이 든 복지 질문에서 제철 식재료가 상위를 다 차지한다(rag_search_report.md).
+FOOD_TYPES = RECIPE_TYPES + SEASONAL_TYPES
+ALLERGEN_FILTERED_TYPES = FOOD_TYPES     # 사용자 알레르기로 거르는 원천(레시피 재료명, 제철 식재료 이름)
 
 # '근거 없음' 판단 (docs/data/rag_search_report.md 2절, 11/07 평가 — 보고서를 다시 만들면 값도 다시 확인)
 NO_EVIDENCE_BELOW = 0.40    # 1위 유사도가 이보다 낮으면 근거 없음 (정답이 1위인 질문의 최소 0.413보다 조금 낮게)
@@ -85,7 +90,7 @@ class IndexSearcher:
                 return False
         if not include_ended and c["period_end"] and c["period_end"] < today:
             return False
-        if allergies and c["source_type"] == "recipe":
+        if allergies and c["source_type"] in ALLERGEN_FILTERED_TYPES:
             if ALLERGEN_ANALYSIS_COMPLETE not in c.get("quality_flags", ()):
                 return False
             if allergies.intersection(c["allergens"]):
