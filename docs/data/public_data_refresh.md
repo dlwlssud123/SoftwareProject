@@ -122,7 +122,7 @@ RAG_PYTHON=<embed extra가 깔린 python> uv run python -m app.jobs.daily_refres
 | 5 | `import_seasonal` | `app.jobs.import_seasonal --apply` (DB 활성 레시피 기준 연결) | 〃 (제철 상세 실패) |
 | 6 | `map_recipe_foods` | `app.jobs.map_recipe_foods --apply` | — |
 | 7 | `welfare_build` | `agetech_data.welfare.build --no-report` (커밋 대상 보고서는 안 건드림) | `--no-rag` |
-| 8 | `recipes_contract` | `agetech_data.recipes.contract --input data/raw/recipes/cookrcp01_all.json --no-sample --output-json data/processed/recipes_api_all.json` | `--no-rag` |
+| 8 | `recipes_contract` | `agetech_data.recipes.contract --input data/raw/recipes/cookrcp01_all.json --no-sample --corrections src/frontend/assets/data/recipe_corrections.json --output-json data/processed/recipes_api_all.json` (보완표 적용 행 = DB 게시 내용, `rag_index_contract.md` 4절) | `--no-rag` |
 | 9 | `rag_index` | `agetech_data.rag.index` — RAG 파이썬 | 이번 실행에서 2·3·7·8 중 하나라도 정상이 아님 / 임베딩 환경 없음 |
 | 10 | `rag_export` | `agetech_data.rag.export` — RAG 파이썬 | 9가 정상이 아님 |
 | 11 | `rag_load` | `psql -X -v ON_ERROR_STOP=1 -f load_index.sql` (`data/processed/rag`에서) | 10이 정상이 아님 / psql 없음 / RAG 표(`rag_index_version`·`rag_chunk`) 없음 |
