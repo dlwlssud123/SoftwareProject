@@ -1,6 +1,6 @@
 """복지·레시피·이달의 식재료 정제 결과 → RAG 검색 청크 (표준 라이브러리만).
 
-청크 하나 = docs/data/sql/rag_chunk_draft.sql 의 rag_chunk 한 행(embedding 칸 제외).
+청크 하나 = rag_chunk 표(백엔드 Alembic 20261114_03) 한 행(embedding 칸 제외).
 규칙은 docs/data/rag_embedding_decision.md 4절:
 - 복지 사업 1건 = 1청크. 너무 길면 개요·지원 내용·신청 항목 경계로 나눈다.
 - 레시피 1건 = 1청크. 너무 길면 만드는 법을 따로 나눈다. hold 레시피는 만들지 않는다.

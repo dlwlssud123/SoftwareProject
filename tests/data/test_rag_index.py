@@ -120,48 +120,16 @@ def test_export_csv_matches_table_columns(tmp_path):
     assert next(r for r in rows if r["source_id"] == "28")["allergens"] == '{"대두","알류"}'
 
 
-def test_load_script_binds_published_fingerprint_then_switches_only_when_counts_match(tmp_path):
-    from agetech_data.rag.export import COLUMNS, load_script
+def test_export_main_writes_csv_only_and_drops_old_psql_script(tmp_path, capsys):
+    # 적재·전환은 백엔드 app.jobs.load_rag_index(psql 없음) — 예전 load_index.sql 이 남아 실행되지 않게 지운다
+    from agetech_data.rag import export
 
     build_index(*payloads(), FakeEmbedder(), index_dir=tmp_path)
-    manifest, _, _ = load_index(tmp_path)
-    sql = load_script(manifest, "a" * 64)
-    v = manifest["index_version"]
-    assert f"WHERE index_version = '{v}' AND status IN ('active', 'retired')" in sql
-    # 순서: 잠금 → 임시 표에 받기 → 파일 건수·모델 확인 → 지문 붙이기 → loading 등록·넣기 → 전환
-    order = ["BEGIN;", "LOCK TABLE rag_index_version, rag_chunk IN EXCLUSIVE MODE", "AS already",
-             "\\copy rag_chunk_stage (index_version",
-             f"count(*) = 7 AND coalesce(bool_and(index_version = '{v}' AND embedding_model = 'fake@1'), false)"
-             " AS staged_ok",
-             "SET source_record_sha256 = v.fingerprint", "'loading'", "INSERT INTO rag_chunk (", "AS ok"]
-    assert [sql.index(s) for s in order] == sorted(sql.index(s) for s in order)
-    assert "source_row_sha256 char(64) NOT NULL" in sql and "ON COMMIT DROP" in sql
-    # 레시피는 보완 후(effective) 해시가 같을 때만(보완 없으면 원문 해시와 같음 — 원문 해시는 따로 보지 않음)
-    bind = sql[sql.index("SET source_record_sha256 = v.fingerprint"):sql.index("SELECT source_type")]
-    assert "s.source_type = 'recipe'" in bind and "r.provider = 'foodsafetykorea:COOKRCP01'" in bind
-    assert bind.count("v.quality_status <> 'hold'") == 2
-    assert "w.publication_status = 'published' AND v.detail_state = 'ready'" in bind
-    assert "AND v.effective_sha256 = s.source_row_sha256;" in bind and "v.raw_sha256" not in bind
-    # 이달의 식재료는 게시 중인 seasonal_foods 의 content_sha256 을 지문으로
-    assert ("WHERE s.source_type = 'seasonal' AND f.provider = 'data.go.kr:15168024' AND f.source_id = s.source_id"
-            in bind)
-    assert "f.is_published AND f.detail_status = 'ok' AND f.content_sha256 = s.source_row_sha256" in bind
-    # 복지는 활성 판본 content_sha256(정제 레코드 내용 해시)과 같을 때만, 출처별 provider·scope 로
-    assert "v.content_sha256 = s.source_row_sha256" in bind
-    assert ("(s.source_type = 'welfare_central' AND w.provider = 'ssis:NationalWelfareInformationsV001'"
-            " AND w.scope = 'central_nationwide')") in bind
-    assert ("(s.source_type = 'welfare_local' AND w.provider = 'ssis:LocalGovernmentWelfareInformations'"
-            " AND w.scope = 'local')") in bind
-    assert f"INSERT INTO rag_chunk ({', '.join(COLUMNS)})" in sql and "WHERE source_record_sha256 IS NOT NULL" in sql
-    # 판본 기록 건수 = 실제로 넣은 건수, 하나도 안 맞으면 적재하지 않음
-    assert f"VALUES ('{v}', 'fake@1', :loaded_count," in sql and "AS any_loaded" in sql
-    switch = sql[sql.index("\\if :ok"):]
-    assert "count(*) = :loaded_count" in sql[:sql.index("\\if :ok")]
-    assert switch.index("SET status = 'retired' WHERE status = 'active'") < switch.index("SET status = 'active'")
-    assert "ROLLBACK;" in switch and "RAISE EXCEPTION" in switch
-    assert "status IN ('loading', 'failed') AND activated_at IS NULL" in sql
-    assert sql.count("\nBEGIN;") == sql.count("COMMIT;") == 1
-    assert "COMMIT;" not in sql[:sql.index("SET status = 'active'")]
+    (tmp_path / "load_index.sql").write_text("-- old", encoding="utf-8")
+    assert export.main(["--index", str(tmp_path)]) == 0
+    assert (tmp_path / "rag_chunk.csv").exists() and not (tmp_path / "load_index.sql").exists()
+    assert "app.jobs.load_rag_index --apply" in capsys.readouterr().out
+    assert not hasattr(export, "load_script")
 
 
 def test_index_version_kept_when_unchanged_and_new_when_changed(tmp_path, monkeypatch):

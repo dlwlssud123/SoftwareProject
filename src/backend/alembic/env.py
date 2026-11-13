@@ -11,6 +11,13 @@ def include_object(obj, name, type_, reflected, compare_to):
     return not (type_ == "table" and reflected and compare_to is None)
 
 
+def include_name(name, type_, parent_names):
+    # Same rule, applied before reflection: tables without a model (the raw-SQL RAG tables of
+    # 20261114_03 with pgvector columns, extension tables) are not reflected at all, so
+    # autogenerate/check neither warns about their types nor proposes dropping them.
+    return type_ != "table" or name in target_metadata.tables
+
+
 if context.is_offline_mode():
     context.configure(
         dialect_name="postgresql",
@@ -27,6 +34,7 @@ else:
             connection=connection,
             target_metadata=target_metadata,
             include_object=include_object,
+            include_name=include_name,
             compare_type=True,
         )
         with context.begin_transaction():

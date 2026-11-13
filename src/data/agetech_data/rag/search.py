@@ -1,4 +1,4 @@
-"""인덱스 파일로 하는 근거 검색 — docs/data/sql/rag_chunk_draft.sql 검색 예와 같은 조건.
+"""인덱스 파일로 하는 근거 검색 — docs/data/sql/rag_search.sql 과 같은 조건.
 
 DB가 붙기 전 평가·표본용이고, 서버는 같은 조건을 SQL로 쓴다.
 1. 시도·시군구 정규화(welfare.query.resolve_region) → 2. 조건으로 거르기(활성, 원천 종류, 지역,
