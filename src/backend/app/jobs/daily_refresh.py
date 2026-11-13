@@ -19,14 +19,15 @@ model's memory does not leak into the next step):
   recipes_contract       agetech_data.recipes.contract --input <recipes snapshot> --no-sample --corrections
                          (corrected rows = DB recipe_revisions.effective, so the 4 corrected recipes get chunks)
   rag_index              agetech_data.rag.index                   (RAG python: needs numpy + sentence-transformers)
-  rag_export             agetech_data.rag.export                  (RAG python)
-  rag_load               psql -f load_index.sql                   (needs psql and the RAG tables)
+  rag_export             agetech_data.rag.export                  (RAG python: index -> rag_chunk.csv)
+  rag_load               app.jobs.load_rag_index --apply          (bind to published rows, activate; no psql)
+  rag_load_verify        app.jobs.load_rag_index --verify         (with --verify)
 
 Rules:
 - Every import is idempotent (same snapshot -> already imported), so the whole command can be rerun.
 - A step is *skipped*, not failed, when it has to wait: an import whose snapshot is not complete yet
   (welfare details still pending under the daily quota, seasonal details failed), RAG steps without an
-  embedding environment, rag_load without psql or without the RAG tables. Skips carry a reason code.
+  embedding environment. Skips carry a reason code. The RAG tables come with the migrations.
 - Later steps still run after a failure, except steps that need it. RAG steps run only when this run
   imported welfare and recipes successfully, so a new index version always matches the published rows.
 - The run is failed if any step failed; job_runs.error_code is the first failed step.
@@ -42,7 +43,6 @@ Exit codes: 0 succeeded, 1 failed, 2 bad --job-id, 3 another run holds the lock.
 import argparse
 import json
 import os
-import shutil
 import subprocess
 import sys
 import uuid
@@ -78,8 +78,8 @@ RAG_ENV_CHECK = (
 @dataclass(frozen=True)
 class Step:
     name: str
-    args: tuple[str, ...]  # after the interpreter (python steps) or after psql
-    runtime: str = "backend"  # backend | rag | psql
+    args: tuple[str, ...]  # after the interpreter
+    runtime: str = "backend"  # backend | rag
     cwd: Path = BACKEND_DIR
     needs: tuple[str, ...] = ()  # skipped unless these steps were ok in this run
     snapshots: tuple[Path, ...] = ()  # skipped while any of these is not complete
@@ -172,12 +172,18 @@ def build_steps(
             ),
             Step(
                 "rag_load",
-                ("-X", "-v", "ON_ERROR_STOP=1", "-f", "load_index.sql"),
-                runtime="psql",
-                cwd=paths.RAG_INDEX_DIR,
+                ("-m", "app.jobs.load_rag_index", "--apply"),
                 needs=("rag_export",),
             ),
         ]
+        if verify:
+            steps.append(
+                Step(
+                    "rag_load_verify",
+                    ("-m", "app.jobs.load_rag_index", "--verify"),
+                    needs=("rag_load",),
+                )
+            )
     return steps
 
 
@@ -308,10 +314,7 @@ def execute(
     runner: Callable[[list[str], Path, dict, int], Result],
     python: str,
     rag_python: str,
-    psql: str | None,
     env: dict,
-    psql_env: dict,
-    rag_tables: Callable[[], bool],
     scrub: Callable[[str], str],
     clock: Callable[[], datetime],
     output_dir: Path | None = None,
@@ -343,14 +346,6 @@ def execute(
                     }
                 )
             return rag_env[0]
-        if step.runtime == "psql":
-            if not psql:
-                return {"reason": "no_psql", "detail": "psql not found (set --psql)"}
-            if not rag_tables():
-                return {
-                    "reason": "no_rag_tables",
-                    "detail": "rag_index_version/rag_chunk do not exist (docs/data/sql/rag_chunk_draft.sql)",
-                }
         return None
 
     for number, step in enumerate(steps, 1):
@@ -360,12 +355,8 @@ def execute(
         if wait:
             row.update(status="skipped", **wait)
         else:
-            if step.runtime == "psql":
-                argv, step_env = [psql, *step.args], psql_env
-            else:
-                argv = [rag_python if step.runtime == "rag" else python, *step.args]
-                step_env = env
-            result = runner(argv, step.cwd, step_env, step.timeout)
+            argv = [rag_python if step.runtime == "rag" else python, *step.args]
+            result = runner(argv, step.cwd, env, step.timeout)
             stdout, stderr = scrub(result.stdout), scrub(result.stderr)
             ok = result.returncode == 0
             row.update(status="ok" if ok else "failed", exit_code=result.returncode)
@@ -464,16 +455,6 @@ def finish_run(
     conn.commit()
 
 
-def rag_tables_exist(conn: Connection) -> bool:
-    found = conn.execute(
-        text(
-            "SELECT to_regclass('rag_index_version') IS NOT NULL AND to_regclass('rag_chunk') IS NOT NULL"
-        )
-    ).scalar()
-    conn.commit()
-    return bool(found)
-
-
 def _write_json(path: Path, value: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
@@ -530,7 +511,6 @@ def run_daily(
         try:
             rows = execute(
                 steps,
-                rag_tables=lambda: rag_tables_exist(conn),
                 clock=clock,
                 on_step=record,
                 progress=progress,
@@ -592,22 +572,11 @@ def secrets_scrubber(database_url: str) -> Callable[[str], str]:
     return lambda value: redact(value, *secrets)
 
 
-def child_environment(database_url: str) -> tuple[dict, dict]:
+def child_environment(database_url: str) -> dict:
     # Every step imports into the same database this run records job_runs in.
-    env = dict(
+    return dict(
         os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1", DATABASE_URL=database_url
     )
-    url = make_url(database_url)
-    libpq = {
-        "PGHOST": url.host,
-        "PGPORT": url.port,
-        "PGUSER": url.username,
-        "PGPASSWORD": url.password,
-        "PGDATABASE": url.database,
-    }
-    psql_env = {**env, "PGCLIENTENCODING": "UTF8"}
-    psql_env.update({k: str(v) for k, v in libpq.items() if v})
-    return env, psql_env
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -631,9 +600,6 @@ def main(argv: list[str] | None = None) -> int:
         help="interpreter with the embed extra (default: $RAG_PYTHON or this one)",
     )
     parser.add_argument(
-        "--psql", help="psql executable for rag_load (default: psql on PATH)"
-    )
-    parser.add_argument(
         "--job-id",
         type=uuid.UUID,
         help="queued/failed job_runs row created by a worker",
@@ -654,7 +620,6 @@ def main(argv: list[str] | None = None) -> int:
         rag=not args.no_rag,
     )
     rag_python = args.rag_python or os.environ.get("RAG_PYTHON") or sys.executable
-    psql = args.psql or shutil.which("psql")
     if args.dry_run:
         print(
             json.dumps(
@@ -663,7 +628,6 @@ def main(argv: list[str] | None = None) -> int:
                     "kind": KIND,
                     "python": sys.executable,
                     "rag_python": rag_python,
-                    "psql": psql,
                     "steps": [
                         {
                             "name": s.name,
@@ -686,7 +650,7 @@ def main(argv: list[str] | None = None) -> int:
     from app.core.database import engine
 
     database_url = get_settings().database_url.get_secret_value()
-    env, psql_env = child_environment(database_url)
+    env = child_environment(database_url)
     try:
         conn = engine.connect()
     except SQLAlchemyError:
@@ -705,9 +669,7 @@ def main(argv: list[str] | None = None) -> int:
                 runner=run_process,
                 python=sys.executable,
                 rag_python=rag_python,
-                psql=psql,
                 env=env,
-                psql_env=psql_env,
                 scrub=secrets_scrubber(database_url),
                 output_dir=paths.DAILY_REFRESH_OUTPUT_DIR,
             )
