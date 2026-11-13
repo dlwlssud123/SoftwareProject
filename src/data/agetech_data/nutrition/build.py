@@ -76,6 +76,9 @@ OIL_GROUP = "R114-"     # 식품영양성분DB 원재료성 유지류(콩기름�
 FRYING_MIN_G = 100      # 이보다 적은 기름은 볶음·무침에 다 먹는 양으로 본다
 FRYING_EXCESS = 2       # 기름이 '다른 재료 × 튀김 흡유 비율'의 이 배수를 넘으면 튀김용 (9% → 18%)
 FRYING_METHOD = "튀기기"  # 레시피 조리방법(COOKRCP01 RCP_WAY2)
+# 튀김에 쓰는 식용유류(식품영양성분DB 이름) — 조리방법이 튀기기면 양이 적어도 튀김기름으로 본다
+FRYING_OIL_NAMES = frozenset({"콩기름", "옥수수기름", "유채씨기름", "해바라기유", "혼합식물성유", "포도씨유", "면실유",
+                              "쌀겨기름(미강유)", "팜유", "땅콩기름", "잇꽃씨기름"})
 BARE_NUMBER_MIN = 3   # 레시피 하나에 단위 없는 숫자 재료가 이만큼 있으면 그 레시피는 g을 숫자로만 적은 것으로 본다
 # 이름 자리에 양만 있는 항목 — 원문 '포도씨유, 12g' 처럼 쉼표 때문에 앞 재료의 양이 떨어져 나온 것
 _AMOUNT_ONLY_NAME = re.compile(r"^(?P<n>\d+(?:\.\d+)?)\s*g$")
@@ -98,8 +101,10 @@ def _recipe_level_grams(rows: list[list], entries, est: Estimates, cooking_metho
     """레시피 단위로 봐야 하는 g 추정 (rows = [[재료, GramAmount, MatchResult], …] 를 고친다).
 
     - 단위 없는 숫자: 숫자만 적은 재료가 BARE_NUMBER_MIN 개 이상이면 g으로 본다('콩비지 50, 다진 마늘 2' 처럼 쓴 레시피)
-    - 튀김기름(매핑표 frying_oil): 원문은 튀길 때 쓰는 기름 전체라, 먹는 양 = 같은 레시피에서 g을 아는 다른 재료
-      (물·먹지 않는 재료 빼고) 무게 × estimated_amounts.json frying_oil.ratio, 원문 기름 양을 넘지 않음
+    - 튀김기름(매핑표 frying_oil, 또는 유지류 100g 이상·조리방법 '튀기기'의 식용유류 중 튀김용으로 보이는 것):
+      원문은 튀길 때 쓰는 기름 전체라, 먹는 양 = 같은 레시피에서 g을 아는 다른 재료(물·먹지 않는 재료 빼고)
+      무게 × estimated_amounts.json frying_oil.ratio. 레시피당 한 번만 — 튀김기름이 여럿이면 원문 양 비율로 나누고,
+      어느 것도 원문 양을 넘지 않음
     """
     _split_amounts(rows)
     for r in rows:   # "강력분60g"·"버터10g": 분량이 이름에 붙어 재료 파서가 분량 없음으로 읽은 것
@@ -133,23 +138,33 @@ def _recipe_level_grams(rows: list[list], entries, est: Estimates, cooking_metho
     oils = [r for r in rows if r[2].usable and r[1].status in CONVERTED and r[1].grams]
     named = [r for r in oils
              if (manual_entry(_get(r[0], "name"), _get(r[0], "paren_texts") or [], entries) or {}).get("frying_oil")]
-    oils = [r for r in oils if r not in named and (r[2].food_code or "").startswith(OIL_GROUP)
-            and r[1].grams >= FRYING_MIN_G]
-    other = sum(r[1].grams for r in rows if r not in named + oils and r[1].status in CONVERTED and r[1].grams
-                and r[2].status not in NOT_COUNTED)
-    # '식용유 700g' 처럼 기름이 100g 이상이고, 조리방법이 튀기기이거나 다른 재료가 튀김에서 먹을 양의
-    # FRYING_EXCESS 배를 넘으면 튀김용으로 본다
     deep = cooking_method == FRYING_METHOD
+    # 튀김용일 수 있는 기름: 유지류 100g 이상, 또는 조리방법이 튀기기인 레시피의 식용유류(양 상관없이 —
+    # 참기름·들기름·올리브유는 양념·볶음용일 수 있어 뺌)
+    oils = [r for r in oils if r not in named and (r[2].food_code or "").startswith(OIL_GROUP)
+            and (r[1].grams >= FRYING_MIN_G or (deep and r[2].food_name in FRYING_OIL_NAMES))]
+    # 튀기는 재료 무게 — 물·먹지 않는 재료와 기름(양념용 참기름 등 포함)은 빼고
+    other = sum(r[1].grams for r in rows if r not in named and r[1].status in CONVERTED and r[1].grams
+                and r[2].status not in NOT_COUNTED and not (r[2].food_code or "").startswith(OIL_GROUP))
+    # 매핑표 튀김기름은 늘, 나머지는 조리방법이 튀기기이거나 기름이 다른 재료가 튀김에서 먹을 양의
+    # FRYING_EXCESS 배를 넘을 때 튀김용으로 본다
     fry = named + [r for r in oils if deep or r[1].grams > other * est.frying_ratio * FRYING_EXCESS]
+    if not fry:
+        return
     source = (est.sources.get(est.frying_source) or "").split(":")[0]
+    absorbed = other * est.frying_ratio            # 레시피 전체가 튀김에서 먹는 기름 (기름이 여럿이어도 한 번)
+    listed_total = sum(r[1].grams for r in fry)
+    share = min(1.0, absorbed / listed_total) if listed_total else 0.0
     for r in fry:
         listed = r[1].grams
-        eaten = round(min(listed, other * est.frying_ratio), 1)
+        eaten = round(listed * share, 1)            # 기름 하나면 min(원문 양, 다른 재료 × 비율)
         why = ("튀김기름" if r in named else "조리방법 '튀기기' 의 기름" if deep
                else f"기름 {listed:g}g 이 다른 재료 무게에 비해 많아 튀김용으로 봄 —")
+        split = f", 튀김기름 {len(fry)}개 합 {listed_total:g}g 에 나눔" if len(fry) > 1 else ""
         r[1] = GramAmount(eaten, "estimated",
                           f"{why} 원문 {listed:g}g은 튀길 때 쓰는 양 → 먹는 양 ≈ 다른 재료 {other:g}g × "
-                          f"{est.frying_ratio:g} = {eaten:g}g(추정 — {source}, 소스 재료까지 들어가 조금 높게 잡힐 수 있음)")
+                          f"{est.frying_ratio:g}{split}, 원문 양을 넘지 않음 = {eaten:g}g"
+                          f"(추정 — {source}, 소스 재료까지 들어가 조금 높게 잡힐 수 있음)")
 
 
 def _food_factor(ing, m, entries, cache: dict | None) -> float:
