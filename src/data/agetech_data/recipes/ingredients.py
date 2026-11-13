@@ -46,7 +46,7 @@ INLINE_SECTION_WORDS = [
     "고기완자양념", "완자", "소스", "드레싱", "장식", "고명", "곁들임",
 ]
 
-_FRAC = "½⅓⅔¼¾⅕"
+_FRAC = "½⅓⅔¼¾⅕⅛"
 _NUM = rf"(?:\d+(?:\.\d+)?(?:\s*/\s*\d+)?[{_FRAC}]?|[{_FRAC}])"
 _UNIT = "|".join(sorted(map(re.escape, UNITS), key=len, reverse=True))
 _AMOUNT_RE = re.compile(rf"(?P<num>{_NUM})\s*(?P<unit>{_UNIT})?")

@@ -41,6 +41,7 @@ GRAM_STATUSES = (
     "direct_paren",
     "approx_ml",
     "unit_weight",  # Alembic 20261113_01: sourced per-unit weight (agetech_data unit_weights.json)
+    "estimated",  # Alembic 20261114_02: estimate with its basis (agetech_data estimated_amounts.json)
     "count_unit",
     "qualitative",
     "missing",

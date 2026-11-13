@@ -19,10 +19,13 @@ from agetech_data.nutrition.foods import FoodRecord
 from agetech_data.nutrition.match import FoodIndex, load_ingredient_map, manual_entry
 from agetech_data.textutil import sha256_json
 
-MAPPER_VERSION = "recipe-food-map-v4"  # v2: 계량 단위·출처 있는 개당 중량(unit_weight) 환산
+MAPPER_VERSION = "recipe-food-map-v5"  # v2: 계량 단위·출처 있는 개당 중량(unit_weight) 환산
 #                                        v3: coverage 에 정성 분량(qualitative_items·complete_except_qualitative)
 #                                        v4: 손질 표기(○○다진것·○○채썬것)·'다진 ○○' 이 기본 재료 매핑을 따름,
 #                                            먹지 않는 재료 excluded(0 으로 취급)·coverage.missing_items·excluded_items
+#                                        v5: 출처 없는 g 추정(gram status estimated, estimated_amounts.json)·
+#                                            coverage.estimated_items, 매핑표 food_factor, 튀김기름 자동 판정(조리방법),
+#                                            이름 정리·상태근사·어순·구획 끝말 규칙 확장
 
 
 def food_records(normalized: list[dict]) -> list[FoodRecord]:
@@ -53,7 +56,8 @@ def recipe_map_rows(recipes: list[dict], foods: list[FoodRecord], entries=None) 
     out = []
     for recipe in recipes:
         ingredients = sorted(recipe["ingredients"], key=lambda i: i["order_no"])
-        result = ingredient_nutrition(ingredients, index, by_code, entries, cache)
+        result = ingredient_nutrition(ingredients, index, by_code, entries, cache,
+                                      cooking_method=recipe.get("cooking_method"))
         for item, ingredient in zip(result["ingredients"], ingredients, strict=True):
             item["review"] = _review(item, ingredient, entries)
         out.append({"recipe_id": recipe["recipe_id"], **result, "content_sha256": sha256_json(result)})

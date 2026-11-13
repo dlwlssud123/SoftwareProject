@@ -25,7 +25,7 @@ def is_blank(v: Any) -> bool:
     return v is None or (isinstance(v, str) and not v.strip())
 
 
-_FRACTION_CHARS = {"½": "1/2", "⅓": "1/3", "⅔": "2/3", "¼": "1/4", "¾": "3/4", "⅕": "1/5"}
+_FRACTION_CHARS = {"½": "1/2", "⅓": "1/3", "⅔": "2/3", "¼": "1/4", "¾": "3/4", "⅕": "1/5", "⅛": "1/8"}
 
 
 def parse_number(s: str | None) -> float | None:
