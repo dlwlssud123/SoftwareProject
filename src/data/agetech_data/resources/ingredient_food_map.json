@@ -4268,9 +4268,9 @@
   },
   {
    "ingredient": "소불고기",
-   "food_code": "R121-001050100-0000",
-   "food_name": "소불고기, 볶은것",
-   "rationale": "DB 의 소불고기 항목",
+   "food_code": "R109-027068801-0000",
+   "food_name": "소고기, 한우(1등급), 앞다리, 생것",
+   "rationale": "레시피 두 곳 모두 양념장을 따로 적고 날고기를 버무려 볶음 → 불고기용 생소고기. 부위 미기재라 매핑표 '소고기'와 같이 앞다리(11/14 검수: 양념 들어간 '소불고기, 볶은것'에서 바꿈 — 양념이 두 번 계산됐음)",
    "reviewed_by": null,
    "reviewed_at": null
   },
@@ -4446,9 +4446,9 @@
   },
   {
    "ingredient": "마른 새우",
-   "food_code": "R211-717273960-0000",
-   "food_name": "새우, 젓새우, 조린것",
-   "rationale": "마른 새우 항목 없음 → 같은 작은 새우를 조려 말린 것으로 근사",
+   "food_code": "R211-717070100-0000",
+   "food_name": "건꽃새우",
+   "rationale": "마른 새우 = 건새우 → 매핑표 '건새우'와 같음(11/14 검수: 젓새우 조린것에서 바꿈)",
    "reviewed_by": null,
    "reviewed_at": null
   },
@@ -6948,9 +6948,9 @@
   },
   {
    "ingredient": "부챗살",
-   "food_code": "R109-027061301-0000",
-   "food_name": "소고기, 한우(1등급), 설도, 생것",
-   "rationale": "부챗살(어깨 부위) 항목 없음 → 비슷한 살코기인 설도로 근사",
+   "food_code": "R109-027069201-0000",
+   "food_name": "소고기, 한우(1등급), 앞다리(부채살), 생것",
+   "rationale": "부챗살 = 앞다리(어깨)의 부채살 — DB에 같은 부위 항목이 있음(11/14 검수: 설도 근사에서 바꿈)",
    "reviewed_by": null,
    "reviewed_at": null
   },
@@ -7264,11 +7264,12 @@
   },
   {
    "ingredient": "포두부",
-   "food_code": "R121-043020409-0000",
-   "food_name": "두부, 동두부, 동결건조",
-   "rationale": "포두부 = 얇게 눌러 말린 두부 → 동결건조 두부로 근사",
+   "food_code": "R121-043020300-0000",
+   "food_name": "두부",
+   "rationale": "포두부(건두부) 항목 없음 → 두부 × 2.0. 포두부 제품 표기 100g당 180·197·240·410 kcal(4종, FatSecret 등록값) 중 3종이 180~240 kcal로 두부(97 kcal, 수분 81%)의 약 2배(11/14 검수: 수분 7%인 동결건조 두부 496 kcal에서 바꿈)",
    "reviewed_by": null,
-   "reviewed_at": null
+   "reviewed_at": null,
+   "food_factor": 2.0
   },
   {
    "ingredient": "연두부큰것",
@@ -9522,9 +9523,9 @@
   },
   {
    "ingredient": "물밤다진것",
-   "food_code": "R105-014000001-0000",
-   "food_name": "밤, 생것",
-   "rationale": "물밤(마름) 항목 없음 → 밤으로 근사",
+   "food_code": "R105-011000001-0000",
+   "food_name": "마름, 생것",
+   "rationale": "물밤 = 마름 열매 → DB '마름, 생것'(11/14 검수: '항목 없음'으로 보고 밤에 근사했던 것을 바꿈)",
    "reviewed_by": null,
    "reviewed_at": null
   },
