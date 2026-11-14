@@ -4,6 +4,7 @@ import 'package:valueflow/app.dart';
 import 'package:valueflow/data/demo_repository.dart';
 import 'package:valueflow/services/settings.dart';
 import 'package:valueflow/screens/nutrition_screen.dart';
+import 'package:valueflow/screens/meal_screen.dart';
 import 'package:valueflow/screens/recommendation_results.dart';
 import 'package:valueflow/models/recommendations.dart';
 
@@ -57,6 +58,7 @@ void main() {
     tester,
   ) async {
     await launchApp(tester, repository);
+    expect(find.byType(MealScreen), findsOneWidget);
     expect(find.byType(NutritionScreen, skipOffstage: false), findsNothing);
     await tap(tester, 'meal-start');
     await tester.enterText(find.byKey(const Key('profile-age')), '73');
@@ -129,21 +131,31 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('all five tabs and large type render without overflow', (
-    tester,
-  ) async {
-    final settings = AppSettings();
-    await launchApp(tester, repository, settings: settings);
-    await settings.setScale(1.4);
-    await tester.pumpAndSettle();
-    for (var i = 0; i < 5; i++) {
-      await tap(tester, 'tab-$i');
-      expect(tester.takeException(), isNull, reason: 'tab $i at 140% font');
-    }
-    await tap(tester, 'settings-button');
-    expect(find.text('음성 안내 사용'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+  testWidgets(
+    'four tabs in requested order and large type render without overflow',
+    (tester) async {
+      final settings = AppSettings();
+      await launchApp(tester, repository, settings: settings);
+      await settings.setScale(1.4);
+      await tester.pumpAndSettle();
+      const labels = ['식단추천', '영양분석', 'AI 도우미', '놀이터'];
+      expect(find.byKey(const Key('tab-4')), findsNothing);
+      for (var i = 0; i < labels.length; i++) {
+        expect(
+          find.descendant(
+            of: find.byKey(Key('tab-$i')),
+            matching: find.text(labels[i]),
+          ),
+          findsOneWidget,
+        );
+        await tap(tester, 'tab-$i');
+        expect(tester.takeException(), isNull, reason: 'tab $i at 140% font');
+      }
+      await tap(tester, 'settings-button');
+      expect(find.text('음성 안내 사용'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   for (final scale in [1.0, 1.4]) {
     testWidgets('recipe detail shows every original step at $scale scale', (
