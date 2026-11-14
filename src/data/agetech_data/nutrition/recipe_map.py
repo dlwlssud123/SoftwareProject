@@ -60,7 +60,7 @@ def recipe_map_rows(recipes: list[dict], foods: list[FoodRecord], entries=None) 
     for recipe in recipes:
         ingredients = sorted(recipe["ingredients"], key=lambda i: i["order_no"])
         result = ingredient_nutrition(ingredients, index, by_code, entries, cache,
-                                      cooking_method=recipe.get("cooking_method"))
+                                      cooking_method=recipe.get("cooking_method"), recipe_id=recipe["recipe_id"])
         for item, ingredient in zip(result["ingredients"], ingredients, strict=True):
             item["review"] = _review(item, ingredient, entries)
         out.append({"recipe_id": recipe["recipe_id"], **result, "content_sha256": sha256_json(result)})

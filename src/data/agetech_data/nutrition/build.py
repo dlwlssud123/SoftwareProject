@@ -24,6 +24,7 @@ import re
 import statistics
 import sys
 from collections import Counter
+from functools import lru_cache
 from pathlib import Path
 
 from agetech_data import paths
@@ -298,9 +299,45 @@ def _join_fragments(ingredients: list) -> tuple[list, dict]:
     return out, fragments
 
 
+ITEM_OVERRIDES_FILE = Path(__file__).resolve().parents[1] / "resources" / "recipe_item_overrides.json"
+_OVERRIDE_ACTIONS = ("not_eaten", "edible_ratio")
+
+
+@lru_cache
+def load_item_overrides(path: Path = ITEM_OVERRIDES_FILE) -> dict:
+    """레시피 하나에만 해당하는 재료 줄 예외 — {(source_id, section, raw_item): 항목}."""
+    if not path.is_file():
+        return {}
+    out = {}
+    for e in json.loads(path.read_text(encoding="utf-8")).get("items", []):
+        key = (str(e["source_id"]), e.get("section") or "", e["raw_item"])
+        if key in out or e["action"] not in _OVERRIDE_ACTIONS or not e.get("reason"):
+            raise ValueError(f"잘못된 레시피 재료 예외: {key}")
+        if e["action"] == "edible_ratio" and not 0 < e["ratio"] < 1:
+            raise ValueError(f"가식부 비율은 0과 1 사이: {key}")
+        out[key] = e
+    return out
+
+
+def _apply_item_overrides(rows: list[list], recipe_id: str | None, overrides: dict) -> None:
+    """원문 줄이 예외표와 정확히 같을 때만 — 건져 내는 재료는 0, 손질 전 무게는 가식부 비율을 곱함."""
+    if recipe_id is None or not overrides:
+        return
+    for r in rows:
+        e = overrides.get((str(recipe_id), _get(r[0], "section") or "", _get(r[0], "raw_item")))
+        if not e:
+            continue
+        if e["action"] == "not_eaten":
+            r[2] = MatchResult("excluded", rule="recipe:not_eaten", rationale=e["reason"])
+        elif r[1].status in CONVERTED and r[1].grams:
+            r[1] = GramAmount(round(r[1].grams * e["ratio"], 4), r[1].status,
+                              f"{r[1].basis} × 가식부 {e['ratio']:g} — {e['reason']}")
+
+
 def ingredient_nutrition(ingredients, index: FoodIndex, by_code: dict[str, FoodRecord], entries,
                          cache: dict | None = None, estimates: Estimates | None = None,
-                         cooking_method: str | None = None) -> dict:
+                         cooking_method: str | None = None, recipe_id: str | None = None,
+                         overrides: dict | None = None) -> dict:
     """레시피 재료 목록 → {ingredients, computed, computed_missing, coverage}.
 
     ingredients 는 재료 파서 결과(Ingredient) 또는 그 dict(DB recipe_ingredients.parsed)다.
@@ -325,6 +362,7 @@ def ingredient_nutrition(ingredients, index: FoodIndex, by_code: dict[str, FoodR
         if id(ing) in fragments:
             m = MatchResult("excluded", rule="fragment:counted_elsewhere", rationale=fragments[id(ing)])
         rows.append([ing, g, m])
+    _apply_item_overrides(rows, recipe_id, load_item_overrides() if overrides is None else overrides)
     _recipe_level_grams(rows, entries, est, cooking_method)
     _food_level_grams(rows, index, entries, est)
     for ing, g, m in rows:
@@ -405,7 +443,7 @@ def build_recipe_nutrition(rows: list[dict], foods: list[FoodRecord], entries,
             "source_id": chk.source_id, "name": chk.name, "quality_status": chk.status,
             "raw_sha256": chk.raw_sha256,
             **ingredient_nutrition(chk.ingredients.ingredients, index, by_code, entries, cache, estimates,
-                                   cooking_method=row.get("RCP_WAY2")),
+                                   cooking_method=row.get("RCP_WAY2"), recipe_id=chk.source_id),
             "source_values": {k: row.get(src) for k, src in COMPARE.items()},
         })
     return out
