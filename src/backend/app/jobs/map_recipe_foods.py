@@ -78,7 +78,11 @@ class MappingPlan:
 def load_active(session: Session) -> ActiveData:
     recipe_rows = session.execute(
         select(
-            Recipe.source_id, Recipe.id, RecipeRevision.id, RecipeRevision.fingerprint
+            Recipe.source_id,
+            Recipe.id,
+            RecipeRevision.id,
+            RecipeRevision.fingerprint,
+            RecipeRevision.method,
         )
         .join(RecipeRevision, RecipeRevision.id == Recipe.active_revision_id)
         .where(Recipe.provider == RECIPE_PROVIDER)
@@ -112,8 +116,12 @@ def load_active(session: Session) -> ActiveData:
     ).all()
     return ActiveData(
         recipes=[
-            {"recipe_id": source_id, "ingredients": parsed.get(revision_id, [])}
-            for source_id, _, revision_id, _ in recipe_rows
+            {
+                "recipe_id": source_id,
+                "ingredients": parsed.get(revision_id, []),
+                "cooking_method": method,
+            }
+            for source_id, _, revision_id, _, method in recipe_rows
         ],
         revisions={row[0]: (row[1], row[2]) for row in recipe_rows},
         ingredient_ids=ingredient_ids,

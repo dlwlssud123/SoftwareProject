@@ -40,7 +40,8 @@ from app.models import (
 PARSER_VERSION = "public-data-v1"
 # v3: 재료 원문의 HTML 줄바꿈 태그·대괄호 섹션·"N인분 기준" 줄 처리, 줄 중간 구획·쉼표 빠진 재료 나누기
 #     (agetech_data.recipes.ingredients)
-RECIPE_VALIDATION_VERSION = "recipe-validation-v3"
+# v4: 분수 '⅛' (agetech_data.recipes.ingredients·textutil)
+RECIPE_VALIDATION_VERSION = "recipe-validation-v4"
 RECIPE_PROVIDER = "foodsafetykorea:COOKRCP01"
 FOOD_PROVIDER = "data.go.kr:FoodNtrCpntDbInfo03"
 RECIPE_NUTRIENTS = {

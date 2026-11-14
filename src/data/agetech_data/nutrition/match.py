@@ -44,8 +44,11 @@ DISH_ALIAS_FILE = RESOURCES / "dish_aliases.json"
 MatchStatus = Literal["reviewed", "curated", "exact", "water", "excluded", "candidate", "unmapped"]
 USABLE: tuple[MatchStatus, ...] = ("reviewed", "curated", "exact")
 NOT_COUNTED: tuple[MatchStatus, ...] = ("water", "excluded")   # 0 으로 취급, 완전 판정·무게 비율에서 뺌
-EXCLUDE_REASONS = ("not_eaten", "counted_elsewhere")            # 매핑표 "exclude" 값
-WATER_NAMES = {"물", "끓는물", "생수", "정수", "쌀뜨물"}  # 쌀뜨물: DB 항목 없음, 영양 미미 → 물로 취급
+# 매핑표 "exclude" 값: 먹지 않음 / 같은 레시피에서 이미 계산 / 영양이 거의 없음(DB에 없는 무열량 감미료 등)
+EXCLUDE_REASONS = ("not_eaten", "counted_elsewhere", "negligible")
+# 쌀뜨물: DB 항목 없음, 영양 미미 → 물로 취급. 얼음 = 언 물
+WATER_NAMES = {"물", "끓는물", "생수", "정수", "쌀뜨물", "얼음", "얼음물", "찬물", "냉수", "온수", "미지근한물", "뜨거운물",
+               "따뜻한물", "물미지근한것", "각얼음", "물필요량", "재료물"}
 RAW_STATE = "생것"
 INGREDIENT_GROUPS = ("원재료성", "가공식품")
 GROUP_RANK = {"원재료성": 0, "가공식품": 1, "음식": 2}
@@ -209,6 +212,30 @@ def _manual(name: str, paren_texts: list[str], entries) -> dict | None:
 _SUFFIX_CHOPPED = re.compile(r"^(?P<base>.+?)\s*(?:다진|갈은)\s*것$")
 _SUFFIX_CUT = re.compile(
     r"^(?P<base>.+?)\s*(?:(?:(?:채|송송|어슷|깍둑|곱게|얇게|굵게|잘게|작게)\s*)?(?:썬|자른)|채\s*친)\s*것$")
+# 앞에 붙인 손질 표기 (띄어 쓴 것만): "간 양파"·"갈은 마늘" → "다진 ○○", "송송 썬 붉은 고추"·"부순 참깨"·
+# "굵은 고춧가루"·"깐 마늘" → "○○" (입자 크기·모양·껍질만 다름)
+_PREFIX_CHOPPED = re.compile(r"^(?:(?:곱게|굵게|잘게)\s*)?(?:간|갈은|다진)\s+(?P<base>\S.*)$")
+_PREFIX_CUT = re.compile(
+    r"^(?:(?:(?:송송|어슷|채|곱게|잘게|굵게|얇게|납작|납작하게|깍둑|큼직하게|길게|둥글게|먹기 좋게)\s*)?(?:썬|썰은|자른)|"
+    r"부순|깐|껍질 깐|굵은|고운|씻은|손질한|손질된)\s+(?P<base>\S.*)$")
+# 앞에 붙인 상태 표기 → DB 의 "○○, 삶은것" 같은 이름 그대로 항목이 있을 때만 (상태가 바뀌면 영양이 달라짐)
+_PREFIX_STATE = re.compile(r"^(?P<state>삶은|볶은|마른|말린|데친|구운|찐|불린|익힌)\s*(?P<base>\S.*)$")
+_STATE_TOKEN = {"삶은": "삶은것", "볶은": "볶은것", "마른": "말린것", "말린": "말린것", "데친": "데친것",
+                "구운": "구운것", "찐": "찐것", "불린": "불린것", "익힌": "익힌것"}
+# 뒤에 붙인 상태 표기 "타임마른것"·"당면불린것"·"무청시래기 불린 것" → "마른 타임"·"불린 당면" 순서로 본다
+_SUFFIX_STATE = re.compile(r"^(?P<base>.+?)\s*(?P<state>마른|말린|삶은|불린|데친|볶은|찐|구운|익힌)\s*것$")
+# 물을 더하거나 익히기만 한 상태 — DB 에 그 상태 항목이 없으면 기본 재료의 매핑으로 근사한다 (말린 것은 제외)
+_MILD_STATES = ("삶은", "데친", "찐", "구운", "볶은", "불린", "익힌")
+_COOKED_TOKENS = ("삶은것", "데친것", "불린것", "찐것")
+
+
+def _dried_food(food_name: str) -> bool:
+    """'병아리콩, 말린것'·'대두, 콩가루'처럼 마른 상태로 끝나는 식품 (뒤에 '삶은것'이 붙으면 아님).
+    이런 식품에 '불린·삶은'을 그대로 대면 물 무게까지 마른 영양으로 쳐서 2~3배로 커진다."""
+    toks = [norm(t) for t in food_name.split(",")]
+    dried = max((i for i, t in enumerate(toks) if t == "말린것" or t.endswith("가루") or "건조" in t), default=-1)
+    cooked = max((i for i, t in enumerate(toks) if t in _COOKED_TOKENS), default=-1)
+    return dried > cooked
 
 
 def prep_alias(name: str) -> str | None:
@@ -218,7 +245,66 @@ def prep_alias(name: str) -> str | None:
     if m:
         return "다진 " + m.group("base").strip()
     m = _SUFFIX_CUT.match(n)
+    if m:
+        return m.group("base").strip()
+    m = _PREFIX_CHOPPED.match(n)
+    if m and not n.startswith("다진"):   # '다진 ○○' 자체는 그대로 (다진+ 규칙이 맡음)
+        return "다진 " + m.group("base").strip()
+    m = _PREFIX_CUT.match(n)
     return m.group("base").strip() if m else None
+
+
+# 끝말이 이런 말이면 앞말이 뒷말을 꾸미는 합성어라("쌀 국수"·"들깨 가루"·"고추 기름") 끝말만 떼어 쓰지 않는다
+_HEAD_NOUNS = ("국수", "면", "가루", "분말", "기름", "오일", "즙", "주스", "물", "육수", "소스", "장", "청", "잼", "떡",
+               "빵", "죽", "차", "술", "식초", "액", "원액", "칩", "튀김", "볶음", "구이", "조림", "무침", "전", "살", "알",
+               "잎", "순", "껍질", "뿌리", "줄기", "다리", "몸통", "밑동", "머리", "꼬리", "날개", "가슴", "뼈")
+
+
+# 앞말이 이런 말로 끝나면 구획·용도 이름("돼지고기 밑간", "청국장소스", "볶음밥", "달래무침")으로 본다
+_SECTION_ENDINGS = ("밑간", "양념", "양념장", "소스", "드레싱", "반죽", "고명", "장식", "토핑", "시럽", "재료", "속재료",
+                    "밥", "곁들임", "마리네이드", "절임물", "피클물", "육수", "국물", "무침", "볶음", "조림", "구이",
+                    "찜", "샐러드", "강된장", "볶음고추장")
+
+
+def _last_word(name: str) -> str | None:
+    """앞말이 구획·용도 이름인 띄어 쓴 이름의 뒷말('돼지고기 밑간 간장' → '간장', '주먹밥 데친 꼬막살' → '데친 꼬막살').
+    구획 이름 뒤의 번호는 떼고 본다('소스1 발사믹식초'). 색·상태·품종 같은 꾸밈말('노란색 파프리카'·'검은 콩')은
+    구획 이름이 아니라서 해당하지 않는다. 바로 앞말이 구획 이름이 아니면 끝말이 '국수'·'가루' 같은 머리말일 때
+    합성어('쌀 국수')로 보고 떼지 않는다."""
+    words = nfc(name or "").split()
+    if len(words) < 2:
+        return None
+    marks = [i for i, w in enumerate(words[:-1]) if re.sub(r"\d+$", "", w).endswith(_SECTION_ENDINGS)]
+    if not marks:
+        return None
+    rest = words[marks[-1] + 1:]
+    if len(rest) == 1 and rest[0] in _HEAD_NOUNS and marks[-1] != len(words) - 2:
+        return None
+    return " ".join(rest)
+
+
+# 이름에 섞여 든 번호·따옴표·분량·크기("소금①", "\"배추", "- 육수", "버터10g", "두부1.2cm", "사과작은것")
+_NAME_NOISE = re.compile(r"^[\"'\-\s]+|[①-⑳]+$|\s*\d+(?:\.\d+)?\s*(?:g|ml|cm|인치)?$|"
+                         r"(?<=\S)\s*(?:작은|큰|중간|중간크기)\s*것$")
+
+
+def tidy_name(name: str) -> str:
+    """번호·따옴표·붙어 버린 분량을 뗀 재료명 (바뀐 게 없으면 그대로)."""
+    n = nfc(name or "").strip()
+    while True:
+        m = _NAME_NOISE.sub("", n).strip()
+        if m == n or not m:
+            return n
+        n = m
+
+
+def state_food(name: str, index: FoodIndex) -> FoodRef | None:
+    """앞에 붙인 상태 표기 '삶은 달걀'·'볶은 땅콩' → DB 에 이름 그대로 있는 '달걀, 삶은것' 항목(하나일 때만).
+    상태가 바뀌면 영양이 달라지므로 기본 재료의 매핑을 따르지 않는다."""
+    m = _PREFIX_STATE.match(nfc(name or "").strip())
+    if not m:
+        return None
+    return index._pick(index.by_full.get(norm(m.group("base")) + _STATE_TOKEN[m.group("state")], []))
 
 
 def manual_entry(name: str, paren_texts: list[str], entries) -> dict | None:
@@ -227,13 +313,28 @@ def manual_entry(name: str, paren_texts: list[str], entries) -> dict | None:
     e = _manual(name, paren_texts, entries)
     if e:
         return e
+    tidy = tidy_name(name)
+    if tidy != nfc(name or "").strip():
+        return manual_entry(tidy, paren_texts, entries)
     alias = prep_alias(name)
     if alias:
         return manual_entry(alias, paren_texts, entries)
     key = norm(name)
     if key.startswith("다진") and len(key) > 2:
-        return _manual(key[2:], paren_texts, entries)
-    return None
+        e = _manual(key[2:], paren_texts, entries)
+        if e:
+            return e
+    n = nfc(name or "").strip()
+    m = _SUFFIX_STATE.match(n)
+    if m:
+        return manual_entry(f"{m.group('state')} {m.group('base').strip()}", paren_texts, entries)
+    m = _PREFIX_STATE.match(n)
+    if m and m.group("state") in _MILD_STATES:
+        e = manual_entry(m.group("base"), paren_texts, entries)
+        if e:
+            return e
+    last = _last_word(name)
+    return manual_entry(last, paren_texts, entries) if last else None
 
 
 def _from_manual(e: dict, index: FoodIndex, rule: str = "manual", note: str = "") -> MatchResult:
@@ -261,9 +362,19 @@ def match_ingredient(name: str, index: FoodIndex, paren_texts: list[str] | None 
         return _from_manual(e, index)
     if norm(name) in WATER_NAMES:
         return MatchResult("water", rule="water", rationale="물은 영양 계산에서 0으로 취급")
+    tidy = tidy_name(name)
+    if tidy != nfc(name or "").strip():   # "소금①" → "소금"
+        r = match_ingredient(tidy, index, paren_texts, entries)
+        r.rule = f"정리+{r.rule}" if r.rule else r.rule
+        if r.usable or r.status in NOT_COUNTED:
+            r.rationale = f"'{name}' = '{tidy}' (번호·기호·분량을 뗌). " + (r.rationale or "")
+        return r
     hit = index.exact(name)
     if hit and hit[1] in ("full", "다진+state"):   # DB에 이 이름 그대로인 식품(예: '마늘, 다진것')이 먼저
         return MatchResult("exact", hit[0].food_code, hit[0].name, hit[1], f"규칙 {hit[1]}: 후보 1개")
+    sref = state_food(name, index)
+    if sref:   # "삶은 달걀" → "달걀, 삶은것"
+        return MatchResult("exact", sref.food_code, sref.name, "상태+state", f"'{name}' → DB '{sref.name}'(상태 표기 그대로)")
     alias = prep_alias(name)
     if alias:   # "양파다진것" → "다진 양파" 로 같은 순서를 밟는다. 못 찾으면 원래 이름으로 계속
         r = match_ingredient(alias, index, paren_texts, entries)
@@ -280,6 +391,29 @@ def match_ingredient(name: str, index: FoodIndex, paren_texts: list[str] | None 
     if hit:
         ref, rule = hit
         return MatchResult("exact", ref.food_code, ref.name, rule, f"규칙 {rule}: 후보 1개")
+    m = _SUFFIX_STATE.match(nfc(name or "").strip())
+    if m:   # "타임마른것" → "마른 타임"
+        front = f"{m.group('state')} {m.group('base').strip()}"
+        r = match_ingredient(front, index, paren_texts, entries)
+        if r.usable or r.status in NOT_COUNTED:
+            r.rule = f"어순+{r.rule}"
+            r.rationale = f"'{name}' = '{front}' (상태 표기 위치만 다름). " + (r.rationale or "")
+            return r
+    m = _PREFIX_STATE.match(nfc(name or "").strip())
+    if m and m.group("state") in _MILD_STATES:   # "삶은 감자" → DB 에 '감자, 삶은것' 이 없으면 '감자' 매핑으로 근사
+        r = match_ingredient(m.group("base"), index, paren_texts, entries)
+        if r.usable and not _dried_food(r.food_name or ""):
+            r.rule = f"상태근사+{r.rule}"
+            r.rationale = (f"'{name}': DB 에 '{m.group('state')}' 상태 항목이 없어 '{m.group('base')}' 매핑으로 근사"
+                           "(물·익힘에 따른 차이는 작게 봄). " + (r.rationale or ""))
+            return r
+    last = _last_word(name)
+    if last:   # "돼지고기 밑간 간장"·"청국장소스 양송이버섯": 앞말은 구획·용도 이름
+        r = match_ingredient(last, index, paren_texts, entries)
+        if r.usable:
+            r.rule = f"끝말+{r.rule}"
+            r.rationale = f"'{name}'의 끝말 '{last}'(앞말은 구획·용도 이름으로 봄). " + (r.rationale or "")
+            return r
     cands = index.candidates(name)
     return MatchResult("candidate" if cands else "unmapped", candidates=cands)
 

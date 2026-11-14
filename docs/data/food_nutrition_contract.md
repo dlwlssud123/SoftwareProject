@@ -82,7 +82,7 @@ DB 적재는 정제 레코드까지 판본 지문에 포함한다. 원본이 같
 |---|---|
 | `order_no`, `line_no`, `section`, `raw_item`, `name`, `amount_text` | 레시피 원문 보존 필드 (레시피 품질 검증과 같은 값) |
 | `grams.grams` | g 환산값 또는 null |
-| `grams.status` | `direct`(원문 g) / `direct_paren`(원문 괄호 g) / `approx_ml`(mL 또는 계량 단위 큰술 15·작은술 5·`Ts`·`ts`·컵 200 mL → 1mL≈1g) / `unit_weight`(출처 있는 개당 중량, 예: 달걀 1개 60 g) / `count_unit` / `qualitative` / `missing` / `unparsed` |
+| `grams.status` | `direct`(원문 g) / `direct_paren`(원문 괄호 g) / `approx_ml`(mL 또는 계량 단위 큰술 15·작은술 5·`Ts`·`ts`·컵 200 mL → 1mL≈1g) / `unit_weight`(출처 있는 개당 중량, 예: 달걀 1개 60 g) / `estimated`(출처 있는 무게가 없어 추정한 g — 근거는 `basis`, 아래 3.1) / `count_unit` / `qualitative` / `missing` / `unparsed` |
 | `grams.basis` | 환산 근거 문장 |
 | `match.status` | `reviewed` / `curated` / `exact` / `water` / `excluded` / `candidate` / `unmapped`. `excluded` = 먹지 않거나(건져 내는 월계수잎·국물 우리는 약재) 같은 레시피에서 이미 계산된 재료 — 매핑표 `exclude`로 정하고, 물처럼 0으로 취급 |
 | `match.food_code`, `match.food_name` | 매핑된 식품 (`candidate`·`unmapped`이면 null) |
@@ -91,9 +91,29 @@ DB 적재는 정제 레코드까지 판본 지문에 포함한다. 원본이 같
 | `contribution` | 성분별 기여량 = g ÷ 기준량 × 기준량당 함량. 매핑 상태가 `reviewed`/`curated`/`exact`이고 g 환산된 경우만 값, 아니면 null |
 | `basis_ml_approx` | mL 기준 식품을 g 분량으로 계산했으면 true |
 
-`coverage`: `items`, `items_used`, `grams_converted`(물·`excluded` 제외), `grams_used`, `grams_used_pct`, `complete`(물·`excluded`를 뺀 모든 재료가 계산에 들어갔는지), `complete_except_qualitative`(분량이 '약간·적당량'인 재료만 빼면 모두 계산됐는지), `qualitative_items`(그 재료 `[{name, amount_text, food_code}]` — `food_code`는 매핑이 됐을 때만), `missing_items`(정성 분량 말고 계산에서 빠진 재료 `[{name, amount_text, reason, note}]` — `reason`: `no_food` 매핑표에서 '매핑하지 않음'(DB에 없음·먹는 양 모름 등, `note` = 근거) / `food_undecided` 식품을 아직 못 정함 / `grams_unknown` 식품은 정했지만 g을 모름(`note` = 환산 근거)), `excluded_items`(0으로 친 재료 `[{name, amount_text, note}]`, 완전 판정에 영향 없음). 빠진 재료 = `qualitative_items` + `missing_items`
+`coverage`: `items`, `items_used`, `grams_converted`(물·`excluded` 제외), `grams_used`, `grams_used_pct`, `complete`(물·`excluded`를 뺀 모든 재료가 계산에 들어갔는지), `complete_except_qualitative`(분량이 '약간·적당량'인 재료만 빼면 모두 계산됐는지), `qualitative_items`(그 재료 `[{name, amount_text, food_code}]` — `food_code`는 매핑이 됐을 때만), `missing_items`(정성 분량 말고 계산에서 빠진 재료 `[{name, amount_text, reason, note}]` — `reason`: `no_food` 매핑표에서 '매핑하지 않음'(DB에 없음·먹는 양 모름 등, `note` = 근거) / `food_undecided` 식품을 아직 못 정함 / `grams_unknown` 식품은 정했지만 g을 모름(`note` = 환산 근거)), `excluded_items`(0으로 친 재료 `[{name, amount_text, note}]`, 완전 판정에 영향 없음), `estimated_items`(g을 추정해 계산에 넣은 재료 `[{name, amount_text, grams, basis}]`). 빠진 재료 = `qualitative_items` + `missing_items`
 
-**화면 표시 권장**: `complete=false`인 레시피의 `computed`는 "일부 재료 기준"이라고 표시한다. 레시피 원문 `INFO_*`와 섞어 쓰지 않는다. `complete=false`라도 `complete_except_qualitative=true`면 "소금(적당량)·후추(약간)는 계산에 넣지 않았어요"처럼 `qualitative_items`의 이름을 함께 보여 준다. 그 밖에 빠진 재료는 `missing_items`로 "튀김기름은 먹는 양을 몰라 계산에 넣지 않았어요"처럼 이름과 이유를 보여 줄 수 있다. **'약간·적당량'에 g을 지어 넣지 않는다** — 소금·간장류가 빠지면 나트륨이 실제보다 낮게 잡히므로, `food_code`의 식품 나트륨이 높으면(예: 소금·간장) "나트륨은 더 높을 수 있어요"를 붙인다.
+**화면 표시 권장**: `complete=false`인 레시피의 `computed`는 "일부 재료 기준"이라고 표시한다. 레시피 원문 `INFO_*`와 섞어 쓰지 않는다. `complete=false`라도 `complete_except_qualitative=true`면 "소금(적당량)·후추(약간)는 계산에 넣지 않았어요"처럼 `qualitative_items`의 이름을 함께 보여 준다. 그 밖에 빠진 재료는 `missing_items`로 "○○은 양을 몰라 계산에 넣지 않았어요"처럼 이름과 이유를 보여 줄 수 있다. `estimated_items`가 있으면 "일부 재료(레몬 1/4개 ≈ 14.5 g …)는 양을 추정했어요"처럼 **추정 포함**을 표시한다 — 추정 값은 원문 분량이 아니다. 추정표에도 없어 남은 '약간·적당량'은 g을 지어 넣지 않고 `qualitative_items`로 남으며, 소금·간장류가 빠지면 나트륨이 실제보다 낮게 잡히므로 `food_code`의 식품 나트륨이 높으면 "나트륨은 더 높을 수 있어요"를 붙인다.
+
+### 3.1 g 추정 (`grams.status = estimated`, 계산기 `recipe-food-map-v5`)
+
+출처 있는 환산(원문 g·괄호 g·계량 단위·`unit_weights.json`)이 없을 때만 쓴다. 근거는 `grams.basis`에 문장으로 남는다.
+
+| 경우 | 추정 방법 | 근거 자료 |
+|---|---|---|
+| 개수 단위(레몬 1개·새우 1마리·나물 1줌 …) | 1단위 무게 × 개수. 재료명이 달라도 같은 식품으로 매핑되면 같은 무게('생표고버섯 5개' → '표고버섯' 1개) | `resources/estimated_amounts.json` `count_units` — USDA FoodData Central 분량(수입 과일·서양 재료), 한국보건산업진흥원 눈대중량 DB, 레시피 원문에 개수와 g이 함께 적힌 줄의 중앙값, 출처 없는 것은 어림값과 어림 근거 |
+| '약간·조금·한꼬집' / '적당량·기호에 따라' / 분량 표기 없음 | 같은 재료(없으면 같은 식품, 그것도 모자라면 같은 식품군)를 g으로 적은 레시피 줄 분포의 25% 지점(중앙값 절반과 비교해 작은 값) / 중앙값 / 중앙값 | 같은 레시피 DB(COOKRCP01) — `qualitative`·`qualitative_by_food`, `python -m agetech_data.nutrition.estimates --write`로 다시 만듦 |
+| 튀김기름 | 먹는 양 = 같은 레시피의 다른 재료(물·먹지 않는 재료·기름 빼고) 무게 × 0.09, 원문 기름 양을 넘지 않음. 레시피당 한 번 — 튀김기름이 여럿이면 원문 양 비율로 나눔. 대상: 매핑표 `frying_oil`, 유지류 100 g 이상이면서 조리방법 '튀기기'거나 다른 재료 무게의 18%를 넘는 기름, 조리방법 '튀기기'의 식용유류(콩기름·포도씨유 등, 양 상관없이 — 참기름·들기름·올리브유는 빼고) | 식품영양성분DB 원재료성 '생것'↔'튀긴것' 10쌍의 100 g당 지방 증가 중앙값 8.95 g |
+| 단위 없는 숫자('소금 0.2', '돼지등갈비 200(갈비살 70)') | 숫자만 적은 줄이 3개 이상이거나 나머지 줄 절반 이상이 g이면 g으로 봄(괄호 '○○살 N'은 먹는 살 N g). 나머지가 g인 레시피의 '달걀 2'처럼 개당 무게가 있는 재료의 정수는 개수 | 같은 레시피 원문 |
+| 괄호의 먹는 살 무게('꽃게 70g(꽃게살 30g)', '토막 낸 닭 170g(닭고기살 무게 90g)') | 괄호의 살 무게(`direct_paren`, 추정 아님) | 같은 레시피 원문 |
+| 쉼표·줄바꿈으로 갈라진 분량('포도씨유, 12g', '강력분60g') | 떨어진 g을 앞 재료의 양으로, 떨어진 항목은 `excluded`(`counted_elsewhere`). 앞 재료에 이미 양이 있으면('케찹 5g,10g') 어느 재료인지 몰라 0(`split_amount:stray`) | 같은 레시피 원문 |
+| 갈라진 꾸밈말('미니
+양배추(5개)', '미니,버거빵 12g') | 뒤 재료를 '미니 양배추'로 찾고(원문 조각은 그대로) 앞말은 `excluded`(`fragment:counted_elsewhere`) | 같은 레시피 원문 |
+| 레시피에서 끓이는 육수('다시마국물(건다시마 2, 물 450)') | 육수 양 = 괄호의 물 양 | 같은 레시피 원문 |
+
+g 대신 0으로 치는 구획 규칙(`excluded`): 구획 이름에 '선택'이 있고 양이 없는 재료(`section:optional` — '[장식재료선택] 멜론, 자두'), 육수 구획에 양 없이 적은 건더기(`section:broth_solid` — '멸치육수 : …, 표고버섯 기둥').
+
+매핑표 `food_factor`(재료 1 g = 매핑 식품 몇 g)는 대응 식품이 수분만 다를 때 쓴다: '말린 토마토' → '토마토, 생것' × 14.7(수분 94.2%→14.6%), '시금치가루' → 생시금치 × 9.1, '녹말물' → 감자 전분 × 0.5. 계산식과 근거는 그 항목의 `rationale`에 있다.
 
 **DB 적재**: 같은 계산을 DB 활성 판본(레시피 재료 × 식품)으로 돌려 `recipe_ingredient_foods`(재료 하나)·`recipe_computed_nutrition`(레시피 판본 하나)에 넣는다 — `python -m app.jobs.map_recipe_foods`, 칸 대응·규칙은 [`recipe_food_map_db.md`](recipe_food_map_db.md).
 
@@ -220,8 +240,9 @@ match_ingredient("다진 마늘", ingredient_index)       # → MatchResult(stat
 
 ## 8. 알려진 제한
 
-- 개수 단위(개·장·알·뿌리 등)는 환산표에 출처 있는 1단위 무게가 있는 것(7.6절 끝: 식약처 자료의 달걀·사과·귤·참외·포도·밥, 한국보건산업진흥원 눈대중량 DB의 27종)만 `unit_weight`로 환산하고, 나머지(레몬·새우 '마리'·아스파라거스·인삼 등)는 환산하지 않는다. 원문 괄호에 g이 있으면 그 값이 먼저다. 크기를 모르면 '중'으로 보므로 개별 레시피에서는 실제와 차이가 날 수 있다.
-- 수동 매핑표는 2026-11-09·11-13에 모두 확인했다(`reviewed`, 확인자 최재영). 새로 넣는 매핑은 확인 전까지 `curated`이며 보고서(`docs/data/nutrition_mapping_report.md`) 3절에 나온다.
+- 개수 단위(개·장·알·뿌리 등)는 환산표에 출처 있는 1단위 무게가 있는 것(7.6절 끝: 식약처 자료의 달걀·사과·귤·참외·포도·밥, 한국보건산업진흥원 눈대중량 DB의 27종)이 `unit_weight`, 나머지(레몬·새우 '마리'·아스파라거스·인삼 등)는 추정표로 `estimated`(3.1절). 원문 괄호에 g이 있으면 그 값이 먼저다. 크기를 모르면 '중'·흔한 크기로 보므로 개별 레시피에서는 실제와 차이가 날 수 있다.
+- `estimated`는 사람이 잰 양이 아니다. 특히 '약간'·분량 없음(같은 재료를 g으로 적은 다른 레시피의 분포)과 출처 없는 어림값(`count_units`의 `source: estimate`)은 레시피마다 실제와 다를 수 있다. 화면은 추정 포함을 표시한다(3절).
+- 수동 매핑표 중 2026-11-09·11-13에 확인한 것은 `reviewed`(확인자 최재영)다. 11/14에 전체 레시피(1,156건) 남은 재료를 정하며 넣거나 바꾼 것 중 영향이 큰 30개는 11/14 확인(`reviewed`), 나머지 893개는 확인 전까지 `curated`이며 보고서(`docs/data/nutrition_mapping_report.md`) 3절에 나온다. 추정표(`estimated_amounts.json`)의 개수 단위 어림값 중 확인한 행에는 `reviewed_by`가 있다.
 - DB에 없는 재료는 가장 가까운 항목으로 근사한 것이 있다(육수 → 닭 육수, 어린잎 → 비타민채 어린잎, 새싹 → 무순, 어간장·맛간장 → 양조간장 등). 불린 쌀은 생쌀로 계산해 열량이 높게, 깨소금은 볶은 참깨로 계산해 나트륨이 낮게 잡힌다(근거는 매핑표 `rationale`).
 - 튀김기름(원문이 튀길 때 쓰는 기름 전체)은 먹는 양을 알 수 없어 계산하지 않는다(`missing_items`, `reason = no_food`). 그래서 튀김기름이 든 레시피는 `complete = false`다. 흡유율 근거가 생기면 g 환산 쪽에서 다룬다.
 - 월계수잎·오가피·가시오가피·당귀(건져 냄)와 같은 레시피에서 이미 계산되는 소스는 `excluded`로 0으로 친다. 이 재료 때문에 `complete = false`가 되지는 않는다.

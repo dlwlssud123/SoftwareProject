@@ -3,6 +3,7 @@
 import json
 
 from agetech_data.nutrition.build import build_recipe_nutrition
+from agetech_data.nutrition.estimates import Estimates
 from agetech_data.nutrition.recipe_map import food_records, map_sha256, recipe_map_rows
 from agetech_data.recipes.validate import check_recipe
 
@@ -19,6 +20,7 @@ def _db_recipe(row):
     return {"recipe_id": check["source_id"], "ingredients": check["ingredients"]}
 
 
+NO_EST = Estimates({}, {}, {}, None, None)   # 출처 있는 환산만 (추정 없음)
 ENTRY = {"ingredient": "저염간장", "food_code": "P112-005000400-F002-001", "rationale": "저염 간장",
          "reviewed_by": "최재영", "reviewed_at": "2026-11-09"}
 
@@ -76,7 +78,7 @@ def test_qualitative_seasonings_are_listed_and_kept_out_of_complete(sample_foods
     rows = [_recipe("1", "양파 50g, 소금 약간, 후춧가루 적당량"),
             _recipe("2", "양파 50g, 레몬(1개), 소금 약간"),
             _recipe("3", "양파 50g, 물 100ml")]
-    got = {r["source_id"]: r["coverage"] for r in build_recipe_nutrition(rows, sample_foods, ())}
+    got = {r["source_id"]: r["coverage"] for r in build_recipe_nutrition(rows, sample_foods, (), estimates=NO_EST)}
     assert (got["1"]["complete"], got["1"]["complete_except_qualitative"]) == (False, True)
     assert [(q["name"], q["amount_text"]) for q in got["1"]["qualitative_items"]] == [
         ("소금", "약간"), ("후춧가루", "적당량")]
@@ -93,7 +95,7 @@ def test_missing_items_say_why_and_excluded_items_count_as_zero(sample_foods):
     )
     rows = [_recipe("1", "양파 50g, 월계수잎 1g, 물 100ml"),
             _recipe("2", "양파 50g, 튀김기름 200g, 이름없는재료 10g, 레몬(1개), 소금 약간")]
-    got = {r["source_id"]: r for r in build_recipe_nutrition(rows, sample_foods, entries)}
+    got = {r["source_id"]: r for r in build_recipe_nutrition(rows, sample_foods, entries, estimates=NO_EST)}
     one = got["1"]["coverage"]
     assert one["complete"] and one["missing_items"] == []
     assert one["excluded_items"] == [{"name": "월계수잎", "amount_text": "1g", "note": "건져 냄"}]
@@ -106,5 +108,6 @@ def test_missing_items_say_why_and_excluded_items_count_as_zero(sample_foods):
         ("튀김기름", "no_food"), ("이름없는재료", "food_undecided"), ("레몬", "food_undecided")]
     assert two["missing_items"][0]["note"] == "흡수량 모름"
     # 식품은 정했지만 g을 모르는 재료 (개당 중량표에 '봉지'가 없음)
-    [onion] = build_recipe_nutrition([_recipe("3", "양파 1봉지")], sample_foods, ())[0]["coverage"]["missing_items"]
+    [onion] = build_recipe_nutrition([_recipe("3", "양파 1봉지")], sample_foods, (),
+                                     estimates=NO_EST)[0]["coverage"]["missing_items"]
     assert (onion["reason"], onion["amount_text"]) == ("grams_unknown", "1봉지") and "환산표에 없어" in onion["note"]

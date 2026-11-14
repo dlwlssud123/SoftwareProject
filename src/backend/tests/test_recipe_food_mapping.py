@@ -205,7 +205,7 @@ def test_postgres_unit_weight_is_stored_with_its_source(tmp_path, pg_connection)
         {
             "RCP_SEQ": "3",
             "RCP_NM": "달걀찜",
-            "RCP_PARTS_DTLS": "달걀 2개, 양파 1개, 소금 약간",
+            "RCP_PARTS_DTLS": "달걀 2개, 양파 1개, 깨소금 약간",
             "MANUAL01": "1. 찐다.",
         }
     ]
@@ -215,10 +215,11 @@ def test_postgres_unit_weight_is_stored_with_its_source(tmp_path, pg_connection)
         result = map_recipe_foods.apply_mapping(db, ())
         _, items, summary = mapping(db, "3")
         egg, onion, salt = items
-        # '약간'은 g이 없어 계산에 안 들어가고 coverage 에 따로 남는다 — 그것만 빠진 레시피
+        # 추정표(estimated_amounts.json)에도 없는 '약간'은 g이 없어 계산에 안 들어가고
+        # coverage 에 따로 남는다 — 그것만 빠진 레시피
         assert salt.gram_status == "qualitative" and salt.contribution is None
         assert summary.coverage["qualitative_items"] == [
-            {"name": "소금", "amount_text": "약간", "food_code": None}
+            {"name": "깨소금", "amount_text": "약간", "food_code": None}
         ]
         assert summary.coverage["complete_except_qualitative"] is True
         assert result["complete_except_qualitative_recipes"] == 1

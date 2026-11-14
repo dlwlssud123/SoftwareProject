@@ -1,0 +1,1359 @@
+{
+ "description": "출처 있는 무게(unit_weights.json)가 없을 때 쓰는 g 추정. g 환산 상태 'estimated'로 남고 근거 문장에 출처를 적는다 — agetech_data.nutrition.estimates 참고.",
+ "sources": {
+  "recipe_usage": "식약처 조리식품 레시피 DB(COOKRCP01) 2026-11-13 수집본 1,156건에서 같은 재료를 g으로 적은 줄의 분포 — 약간·조금·소량·한꼬집 = 25% 지점과 중앙값의 절반 중 작은 값, 적당량·적당히·넉넉히·기호에 따라·취향껏 = 중앙값(줄 5개 이상). `python -m agetech_data.nutrition.estimates --write`로 만든 값을 고정",
+  "recipe_pairs": "같은 레시피 DB 원문에 개수와 g이 함께 적힌 줄(예: '청양고추 1개(10g)')의 1단위 무게 중앙값",
+  "usda_fdc_sr": "USDA FoodData Central(SR Legacy) 분량 무게 — 국내에서 주로 수입하는 과일·채소(레몬·라임·아보카도·자몽·망고·아스파라거스·셀러리)와 서양식 재료에만 씀",
+  "khidi_2007_portion": "한국보건산업진흥원 2007 「눈대중량의 부피 및 중량 환산 DB」 별첨 1(KISTI ScienceON TRKO201100002804) — unit_weights.json 과 같은 자료, 크기를 골라 쓴 값",
+  "mfds_nq_elderly": "식약처 「노인 영양지수 교육자료」(2023)의 달걀 1개 60 g — 노른자·흰자는 달걀 가식부 비율(노른자 약 30%, 흰자 약 58%)로 나눔",
+  "frying_oil_db_pairs": "식약처 식품영양성분DB(03) 원재료성에서 같은 식품의 '생것'과 '튀긴것' 10쌍(닭고기 가슴·날개·다리·살코기, 민어·가리비·꽃새우 빵가루 튀김, 오징어 등): 튀긴 것 100 g당 지방이 생것보다 중앙값 8.95 g 많음",
+  "estimate": "출처 있는 무게가 없어 흔한 크기로 어림한 값 — 근거 문장에 어림 근거를 적음"
+ },
+ "frying_oil": {
+  "ratio": 0.09,
+  "source": "frying_oil_db_pairs",
+  "rule": "튀김기름(매핑표 frying_oil)의 먹는 양 = 같은 레시피에서 물·튀김기름·먹지 않는 재료를 뺀, g을 아는 재료 무게 × 0.09 (원문 기름 양을 넘지 않음)"
+ },
+ "qualitative": {
+  "계피가루": {
+   "small": 0.25,
+   "normal": 1.5,
+   "n": 14
+  },
+  "고추기름": {
+   "small": 2.0,
+   "normal": 5.0,
+   "n": 9
+  },
+  "달걀물": {
+   "small": 2.5,
+   "normal": 5.0,
+   "n": 5
+  },
+  "무순": {
+   "small": 2.0,
+   "normal": 5.0,
+   "n": 14
+  },
+  "무염버터": {
+   "small": 8.8,
+   "normal": 17.5,
+   "n": 12
+  },
+  "물": {
+   "small": 15.0,
+   "normal": 70.0,
+   "n": 183
+  },
+  "물전분": {
+   "small": 3.0,
+   "normal": 6.0,
+   "n": 11
+  },
+  "바질": {
+   "small": 1.2,
+   "normal": 3.0,
+   "n": 24
+  },
+  "버터": {
+   "small": 5.0,
+   "normal": 10.0,
+   "n": 104
+  },
+  "생크림": {
+   "small": 10.0,
+   "normal": 20.0,
+   "n": 81
+  },
+  "설탕": {
+   "small": 2.5,
+   "normal": 10.0,
+   "n": 283
+  },
+  "소금": {
+   "small": 0.2,
+   "normal": 0.4,
+   "n": 325
+  },
+  "시금치": {
+   "small": 10.0,
+   "normal": 25.0,
+   "n": 62
+  },
+  "식용꽃": {
+   "small": 5.0,
+   "normal": 15.0,
+   "n": 6
+  },
+  "식용유": {
+   "small": 2.5,
+   "normal": 5.0,
+   "n": 122
+  },
+  "식초": {
+   "small": 2.0,
+   "normal": 10.0,
+   "n": 176
+  },
+  "어린잎채소": {
+   "small": 5.0,
+   "normal": 10.0,
+   "n": 10
+  },
+  "올리브유": {
+   "small": 4.0,
+   "normal": 10.0,
+   "n": 67
+  },
+  "참기름": {
+   "small": 1.0,
+   "normal": 3.0,
+   "n": 184
+  },
+  "참깨": {
+   "small": 1.0,
+   "normal": 3.0,
+   "n": 33
+  },
+  "치커리": {
+   "small": 6.2,
+   "normal": 12.5,
+   "n": 12
+  },
+  "통깨": {
+   "small": 0.5,
+   "normal": 2.0,
+   "n": 84
+  },
+  "통후추": {
+   "small": 1.0,
+   "normal": 2.0,
+   "n": 22
+  },
+  "파슬리가루": {
+   "small": 0.3,
+   "normal": 1.0,
+   "n": 22
+  },
+  "파슬리다진것": {
+   "small": 1.0,
+   "normal": 2.0,
+   "n": 8
+  },
+  "파프리카가루": {
+   "small": 1.0,
+   "normal": 2.5,
+   "n": 6
+  },
+  "후추": {
+   "small": 0.25,
+   "normal": 1.0,
+   "n": 64
+  },
+  "후춧가루": {
+   "small": 0.02,
+   "normal": 0.1,
+   "n": 174
+  },
+  "흰후추": {
+   "small": 0.5,
+   "normal": 1.0,
+   "n": 39
+  },
+  "흰후춧가루": {
+   "small": 0.05,
+   "normal": 0.1,
+   "n": 5
+  }
+ },
+ "count_units": [
+  {
+   "ingredient": "레몬",
+   "unit": "개",
+   "grams": 58,
+   "source": "usda_fdc_sr",
+   "evidence": "Lemons, raw, without peel: 1 fruit (2-1/8\" dia) = 58 g"
+  },
+  {
+   "ingredient": "라임",
+   "unit": "개",
+   "grams": 67,
+   "source": "usda_fdc_sr",
+   "evidence": "Limes, raw: 1 fruit (2\" dia) = 67 g"
+  },
+  {
+   "ingredient": "아보카도",
+   "unit": "개",
+   "grams": 136,
+   "source": "usda_fdc_sr",
+   "evidence": "Avocados, raw, California(국내 수입 대부분 하스 품종): 1 fruit, without skin and seed = 136 g"
+  },
+  {
+   "ingredient": "자몽",
+   "unit": "개",
+   "grams": 246,
+   "source": "usda_fdc_sr",
+   "evidence": "Grapefruit, raw, pink and red: 1/2 fruit = 123 g → 1개 246 g"
+  },
+  {
+   "ingredient": "망고",
+   "unit": "개",
+   "grams": 207,
+   "source": "usda_fdc_sr",
+   "evidence": "Mangos, raw: 1 fruit without refuse = 207 g"
+  },
+  {
+   "ingredient": "아스파라거스",
+   "unit": "개",
+   "grams": 16,
+   "source": "usda_fdc_sr",
+   "evidence": "Asparagus, raw: 1 spear, medium (5-1/4\" to 7\" long) = 16 g"
+  },
+  {
+   "ingredient": "아스파라거스",
+   "unit": "줄기",
+   "grams": 16,
+   "source": "usda_fdc_sr",
+   "evidence": "Asparagus, raw: 1 spear, medium = 16 g"
+  },
+  {
+   "ingredient": "샐러리",
+   "unit": "개",
+   "grams": 40,
+   "source": "usda_fdc_sr",
+   "evidence": "Celery, raw: 1 stalk, medium (7-1/2\" to 8\" long) = 40 g"
+  },
+  {
+   "ingredient": "셀러리",
+   "unit": "개",
+   "grams": 40,
+   "source": "usda_fdc_sr",
+   "evidence": "Celery, raw: 1 stalk, medium = 40 g"
+  },
+  {
+   "ingredient": "샐러리",
+   "unit": "줄기",
+   "grams": 40,
+   "source": "usda_fdc_sr",
+   "evidence": "Celery, raw: 1 stalk, medium = 40 g"
+  },
+  {
+   "ingredient": "관자",
+   "unit": "개",
+   "grams": 15,
+   "source": "usda_fdc_sr",
+   "evidence": "Mollusks, scallop, raw: 2 large = 30 g → 큰 것 1개 15 g"
+  },
+  {
+   "ingredient": "파프리카",
+   "unit": "개",
+   "grams": 164,
+   "source": "usda_fdc_sr",
+   "evidence": "Peppers, sweet, red, raw: 1 large = 164 g(국산 파프리카는 큰 편이라 '큰 것')"
+  },
+  {
+   "ingredient": "노랑파프리카",
+   "unit": "개",
+   "grams": 164,
+   "source": "usda_fdc_sr",
+   "evidence": "Peppers, sweet, red, raw: 1 large = 164 g(국산 파프리카는 큰 편이라 '큰 것')"
+  },
+  {
+   "ingredient": "노란 파프리카",
+   "unit": "개",
+   "grams": 164,
+   "source": "usda_fdc_sr",
+   "evidence": "Peppers, sweet, red, raw: 1 large = 164 g(국산 파프리카는 큰 편이라 '큰 것')"
+  },
+  {
+   "ingredient": "빨간 파프리카",
+   "unit": "개",
+   "grams": 164,
+   "source": "usda_fdc_sr",
+   "evidence": "Peppers, sweet, red, raw: 1 large = 164 g(국산 파프리카는 큰 편이라 '큰 것')"
+  },
+  {
+   "ingredient": "빨강 파프리카",
+   "unit": "개",
+   "grams": 164,
+   "source": "usda_fdc_sr",
+   "evidence": "Peppers, sweet, red, raw: 1 large = 164 g(국산 파프리카는 큰 편이라 '큰 것')"
+  },
+  {
+   "ingredient": "홍파프리카",
+   "unit": "개",
+   "grams": 164,
+   "source": "usda_fdc_sr",
+   "evidence": "Peppers, sweet, red, raw: 1 large = 164 g(국산 파프리카는 큰 편이라 '큰 것')"
+  },
+  {
+   "ingredient": "황파프리카",
+   "unit": "개",
+   "grams": 164,
+   "source": "usda_fdc_sr",
+   "evidence": "Peppers, sweet, red, raw: 1 large = 164 g(국산 파프리카는 큰 편이라 '큰 것')"
+  },
+  {
+   "ingredient": "청파프리카",
+   "unit": "개",
+   "grams": 164,
+   "source": "usda_fdc_sr",
+   "evidence": "Peppers, sweet, red, raw: 1 large = 164 g(국산 파프리카는 큰 편이라 '큰 것')"
+  },
+  {
+   "ingredient": "주황파프리카",
+   "unit": "개",
+   "grams": 164,
+   "source": "usda_fdc_sr",
+   "evidence": "Peppers, sweet, red, raw: 1 large = 164 g(국산 파프리카는 큰 편이라 '큰 것')"
+  },
+  {
+   "ingredient": "적파프리카",
+   "unit": "개",
+   "grams": 164,
+   "source": "usda_fdc_sr",
+   "evidence": "Peppers, sweet, red, raw: 1 large = 164 g(국산 파프리카는 큰 편이라 '큰 것')"
+  },
+  {
+   "ingredient": "새우",
+   "unit": "마리",
+   "grams": 22,
+   "source": "khidi_2007_portion",
+   "evidence": "크기 미기재 → 중하 '중' 1마리 가식부 22.0 g(대하 대 47.0 g·중하 소 12.0 g 사이)"
+  },
+  {
+   "ingredient": "대하",
+   "unit": "마리",
+   "grams": 47,
+   "source": "khidi_2007_portion",
+   "evidence": "대하 '대' 1마리 가식부 47.0 g"
+  },
+  {
+   "ingredient": "칵테일새우",
+   "unit": "마리",
+   "grams": 3.5,
+   "source": "recipe_pairs",
+   "evidence": "레시피 원천 예의 칵테일새우 1마리 3~4 g"
+  },
+  {
+   "ingredient": "청양고추",
+   "unit": "개",
+   "grams": 10,
+   "source": "recipe_pairs",
+   "evidence": "원문 '청양고추 1개(10g)' 등 5줄의 중앙값 10 g"
+  },
+  {
+   "ingredient": "감자",
+   "unit": "개",
+   "grams": 130,
+   "source": "recipe_pairs",
+   "evidence": "원문 '감자 1개(160g)'·'(100g)' 2줄의 중앙값 130 g"
+  },
+  {
+   "ingredient": "호두",
+   "unit": "알",
+   "grams": 6,
+   "source": "recipe_pairs",
+   "evidence": "원문 '호두 1알(6g)'"
+  },
+  {
+   "ingredient": "김",
+   "unit": "장",
+   "grams": 3,
+   "source": "recipe_pairs",
+   "evidence": "원문 '김 4g(1장)'·'김(6g(3장))'의 1장 무게 중앙값 3 g"
+  },
+  {
+   "ingredient": "삶은달걀",
+   "unit": "개",
+   "grams": 60,
+   "source": "mfds_nq_elderly",
+   "evidence": "달걀 1개 60 g"
+  },
+  {
+   "ingredient": "달걀노른자",
+   "unit": "개",
+   "grams": 18,
+   "source": "mfds_nq_elderly",
+   "evidence": "달걀 1개 60 g × 노른자 약 30%"
+  },
+  {
+   "ingredient": "계란노른자",
+   "unit": "개",
+   "grams": 18,
+   "source": "mfds_nq_elderly",
+   "evidence": "달걀 1개 60 g × 노른자 약 30%"
+  },
+  {
+   "ingredient": "달걀흰자",
+   "unit": "개",
+   "grams": 35,
+   "source": "mfds_nq_elderly",
+   "evidence": "달걀 1개 60 g × 흰자 약 58%"
+  },
+  {
+   "ingredient": "계란흰자",
+   "unit": "개",
+   "grams": 35,
+   "source": "mfds_nq_elderly",
+   "evidence": "달걀 1개 60 g × 흰자 약 58%"
+  },
+  {
+   "ingredient": "통후추",
+   "unit": "알",
+   "grams": 0.05,
+   "source": "estimate",
+   "evidence": "말린 후추 열매 1알(지름 4~5 mm) 약 0.05 g"
+  },
+  {
+   "ingredient": "인삼",
+   "unit": "뿌리",
+   "grams": 40,
+   "source": "estimate",
+   "evidence": "수삼 중간 크기 1뿌리 약 40 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "수삼",
+   "unit": "뿌리",
+   "grams": 40,
+   "source": "estimate",
+   "evidence": "수삼 중간 크기 1뿌리 약 40 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "닭고기",
+   "unit": "마리",
+   "grams": 600,
+   "source": "estimate",
+   "evidence": "시판 닭 1마리 약 1 kg 중 뼈를 뺀 먹는 부분 약 60%"
+  },
+  {
+   "ingredient": "닭",
+   "unit": "마리",
+   "grams": 600,
+   "source": "estimate",
+   "evidence": "시판 닭 1마리 약 1 kg 중 뼈를 뺀 먹는 부분 약 60%"
+  },
+  {
+   "ingredient": "고등어",
+   "unit": "마리",
+   "grams": 240,
+   "source": "estimate",
+   "evidence": "중간 크기 고등어 1마리 약 400 g 중 먹는 부분 약 60%",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "판젤라틴",
+   "unit": "장",
+   "grams": 2,
+   "source": "estimate",
+   "evidence": "시판 판젤라틴 1장 약 2 g"
+  },
+  {
+   "ingredient": "치즈",
+   "unit": "장",
+   "grams": 18,
+   "source": "estimate",
+   "evidence": "시판 슬라이스 치즈 1장 약 18 g"
+  },
+  {
+   "ingredient": "슬라이스치즈",
+   "unit": "장",
+   "grams": 18,
+   "source": "estimate",
+   "evidence": "시판 슬라이스 치즈 1장 약 18 g"
+  },
+  {
+   "ingredient": "치즈슬라이스",
+   "unit": "장",
+   "grams": 18,
+   "source": "estimate",
+   "evidence": "시판 슬라이스 치즈 1장 약 18 g"
+  },
+  {
+   "ingredient": "배춧잎",
+   "unit": "장",
+   "grams": 40,
+   "source": "estimate",
+   "evidence": "배추 겉잎 1장 약 40 g"
+  },
+  {
+   "ingredient": "배추잎",
+   "unit": "장",
+   "grams": 40,
+   "source": "estimate",
+   "evidence": "배추 겉잎 1장 약 40 g"
+  },
+  {
+   "ingredient": "배추",
+   "unit": "장",
+   "grams": 40,
+   "source": "estimate",
+   "evidence": "배추 겉잎 1장 약 40 g"
+  },
+  {
+   "ingredient": "양상추",
+   "unit": "장",
+   "grams": 15,
+   "source": "estimate",
+   "evidence": "양상추 잎 1장 약 15 g"
+  },
+  {
+   "ingredient": "상추",
+   "unit": "장",
+   "grams": 10,
+   "source": "estimate",
+   "evidence": "상추 잎 1장 약 10 g"
+  },
+  {
+   "ingredient": "케일",
+   "unit": "장",
+   "grams": 10,
+   "source": "estimate",
+   "evidence": "쌈 케일 잎 1장 약 10 g"
+  },
+  {
+   "ingredient": "잣",
+   "unit": "알",
+   "grams": 0.3,
+   "source": "estimate",
+   "evidence": "잣 1알 약 0.3 g"
+  },
+  {
+   "ingredient": "건포도",
+   "unit": "알",
+   "grams": 0.5,
+   "source": "estimate",
+   "evidence": "건포도 1알 약 0.5 g"
+  },
+  {
+   "ingredient": "은행",
+   "unit": "알",
+   "grams": 1.5,
+   "source": "estimate",
+   "evidence": "깐 은행 1알 약 1.5 g"
+  },
+  {
+   "ingredient": "바질",
+   "unit": "장",
+   "grams": 0.5,
+   "source": "estimate",
+   "evidence": "바질 잎 1장 약 0.5 g"
+  },
+  {
+   "ingredient": "바질",
+   "unit": "잎",
+   "grams": 0.5,
+   "source": "estimate",
+   "evidence": "바질 잎 1장 약 0.5 g"
+  },
+  {
+   "ingredient": "바질잎",
+   "unit": "장",
+   "grams": 0.5,
+   "source": "estimate",
+   "evidence": "바질 잎 1장 약 0.5 g"
+  },
+  {
+   "ingredient": "팽이버섯",
+   "unit": "봉",
+   "grams": 150,
+   "source": "estimate",
+   "evidence": "시판 팽이버섯 1봉 150 g"
+  },
+  {
+   "ingredient": "팽이버섯",
+   "unit": "봉지",
+   "grams": 150,
+   "source": "estimate",
+   "evidence": "시판 팽이버섯 1봉 150 g"
+  },
+  {
+   "ingredient": "쪽파",
+   "unit": "대",
+   "grams": 6,
+   "source": "estimate",
+   "evidence": "쪽파 1대 약 6 g"
+  },
+  {
+   "ingredient": "곶감",
+   "unit": "개",
+   "grams": 35,
+   "source": "estimate",
+   "evidence": "곶감 1개 약 35 g"
+  },
+  {
+   "ingredient": "홍시",
+   "unit": "개",
+   "grams": 150,
+   "source": "estimate",
+   "evidence": "홍시(연시) 1개 약 150 g"
+  },
+  {
+   "ingredient": "식빵",
+   "unit": "장",
+   "grams": 35,
+   "source": "estimate",
+   "evidence": "시판 식빵 1장 약 35 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "식빵",
+   "unit": "쪽",
+   "grams": 35,
+   "source": "estimate",
+   "evidence": "시판 식빵 1장 약 35 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "라이스페이퍼",
+   "unit": "장",
+   "grams": 10,
+   "source": "estimate",
+   "evidence": "지름 22 cm 라이스페이퍼 1장 약 10 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "다시마",
+   "unit": "장",
+   "grams": 1,
+   "source": "estimate",
+   "evidence": "5×5 cm 말린 다시마 1장 약 1 g"
+  },
+  {
+   "ingredient": "건고추",
+   "unit": "개",
+   "grams": 1.5,
+   "source": "estimate",
+   "evidence": "말린 홍고추 1개 약 1~2 g(생 홍고추 11.9 g, 수분 약 85%→12%)"
+  },
+  {
+   "ingredient": "건두부",
+   "unit": "장",
+   "grams": 10,
+   "source": "estimate",
+   "evidence": "얇은 건두부(포두부) 1장 약 10 g"
+  },
+  {
+   "ingredient": "광어",
+   "unit": "마리",
+   "grams": 400,
+   "source": "estimate",
+   "evidence": "손질 전 1 kg 미만 광어 1마리의 살(가식부) 약 400 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "구운 김",
+   "unit": "장",
+   "grams": 3,
+   "source": "estimate",
+   "evidence": "김 1장 3 g('김'과 같음)"
+  },
+  {
+   "ingredient": "김치",
+   "unit": "포기",
+   "grams": 1600,
+   "source": "estimate",
+   "evidence": "배추 1포기 2~2.5 kg을 절여 담그면 약 1.6 kg",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "묵은지",
+   "unit": "포기",
+   "grams": 1600,
+   "source": "estimate",
+   "evidence": "배추김치 1포기 약 1.6 kg('김치'와 같음)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "꽈리고추",
+   "unit": "개",
+   "grams": 4,
+   "source": "estimate",
+   "evidence": "꽈리고추 1개 약 3~5 g"
+  },
+  {
+   "ingredient": "녹차",
+   "unit": "개",
+   "grams": 2,
+   "source": "estimate",
+   "evidence": "녹차 티백 1개 찻잎 약 2 g(우린 차로 계산되어 영양은 거의 0)"
+  },
+  {
+   "ingredient": "느타리버섯",
+   "unit": "줌",
+   "grams": 50,
+   "source": "estimate",
+   "evidence": "버섯·나물 1줌 약 50 g"
+  },
+  {
+   "ingredient": "미나리",
+   "unit": "줌",
+   "grams": 50,
+   "source": "estimate",
+   "evidence": "나물 1줌 약 50 g"
+  },
+  {
+   "ingredient": "숙주",
+   "unit": "줌",
+   "grams": 50,
+   "source": "estimate",
+   "evidence": "나물 1줌 약 50 g"
+  },
+  {
+   "ingredient": "쑥갓",
+   "unit": "줌",
+   "grams": 30,
+   "source": "estimate",
+   "evidence": "잎채소 1줌 약 30 g"
+  },
+  {
+   "ingredient": "무순",
+   "unit": "줌",
+   "grams": 20,
+   "source": "estimate",
+   "evidence": "새싹 채소 1줌 약 20 g"
+  },
+  {
+   "ingredient": "무순",
+   "unit": "개",
+   "grams": 0.1,
+   "source": "estimate",
+   "evidence": "무순 1가닥 약 0.1 g"
+  },
+  {
+   "ingredient": "달걀물",
+   "unit": "개",
+   "grams": 60,
+   "source": "mfds_nq_elderly",
+   "evidence": "달걀 1개 60 g('달걀'과 같음)"
+  },
+  {
+   "ingredient": "달걀지단",
+   "unit": "개",
+   "grams": 60,
+   "source": "mfds_nq_elderly",
+   "evidence": "달걀 1개 분량 60 g"
+  },
+  {
+   "ingredient": "달걀지단",
+   "unit": "장",
+   "grams": 50,
+   "source": "estimate",
+   "evidence": "지단 1장 ≈ 달걀 1개에서 껍질·부친 수분 뺀 약 50 g"
+  },
+  {
+   "ingredient": "닭다리",
+   "unit": "개",
+   "grams": 80,
+   "source": "estimate",
+   "evidence": "닭다리 1개 뼈 포함 약 110 g, 먹는 살 약 80 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "닭날개",
+   "unit": "개",
+   "grams": 25,
+   "source": "estimate",
+   "evidence": "닭날개 1개 뼈 포함 약 40 g, 먹는 살 약 25 g"
+  },
+  {
+   "ingredient": "닭봉",
+   "unit": "개",
+   "grams": 25,
+   "source": "estimate",
+   "evidence": "닭봉 1개 뼈 포함 약 40 g, 먹는 살 약 25 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "대파",
+   "unit": "cm",
+   "grams": 2,
+   "source": "estimate",
+   "evidence": "대파 흰 부분 1 cm 약 2 g('대파' 1대 55.7 g, 약 30 cm)"
+  },
+  {
+   "ingredient": "땅콩호박",
+   "unit": "개",
+   "grams": 900,
+   "source": "estimate",
+   "evidence": "땅콩호박(버터넛) 1개 약 0.9~1 kg",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "레디쉬",
+   "unit": "개",
+   "grams": 4.5,
+   "source": "usda_fdc_sr",
+   "evidence": "Radishes, raw: 1 medium = 4.5 g"
+  },
+  {
+   "ingredient": "래디시",
+   "unit": "개",
+   "grams": 4.5,
+   "source": "usda_fdc_sr",
+   "evidence": "Radishes, raw: 1 medium = 4.5 g"
+  },
+  {
+   "ingredient": "레몬 제스트",
+   "unit": "개",
+   "grams": 6,
+   "source": "usda_fdc_sr",
+   "evidence": "레몬 1개 껍질 간 것 ≈ 1큰술, Lemon peel, raw: 1 tbsp = 6 g"
+  },
+  {
+   "ingredient": "로메인",
+   "unit": "장",
+   "grams": 10,
+   "source": "usda_fdc_sr",
+   "evidence": "Lettuce, cos or romaine, raw: 1 leaf inner 6 g ~ outer 28 g → 쌈용 약 10 g"
+  },
+  {
+   "ingredient": "청상추",
+   "unit": "장",
+   "grams": 10,
+   "source": "estimate",
+   "evidence": "상추 1장 10 g('상추'와 같음)"
+  },
+  {
+   "ingredient": "로즈메리",
+   "unit": "줄기",
+   "grams": 1,
+   "source": "estimate",
+   "evidence": "생로즈메리 1줄기 약 1 g"
+  },
+  {
+   "ingredient": "타임",
+   "unit": "줄기",
+   "grams": 0.5,
+   "source": "estimate",
+   "evidence": "생타임 1줄기 약 0.5 g"
+  },
+  {
+   "ingredient": "말린 토마토",
+   "unit": "개",
+   "grams": 2,
+   "source": "usda_fdc_sr",
+   "evidence": "Tomatoes, sun-dried: 1 piece = 2 g"
+  },
+  {
+   "ingredient": "말린 방울토마토",
+   "unit": "개",
+   "grams": 1.5,
+   "source": "estimate",
+   "evidence": "말린 방울토마토 1개 약 1~2 g(생 9.7 g, 수분 91.5%→약 15%)"
+  },
+  {
+   "ingredient": "모시조개",
+   "unit": "개",
+   "grams": 4,
+   "source": "estimate",
+   "evidence": "모시조개 1개 껍데기 포함 약 15 g, 살 약 4 g"
+  },
+  {
+   "ingredient": "바지락",
+   "unit": "개",
+   "grams": 3,
+   "source": "estimate",
+   "evidence": "바지락 1개 껍데기 포함 약 10 g, 살 약 3 g"
+  },
+  {
+   "ingredient": "미니 단호박",
+   "unit": "개",
+   "grams": 350,
+   "source": "estimate",
+   "evidence": "미니 단호박 1개 약 400 g, 씨·껍질 빼고 약 350 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "바게트",
+   "unit": "조각",
+   "grams": 25,
+   "source": "estimate",
+   "evidence": "바게트 1조각(2~3 cm) 약 25 g"
+  },
+  {
+   "ingredient": "바게트",
+   "unit": "개",
+   "grams": 250,
+   "source": "estimate",
+   "evidence": "바게트 1개 약 250 g"
+  },
+  {
+   "ingredient": "블랙올리브",
+   "unit": "알",
+   "grams": 4.4,
+   "source": "usda_fdc_sr",
+   "evidence": "Olives, ripe, canned: 1 large = 4.4 g"
+  },
+  {
+   "ingredient": "블루베리",
+   "unit": "알",
+   "grams": 1.4,
+   "source": "usda_fdc_sr",
+   "evidence": "Blueberries, raw: 50 berries = 68 g"
+  },
+  {
+   "ingredient": "생강",
+   "unit": "톨",
+   "grams": 12,
+   "source": "estimate",
+   "evidence": "생강 1톨(엄지 크기) 약 10~15 g"
+  },
+  {
+   "ingredient": "표고버섯",
+   "unit": "장",
+   "grams": 16.4,
+   "source": "khidi_2007_portion",
+   "evidence": "'표고버섯' 1개 16.4 g과 같게(장 = 개)"
+  },
+  {
+   "ingredient": "흰살생선",
+   "unit": "마리",
+   "grams": 300,
+   "source": "estimate",
+   "evidence": "손질한 중간 크기 흰살생선 1마리 살 약 300 g"
+  },
+  {
+   "ingredient": "수란",
+   "unit": "개",
+   "grams": 50,
+   "source": "mfds_nq_elderly",
+   "evidence": "달걀 1개 60 g에서 껍데기(약 10%) 뺀 약 50 g"
+  },
+  {
+   "ingredient": "슬라이스 체더치즈",
+   "unit": "장",
+   "grams": 18,
+   "source": "estimate",
+   "evidence": "슬라이스 치즈 1장 18 g('치즈' 장과 같음)"
+  },
+  {
+   "ingredient": "식용 꽃",
+   "unit": "개",
+   "grams": 0.5,
+   "source": "estimate",
+   "evidence": "식용 꽃 1송이 약 0.5 g"
+  },
+  {
+   "ingredient": "아몬드",
+   "unit": "개",
+   "grams": 1.2,
+   "source": "usda_fdc_sr",
+   "evidence": "Nuts, almonds: 1 almond = 1.2 g"
+  },
+  {
+   "ingredient": "알배추",
+   "unit": "개",
+   "grams": 600,
+   "source": "estimate",
+   "evidence": "알배추 1통 약 600 g"
+  },
+  {
+   "ingredient": "애플민트잎",
+   "unit": "장",
+   "grams": 0.05,
+   "source": "usda_fdc_sr",
+   "evidence": "Spearmint, fresh: 2 leaves = 0.1 g"
+  },
+  {
+   "ingredient": "양배추",
+   "unit": "장",
+   "grams": 30,
+   "source": "estimate",
+   "evidence": "양배추 잎 1장 약 30 g"
+  },
+  {
+   "ingredient": "오징어",
+   "unit": "마리",
+   "grams": 200,
+   "source": "estimate",
+   "evidence": "오징어 1마리(약 270 g) 손질 후 약 200 g"
+  },
+  {
+   "ingredient": "정향",
+   "unit": "개",
+   "grams": 0.1,
+   "source": "estimate",
+   "evidence": "정향 1개 약 0.1 g"
+  },
+  {
+   "ingredient": "주키니호박",
+   "unit": "개",
+   "grams": 196,
+   "source": "usda_fdc_sr",
+   "evidence": "Squash, summer, zucchini, raw: 1 medium = 196 g"
+  },
+  {
+   "ingredient": "천도복숭아",
+   "unit": "개",
+   "grams": 142,
+   "source": "usda_fdc_sr",
+   "evidence": "Nectarines, raw: 1 medium = 142 g"
+  },
+  {
+   "ingredient": "청경채",
+   "unit": "개",
+   "grams": 35,
+   "source": "estimate",
+   "evidence": "청경채 1포기 약 30~40 g"
+  },
+  {
+   "ingredient": "청경채",
+   "unit": "단",
+   "grams": 300,
+   "source": "estimate",
+   "evidence": "청경채 1단 약 300 g"
+  },
+  {
+   "ingredient": "청고추",
+   "unit": "개",
+   "grams": 11.1,
+   "source": "khidi_2007_portion",
+   "evidence": "'풋고추' 1개 11.1 g과 같음"
+  },
+  {
+   "ingredient": "춘권피",
+   "unit": "장",
+   "grams": 10,
+   "source": "estimate",
+   "evidence": "춘권피 1장 약 10 g"
+  },
+  {
+   "ingredient": "치아바타",
+   "unit": "개",
+   "grams": 100,
+   "source": "estimate",
+   "evidence": "치아바타 1개 약 100 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "포카치아빵",
+   "unit": "개",
+   "grams": 150,
+   "source": "estimate",
+   "evidence": "포카치아 1개 약 150 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "콜라비",
+   "unit": "개",
+   "grams": 300,
+   "source": "estimate",
+   "evidence": "콜라비 1개 약 300 g"
+  },
+  {
+   "ingredient": "토르티야",
+   "unit": "장",
+   "grams": 49,
+   "source": "usda_fdc_sr",
+   "evidence": "Tortillas, ready-to-bake or -fry, flour: 1 tortilla (approx 7-8\" dia) = 49 g"
+  },
+  {
+   "ingredient": "또띠아",
+   "unit": "장",
+   "grams": 49,
+   "source": "usda_fdc_sr",
+   "evidence": "Tortillas, flour: 1 tortilla (approx 7-8\" dia) = 49 g"
+  },
+  {
+   "ingredient": "할라피뇨 피클",
+   "unit": "개",
+   "grams": 3,
+   "source": "estimate",
+   "evidence": "할라페뇨 절임 1조각 약 3 g"
+  },
+  {
+   "ingredient": "현미밥",
+   "unit": "공기",
+   "grams": 210,
+   "source": "estimate",
+   "evidence": "밥 1공기 210 g(unit_weights.json '밥' 공기와 같게)"
+  },
+  {
+   "ingredient": "호박",
+   "unit": "개",
+   "grams": 226.7,
+   "source": "khidi_2007_portion",
+   "evidence": "'애호박' 1개 226.7 g과 같음"
+  },
+  {
+   "ingredient": "흰다리새우",
+   "unit": "마리",
+   "grams": 20,
+   "source": "estimate",
+   "evidence": "흰다리새우 1마리 껍질 벗긴 살 약 20 g('새우' 마리 22 g과 비슷)"
+  },
+  {
+   "ingredient": "크래미",
+   "unit": "줄",
+   "grams": 17,
+   "source": "estimate",
+   "evidence": "게맛살 1줄 약 17 g"
+  },
+  {
+   "ingredient": "멸치",
+   "unit": "마리",
+   "grams": 2,
+   "source": "estimate",
+   "evidence": "국물용 멸치 1마리 약 2 g"
+  },
+  {
+   "ingredient": "가자미",
+   "unit": "마리",
+   "grams": 200,
+   "source": "estimate",
+   "evidence": "가자미 1마리 살 약 200 g"
+  },
+  {
+   "ingredient": "닭다릿살",
+   "unit": "개",
+   "grams": 80,
+   "source": "estimate",
+   "evidence": "닭다리(넓적다리) 1개 뼈 포함 약 110 g, 먹는 살 약 80 g",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "미니양배추",
+   "unit": "개",
+   "grams": 19,
+   "source": "usda_fdc_sr",
+   "evidence": "Brussels sprouts, raw: 1 sprout = 19 g (미니 양배추 = 방울양배추)"
+  }
+ ],
+ "qualitative_by_food": {
+  "P113-101050100-F001-000": {
+   "name": "바질가루",
+   "small": 0.5,
+   "normal": 1.0,
+   "n": 6
+  },
+  "R102-014010006-0000": {
+   "name": "전분, 감자, 가루",
+   "small": 5.0,
+   "normal": 10.0,
+   "n": 119
+  },
+  "R103-011020000-0000": {
+   "name": "설탕, 백설탕",
+   "small": 2.5,
+   "normal": 8.0,
+   "n": 297
+  },
+  "R105-007000058-0000": {
+   "name": "땅콩, 볶은것",
+   "small": 3.0,
+   "normal": 10.0,
+   "n": 29
+  },
+  "R105-020000002-0000": {
+   "name": "아몬드, 말린것",
+   "small": 5.0,
+   "normal": 10.0,
+   "n": 49
+  },
+  "R105-026010058-0000": {
+   "name": "참깨, 검은색, 볶은것",
+   "small": 2.0,
+   "normal": 5.0,
+   "n": 43
+  },
+  "R105-026020058-0000": {
+   "name": "참깨, 흰색, 볶은것",
+   "small": 1.0,
+   "normal": 2.0,
+   "n": 149
+  },
+  "R106-021000043-0000": {
+   "name": "고추냉이, 페이스트",
+   "small": 2.0,
+   "normal": 5.0,
+   "n": 12
+  },
+  "R106-053002201-0000": {
+   "name": "마늘, 생것",
+   "small": 3.0,
+   "normal": 10.0,
+   "n": 252
+  },
+  "R106-066002701-0000": {
+   "name": "무순, 싹, 생것",
+   "small": 3.0,
+   "normal": 10.0,
+   "n": 30
+  },
+  "R106-080007801-0000": {
+   "name": "바질, 잎, 생것",
+   "small": 1.0,
+   "normal": 2.2,
+   "n": 28
+  },
+  "R106-094003801-0000": {
+   "name": "비타민채(다채), 어린잎, 생것",
+   "small": 5.0,
+   "normal": 10.0,
+   "n": 44
+  },
+  "R106-115000001-0000": {
+   "name": "시금치, 생것",
+   "small": 10.0,
+   "normal": 20.0,
+   "n": 65
+  },
+  "R106-132000001-0000": {
+   "name": "양파, 생것",
+   "small": 10.0,
+   "normal": 20.0,
+   "n": 492
+  },
+  "R106-178007801-0000": {
+   "name": "치커리, 잎, 생것",
+   "small": 5.0,
+   "normal": 10.0,
+   "n": 13
+  },
+  "R106-193000001-0000": {
+   "name": "파슬리, 생것",
+   "small": 1.0,
+   "normal": 2.5,
+   "n": 20
+  },
+  "R108-024000001-0000": {
+   "name": "레몬, 생것",
+   "small": 5.0,
+   "normal": 10.0,
+   "n": 36
+  },
+  "R108-037000001-0000": {
+   "name": "바나나, 생것",
+   "small": 20.0,
+   "normal": 50.0,
+   "n": 27
+  },
+  "R110-003000001-0000": {
+   "name": "달걀, 생것",
+   "small": 20.0,
+   "normal": 50.0,
+   "n": 134
+  },
+  "R114-017000000-0000": {
+   "name": "올리브유",
+   "small": 4.0,
+   "normal": 10.0,
+   "n": 157
+  },
+  "R114-020000000-0000": {
+   "name": "참기름",
+   "small": 1.3,
+   "normal": 3.0,
+   "n": 190
+  },
+  "R114-022000000-0000": {
+   "name": "콩기름",
+   "small": 3.0,
+   "normal": 10.0,
+   "n": 181
+  },
+  "R118-003000006-0000": {
+   "name": "계피, 가루",
+   "small": 0.25,
+   "normal": 1.5,
+   "n": 14
+  },
+  "R118-007000006-0000": {
+   "name": "고춧가루",
+   "small": 1.0,
+   "normal": 3.0,
+   "n": 107
+  },
+  "R118-039100006-0000": {
+   "name": "파프리카, 가루",
+   "small": 1.0,
+   "normal": 2.5,
+   "n": 6
+  },
+  "R118-041010006-0000": {
+   "name": "후추, 검은색, 가루",
+   "small": 0.03,
+   "normal": 0.2,
+   "n": 263
+  },
+  "R118-041020006-0000": {
+   "name": "후추, 흰색, 가루",
+   "small": 0.5,
+   "normal": 1.0,
+   "n": 47
+  },
+  "R118-047000001-0000": {
+   "name": "애플민트, 생것",
+   "small": 0.75,
+   "normal": 1.5,
+   "n": 10
+  },
+  "R118-057000002-0000": {
+   "name": "파슬리, 말린것",
+   "small": 0.3,
+   "normal": 1.0,
+   "n": 25
+  },
+  "R121-027010000-0000": {
+   "name": "고추기름",
+   "small": 2.0,
+   "normal": 5.0,
+   "n": 9
+  },
+  "R121-027060100-0000": {
+   "name": "버터, 가염",
+   "small": 5.0,
+   "normal": 10.0,
+   "n": 105
+  },
+  "R121-027060200-0000": {
+   "name": "버터, 무가염",
+   "small": 5.0,
+   "normal": 10.0,
+   "n": 16
+  },
+  "R121-033090100-0000": {
+   "name": "소금, 정제염",
+   "small": 0.2,
+   "normal": 0.5,
+   "n": 347
+  },
+  "R121-033140600-0000": {
+   "name": "식초, 양조",
+   "small": 2.0,
+   "normal": 10.0,
+   "n": 188
+  },
+  "R121-038110000-0000": {
+   "name": "치즈, 파르메산(파마산)",
+   "small": 5.0,
+   "normal": 13.0,
+   "n": 9
+  },
+  "R121-044020000-0000": {
+   "name": "크림, 생크림",
+   "small": 10.0,
+   "normal": 20.0,
+   "n": 83
+  }
+ }
+}

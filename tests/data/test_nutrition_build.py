@@ -6,6 +6,7 @@ import pytest
 from agetech_data import paths
 from agetech_data.nutrition import build
 from agetech_data.nutrition.build import build_recipe_nutrition
+from agetech_data.nutrition.estimates import Estimates
 from agetech_data.nutrition.match import INGREDIENT_MAP_FILE, load_ingredient_map, norm
 
 
@@ -18,6 +19,9 @@ def _recipe(seq, parts):
     return row
 
 
+NO_EST = Estimates({}, {}, {}, None, None)   # 출처 있는 환산만 (추정 없음)
+
+
 def _by_name(recipe):
     return {i["name"]: i for i in recipe["ingredients"]}
 
@@ -25,7 +29,7 @@ def _by_name(recipe):
 def test_contribution_only_for_usable_and_converted(sample_foods):
     onion = next(f for f in sample_foods if f.name == "양파, 생것")
     rows = [_recipe("1", "양파 50g, 물 300ml, 감자 100g, 레몬(1/4개), 참깨 약간")]
-    [r] = build_recipe_nutrition(rows, sample_foods, entries=())
+    [r] = build_recipe_nutrition(rows, sample_foods, entries=(), estimates=NO_EST)
     by = _by_name(r)
     assert by["양파"]["contribution"]["energy_kcal"] == pytest.approx(onion.nutrients["energy_kcal"] / 2)
     assert by["물"]["match"]["status"] == "water" and by["물"]["contribution"] is None
@@ -134,4 +138,4 @@ def test_real_recipes_regression():
     for i in items:
         if i["contribution"] is not None:
             assert i["match"]["status"] in ("exact", "curated", "reviewed")
-            assert i["grams"]["status"] in ("direct", "direct_paren", "approx_ml", "unit_weight")
+            assert i["grams"]["status"] in ("direct", "direct_paren", "approx_ml", "unit_weight", "estimated")
