@@ -12,7 +12,7 @@
 | 레시피 입력 | `src/frontend/assets/data/recipes.json` sha256 `d5db8e9435fe6679…` |
 | 가공 결과 | `data/processed/foods_v03.json`, `data/processed/recipe_ingredient_nutrition.json` (gitignore) |
 
-레시피 보완: `src/frontend/assets/data/recipe_corrections.json` sha256 `a65aa83fad372106…`, 적용 항목 6건. 원본 해시와 보완 목록 해시를 함께 보존합니다.
+레시피 보완: `src/frontend/assets/data/recipe_corrections.json` sha256 `6cb801120f6b4ab4…`, 적용 항목 6건. 원본 해시와 보완 목록 해시를 함께 보존합니다.
 
 ## 1. 요약
 

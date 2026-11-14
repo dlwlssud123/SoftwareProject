@@ -16,6 +16,38 @@ from agetech_data.textutil import sha256_json
 ALLOWED_FIELD = re.compile(r"MANUAL(?:0[1-9]|1[0-9]|20)|RCP_PARTS_DTLS")
 
 
+def _closes_one_mark(expected: str, value: str) -> bool:
+    """Allow only one added closing mark: a terminal ')' or a ']' that closes an open '['."""
+    if value == expected + ")":
+        return expected.count("(") == expected.count(")") + 1
+    if len(value) != len(expected) + 1:
+        return False
+    at = next(
+        (i for i, (a, b) in enumerate(zip(value, expected)) if a != b), len(expected)
+    )
+    if value[at] != "]" or value[:at] + value[at + 1 :] != expected:
+        return False
+    line = expected[expected.rfind("\n", 0, at) + 1 : at]
+    return (
+        line.count("[") == line.count("]") + 1
+        and expected.count("[") == expected.count("]") + 1
+    )
+
+
+def _attribution(entry: dict, manifest: dict) -> tuple[str, str]:
+    """An entry may name its own verifier; otherwise the manifest-level one applies."""
+    verified_at = entry.get("verified_at", manifest["verified_at"])
+    verified_by = entry.get("verified_by", manifest["verified_by"])
+    if not (
+        isinstance(verified_at, str)
+        and verified_at
+        and isinstance(verified_by, str)
+        and verified_by
+    ):
+        raise ValueError("Recipe corrections require verification attribution")
+    return verified_at, verified_by
+
+
 def apply_corrections(
     rows: list[dict], manifest: dict
 ) -> tuple[list[dict], list[dict]]:
@@ -70,13 +102,13 @@ def apply_corrections(
             raise ValueError("Official source recovery may only fill missing fields")
         if entry["kind"] == "format_only" and not (
             field == "RCP_PARTS_DTLS"
-            and entry["value"] == entry["expected_value"] + ")"
-            and entry["expected_value"].count("(")
-            == entry["expected_value"].count(")") + 1
+            and _closes_one_mark(entry["expected_value"], entry["value"])
         ):
             raise ValueError(
                 "Format correction may only close a single unmatched terminal parenthesis"
+                " or section bracket"
             )
+        verified_at, verified_by = _attribution(entry, manifest)
         seen.add(key)
 
         row = by_id.get(entry["source_id"])
@@ -95,8 +127,8 @@ def apply_corrections(
         audit.append(
             {
                 **entry,
-                "verified_at": manifest["verified_at"],
-                "verified_by": manifest["verified_by"],
+                "verified_at": verified_at,
+                "verified_by": verified_by,
                 "state": "already_present" if previous == entry["value"] else "applied",
             }
         )
