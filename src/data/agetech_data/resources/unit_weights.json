@@ -4,7 +4,8 @@
   "mfds_nq_elderly": "식품의약품안전처, 「건강·식생활 향상을 위한 노인 영양지수 교육자료」(2023, 1회 분량 출처 표기: 한국인 영양소 섭취기준), https://various.foodsafetykorea.go.kr/nq/ebook/oldman/oldman_balance.pdf",
   "measure_spoon": "계량스푼 1큰술 15 mL·1작은술 5 mL — 미국 FDA 「Guidelines for Determining Metric Equivalents of Household Measures」(1 Tbsp = 15 mL, 1 tsp = 5 mL), 농촌진흥청 「한식 재료 정보」(data.go.kr 15137344)의 물 1큰술 14 g·3⅔큰술 54 g과 맞음",
   "measure_cup": "국내 계량컵 1컵 200 mL — 식약처 노인 영양지수 교육자료 '우유(200 mL)'·'과일주스 1/2컵(100 mL)'. 종이컵(약 180 mL)·미국 컵(240 mL)과 다르므로 근사로 표시",
-  "khidi_2007_portion": "한국보건산업진흥원(보건복지부 과제), 「식품별 영양성분 DB 구축사업 — 눈대중량의 부피 및 중량 환산 DB 구축」 최종보고서(2007-12), 별첨 1 「식품의 눈대중량 DB」, KISTI ScienceON TRKO201100002804. 가식부 중량을 쓰고, 크기 미기재는 '중'(여러 행이면 평균), '중'이 없으면 대·소 평균 또는 있는 크기만. 보고서 값만 인용(원문은 재배포하지 않음)"
+  "khidi_2007_portion": "한국보건산업진흥원(보건복지부 과제), 「식품별 영양성분 DB 구축사업 — 눈대중량의 부피 및 중량 환산 DB 구축」 최종보고서(2007-12), 별첨 1 「식품의 눈대중량 DB」, KISTI ScienceON TRKO201100002804. 가식부 중량을 쓰고, 크기 미기재는 '중'(여러 행이면 평균), '중'이 없으면 대·소 평균 또는 있는 크기만. 보고서 값만 인용(원문은 재배포하지 않음)",
+  "product_label": "식자재 몰 제품 규격 표기(식봄 foodspring.co.kr), 제품명에 적힌 낱개 무게·개수 — 제품마다 다를 수 있어 흔한 규격 하나를 쓰고 URL·확인일을 evidence에 적음"
  },
  "count_units": [
   {
@@ -517,6 +518,48 @@
    "grams": 64.6,
    "source": "khidi_2007_portion",
    "evidence": "닭다리(9044) 생것 1개 113.3 g, 가식부 64.6 g(별첨 114쪽)"
+  },
+  {
+   "ingredient": "치즈",
+   "unit": "장",
+   "grams": 18,
+   "source": "product_label",
+   "evidence": "식봄 '서울우유 체다치즈(슬라이스 18g*100입 1.8kg/EA)' → 1장 18 g(https://www.foodspring.co.kr/goods/detail/385900, 2026-11-14 확인)"
+  },
+  {
+   "ingredient": "슬라이스치즈",
+   "unit": "장",
+   "grams": 18,
+   "source": "product_label",
+   "evidence": "식봄 '서울우유 체다치즈(슬라이스 18g*100입 1.8kg/EA)' → 1장 18 g(https://www.foodspring.co.kr/goods/detail/385900, 2026-11-14 확인)"
+  },
+  {
+   "ingredient": "치즈슬라이스",
+   "unit": "장",
+   "grams": 18,
+   "source": "product_label",
+   "evidence": "식봄 '서울우유 체다치즈(슬라이스 18g*100입 1.8kg/EA)' → 1장 18 g(https://www.foodspring.co.kr/goods/detail/385900, 2026-11-14 확인)"
+  },
+  {
+   "ingredient": "광어",
+   "unit": "마리",
+   "grams": 615.2,
+   "source": "khidi_2007_portion",
+   "evidence": "광어회(11066) '판매하는 1접시' 가식부 615.2 g, 같은 접시를 뜨고 남은 폐기부 418.4 g(매운탕용) → 1마리 약 1.03 kg 중 가식부 615.2 g(별첨 125~126쪽)"
+  },
+  {
+   "ingredient": "슬라이스 체더치즈",
+   "unit": "장",
+   "grams": 18,
+   "source": "product_label",
+   "evidence": "식봄 '서울우유 체다치즈(슬라이스 18g*100입 1.8kg/EA)' → 1장 18 g(https://www.foodspring.co.kr/goods/detail/385900, 2026-11-14 확인)"
+  },
+  {
+   "ingredient": "춘권피",
+   "unit": "장",
+   "grams": 18,
+   "source": "product_label",
+   "evidence": "식봄 '랜시푸드 춘권피(10인치 18g±1g*30입 550g/EA)' → 1장 18 g(https://www.foodspring.co.kr/goods/detail/386726, 2026-11-14 확인)"
   }
  ],
  "volume_units": [
