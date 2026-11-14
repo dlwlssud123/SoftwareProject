@@ -1,5 +1,5 @@
 {
- "description": "레시피 재료명 → 식약처 식품영양성분DB(03, 품목대표) 식품코드 수동 매핑. reviewed_by 가 비어 있으면 'curated'(근거만 있음, 사람 확인 전)로 계산에 쓰되 보고서에 검토 대기로 표시한다. 사람이 확인하면 reviewed_by·reviewed_at 을 채운다. food_code 가 null 이면 '매핑하지 않음' 결정.",
+ "description": "레시피 재료명 → 식약처 식품영양성분DB(03, 품목대표) 식품코드 수동 매핑. reviewed_by 가 비어 있으면 'curated'(근거만 있음, 사람 확인 전)로 계산에 쓰되 보고서에 검토 대기로 표시한다. 사람이 확인하면 reviewed_by·reviewed_at 을 채운다. food_code 가 null 이면 '매핑하지 않음' 결정. exclude 가 있으면('not_eaten' 먹지 않음 — 건져 내는 월계수잎·국물 우리는 약재 / 'counted_elsewhere' 같은 레시피에서 이미 계산) 물처럼 0으로 취급하고 완전 판정에서 뺀다.",
  "source": "foodntr_v03_representative (DB_CLASS_NM=품목대표, 2026-10-31 수집)",
  "entries": [
   {
@@ -44,6 +44,33 @@
    "rationale": "원문 괄호에 '가슴살' 명시",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-09"
+  },
+  {
+   "ingredient": "닭고기",
+   "when_paren": "살코기",
+   "food_code": "R109-008008601-0000",
+   "food_name": "닭고기, 살코기, 생것",
+   "rationale": "원문 괄호에 '살코기' 명시",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "닭고기",
+   "when_paren": "다리",
+   "food_code": "R109-008000701-0000",
+   "food_name": "닭고기, 다리(넓적다리), 생것",
+   "rationale": "원문 괄호에 '다리(살)' 명시 → 넓적다리",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "닭고기",
+   "when_paren": "날개",
+   "food_code": "R109-008000601-0000",
+   "food_name": "닭고기, 날개, 생것",
+   "rationale": "원문 괄호에 '날개' 명시",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
   },
   {
    "ingredient": "닭가슴살",
@@ -1091,25 +1118,28 @@
    "ingredient": "오가피",
    "food_code": null,
    "food_name": null,
+   "exclude": "not_eaten",
    "rationale": "국물을 우리는 약재 — 건져 내고 먹지 않아 계산하지 않음",
    "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-09"
+   "reviewed_at": "2026-11-13"
   },
   {
    "ingredient": "가시오가피",
    "food_code": null,
    "food_name": null,
+   "exclude": "not_eaten",
    "rationale": "국물을 우리는 약재 — 건져 내고 먹지 않아 계산하지 않음",
    "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-09"
+   "reviewed_at": "2026-11-13"
   },
   {
    "ingredient": "당귀",
    "food_code": null,
    "food_name": null,
+   "exclude": "not_eaten",
    "rationale": "국물을 우리는 약재 — 건져 내고 먹지 않아 계산하지 않음",
    "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-09"
+   "reviewed_at": "2026-11-13"
   },
   {
    "ingredient": "쌀겨",
@@ -1145,27 +1175,28 @@
   },
   {
    "ingredient": "어린잎",
-   "food_code": null,
-   "food_name": null,
-   "rationale": "여러 잎채소를 섞은 것 — 종류를 정할 수 없음",
+   "food_code": "R106-094003801-0000",
+   "food_name": "비타민채(다채), 어린잎, 생것",
+   "rationale": "DB에 '어린잎 모둠' 없음 → 흔한 비타민채(다채) 어린잎으로 근사(어린잎 종류 간 100g당 15~26 kcal) (11/09 '여러 잎채소를 섞은 것 — 종류를 정할 수 없음'으로 매핑 안 함 → 바꿈)",
    "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-09"
+   "reviewed_at": "2026-11-13"
   },
   {
    "ingredient": "시금치우유 소스",
    "food_code": null,
    "food_name": null,
+   "exclude": "counted_elsewhere",
    "rationale": "같은 레시피의 [시금치우유 소스] 구획(시금치·우유)으로 이미 계산 — 이중 계산 방지",
    "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-09"
+   "reviewed_at": "2026-11-13"
   },
   {
    "ingredient": "닭고기",
-   "food_code": null,
-   "food_name": null,
-   "rationale": "통닭(전체) 생것 항목 없음. 분량도 '1마리'라 계산되지 않음",
+   "food_code": "R109-008008601-0000",
+   "food_name": "닭고기, 살코기, 생것",
+   "rationale": "부위 미기재 → g으로 적힌 쪽은 볶음밥·닭강정처럼 뼈 없는 살이라 살코기, 생것으로 봄. '1마리'는 g을 몰라 계산 안 됨(11/09 '매핑 안 함'에서 바꿈)",
    "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-09"
+   "reviewed_at": "2026-11-13"
   },
   {
    "ingredient": "레디쉬",
@@ -1724,6 +1755,535 @@
    "food_code": "R106-101173701-0000",
    "food_name": "상추, 잎상추, 적색, 생것",
    "rationale": "종류 미기재 → 쌈용 잎상추(적색 기본 항목). 잎상추 종류 간 영양 차이 작음",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "월계수잎",
+   "food_code": null,
+   "food_name": null,
+   "exclude": "not_eaten",
+   "rationale": "끓인 뒤 건져 내 먹지 않음 — 0으로 취급(11/13 #31에서 남긴 이유 그대로)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "더덕",
+   "food_code": "R106-043007601-0000",
+   "food_name": "더덕, 뿌리, 생것",
+   "rationale": "원문 모두 손질한 뿌리(20~100g) → 뿌리, 생것",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "감자전분",
+   "food_code": "R102-014010006-0000",
+   "food_name": "전분, 감자, 가루",
+   "rationale": "감자전분 = 전분, 감자, 가루",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "전분가루",
+   "food_code": "R102-014010006-0000",
+   "food_name": "전분, 감자, 가루",
+   "rationale": "종류 미기재 → '전분'과 같이 감자전분",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "중력분",
+   "food_code": "R101-016080000-0000",
+   "food_name": "밀, 중력밀가루",
+   "rationale": "중력분 = 밀, 중력밀가루",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "우리밀가루",
+   "food_code": "R101-016080000-0000",
+   "food_name": "밀, 중력밀가루",
+   "rationale": "국산 밀가루, 강력·박력 표기 없음 → 중력밀가루",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "현미밥",
+   "food_code": "R101-013000500-0001",
+   "food_name": "멥쌀, 현미, 밥",
+   "rationale": "품종 미기재 → 멥쌀, 현미, 밥",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "귀리",
+   "food_code": "R101-001020101-0000",
+   "food_name": "귀리, 쌀귀리, 도정, 생것",
+   "rationale": "종류 미기재 → 국내 재배가 많은 쌀귀리, 도정, 생것(겉귀리와 영양 차이 작음)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "귀리밥",
+   "food_code": "R101-049000100-0001",
+   "food_name": "귀리, 쌀귀리, 도정, 밥",
+   "rationale": "'귀리'와 같이 쌀귀리, 도정, 밥",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "표고버섯마른것",
+   "food_code": "R107-027000002-0000",
+   "food_name": "표고버섯, 배지재배, 말린것",
+   "rationale": "'건표고버섯'과 같음(배지재배, 말린것)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "검정깨",
+   "food_code": "R105-026010058-0000",
+   "food_name": "참깨, 검은색, 볶은것",
+   "rationale": "'검은깨'와 같음(참깨, 검은색, 볶은것)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "고구마순",
+   "food_code": "R106-208007901-0000",
+   "food_name": "고구마, 줄기, 생것",
+   "rationale": "고구마순 = 고구마 줄기, 생것",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "아삭이고추",
+   "food_code": "R106-018060001-0000",
+   "food_name": "고추, 오이고추, 생것",
+   "rationale": "아삭이고추 = 오이고추 계열(고추, 오이고추, 생것)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "계란노른자",
+   "food_code": "R110-003005101-0000",
+   "food_name": "달걀, 난황, 생것",
+   "rationale": "'달걀노른자'와 같음(난황)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "알배추",
+   "food_code": "R106-087060001-0000",
+   "food_name": "배추, 알배기, 생것",
+   "rationale": "알배추 = 배추, 알배기, 생것(DB 이름 그대로)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "스파게티",
+   "food_code": "R101-024020002-0000",
+   "food_name": "스파게티면, 말린것",
+   "rationale": "원문 60~100g(1인분 건면 무게) → 스파게티면, 말린것",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "스파게티면",
+   "food_code": "R101-024020002-0000",
+   "food_name": "스파게티면, 말린것",
+   "rationale": "'(건면)' 표기·1인분 무게 → 스파게티면, 말린것",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "판젤라틴",
+   "food_code": "R121-008050106-0000",
+   "food_name": "젤라틴, 디저트용, 가루",
+   "rationale": "판·가루 모두 같은 젤라틴 → DB 1종(디저트용, 가루)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "백미",
+   "food_code": "R101-008000301-0003",
+   "food_name": "멥쌀, 백미, 생것",
+   "rationale": "'쌀'과 같음(멥쌀, 백미, 생것)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "포도",
+   "food_code": "R108-098070001-0000",
+   "food_name": "포도, 캠벨얼리, 생것",
+   "rationale": "품종 미기재 → 국내에 가장 흔한 캠벨얼리, 생것",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "삼색파프리카",
+   "food_code": "R106-194008101-0000",
+   "food_name": "파프리카, 빨간색, 생것",
+   "rationale": "여러 색을 섞어 씀 → '파프리카'와 같이 빨간색(색별 영양 차이 작음)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "고운 고춧가루",
+   "food_code": "R118-007000006-0000",
+   "food_name": "고춧가루",
+   "rationale": "고운 고춧가루 = 고춧가루(입자 크기만 다름)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "흰후춧가루",
+   "food_code": "R118-041020006-0000",
+   "food_name": "후추, 흰색, 가루",
+   "rationale": "'흰 후추'와 같음(후추, 흰색, 가루)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "깐양파",
+   "food_code": "R106-132000001-0000",
+   "food_name": "양파, 생것",
+   "rationale": "껍질 깐 양파 = 양파, 생것",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "으깬 두부",
+   "food_code": "R121-043020300-0000",
+   "food_name": "두부",
+   "rationale": "으깬 두부 = 두부(모양만 다름)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "달걀물",
+   "food_code": "R110-003000001-0000",
+   "food_name": "달걀, 생것",
+   "rationale": "풀어 놓은 달걀 = 달걀, 생것",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "통삼겹",
+   "food_code": "R109-014006601-0000",
+   "food_name": "돼지고기, 삼겹살, 생것",
+   "rationale": "통으로 된 삼겹살 = 돼지고기, 삼겹살, 생것",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "관자",
+   "food_code": "R211-461014701-0000",
+   "food_name": "가리비, 관자, 생것",
+   "rationale": "관자 = 가리비 관자, 생것",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "곶감",
+   "food_code": "R108-006000005-0000",
+   "food_name": "감, 떫은감, 곶감, 반건시",
+   "rationale": "DB에 곶감은 반건시 1종(완전히 말린 곶감보다 열량이 조금 낮게 잡힐 수 있음)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "홍시",
+   "food_code": "R108-001040001-0000",
+   "food_name": "감, 떫은감, 연시, 생것",
+   "rationale": "홍시 = 떫은감 연시, 생것(품종 미기재)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "다시마국물",
+   "food_code": "R121-028020000-0000",
+   "food_name": "다시마 육수",
+   "rationale": "다시마국물 = 다시마 육수",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "유부",
+   "food_code": "R121-043020100-0000",
+   "food_name": "두부, 유부",
+   "rationale": "조미 표기 없음 → 두부, 유부(조미 유부는 나트륨이 더 높음)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "식빵",
+   "food_code": "R121-016160300-0000",
+   "food_name": "빵, 식빵, 쇼트닝 첨가",
+   "rationale": "종류 미기재 → 시판 일반 식빵(쇼트닝 첨가). 버터 식빵과 열량 차이 5% 안",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "견과류",
+   "food_code": "P116-001030200-F003-003",
+   "food_name": "모둠견과",
+   "rationale": "종류 미기재 → 모둠견과(DB에 1종, 가공식품)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "참외",
+   "food_code": "R108-086004101-0000",
+   "food_name": "참외, 생것, 씨 제거",
+   "rationale": "씨 표기 없음 → 생것, 씨 제거(씨 포함과 열량 차이 작음)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "겨자",
+   "food_code": "R118-052000043-0000",
+   "food_name": "겨자 페이스트",
+   "rationale": "소스·곁들이장용 소량 → '연겨자'와 같이 겨자 페이스트(가루는 '겨자가루'로 따로 씀)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "고추냉이",
+   "food_code": "R106-021000043-0000",
+   "food_name": "고추냉이, 페이스트",
+   "rationale": "소스용 → 시판 튜브형 고추냉이 페이스트",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "요구르트",
+   "food_code": "R121-026061100-0000",
+   "food_name": "요구르트, 호상, 플레인",
+   "rationale": "맛 표기 없음, 소스·밑간용 → 호상, 플레인",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "피클",
+   "food_code": "R106-148010020-0000",
+   "food_name": "오이 피클",
+   "rationale": "종류 미기재 → 가장 흔한 오이 피클",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "소주",
+   "food_code": "R121-035060300-0000",
+   "food_name": "증류주, 소주, 희석식, 알코올 17.8%",
+   "rationale": "요리용 소주 → 시판 희석식(알코올 17.8%). 조리 중 알코올이 일부 날아가 열량이 조금 높게 잡힐 수 있음",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "육수",
+   "food_code": "R109-011000000-0000",
+   "food_name": "닭 육수",
+   "rationale": "종류 미기재. 끓인 육수는 100g당 1~12 kcal·나트륨 수십 mg으로 종류 간 차이가 작아 닭 육수로 근사(시판 농축·과립 육수는 나트륨이 훨씬 높음)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "튀김기름",
+   "food_code": null,
+   "food_name": null,
+   "rationale": "원문은 튀길 때 쓰는 기름 전체(200~400g)라 흡수량을 알 수 없음 — 그대로 계산하면 1인분 지방이 크게 부풀려져 매핑하지 않음",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "마늘기름",
+   "food_code": "R114-022000000-0000",
+   "food_name": "콩기름",
+   "rationale": "마늘 향을 낸 식용유 → '식용유'와 같이 콩기름",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "어린잎채소",
+   "food_code": "R106-094003801-0000",
+   "food_name": "비타민채(다채), 어린잎, 생것",
+   "rationale": "'어린잎'과 같음(비타민채 어린잎으로 근사)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "새싹",
+   "food_code": "R106-066002701-0000",
+   "food_name": "무순, 싹, 생것",
+   "rationale": "DB에 '새싹 모둠' 없음 → 흔한 무순(싹)으로 근사(싹 채소 간 열량 차이 작음)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "새싹채소",
+   "food_code": "R106-066002701-0000",
+   "food_name": "무순, 싹, 생것",
+   "rationale": "'새싹'과 같음(무순으로 근사)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "김",
+   "food_code": "R212-813133902-0000",
+   "food_name": "김, 참김, 말린것",
+   "rationale": "김밥·김말이용 마른 김 → 김, 참김, 말린것(구운것과 나트륨 차이 큼: 100g당 1,294 vs 491 mg)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "치즈",
+   "food_code": "R121-038030000-0000",
+   "food_name": "치즈, 모차렐라",
+   "rationale": "종류 미기재, 리조또·돈가스·카프레제 등 녹이는 용도 → 모차렐라",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "라면",
+   "food_code": "R121-010000002-0000",
+   "food_name": "라면, 말린것",
+   "rationale": "원문 50~110g = 면 무게, 볶음면·샐러드처럼 스프를 따로 안 쓰는 레시피 → 라면, 말린것(면). 스프까지 쓰면 나트륨이 낮게 잡힘",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "참치",
+   "food_code": "R211-059070128-0000",
+   "food_name": "참치통조림",
+   "rationale": "김밥·주먹밥·비빔밥롤 등 대부분 통조림 → 참치통조림(원재료성). 초밥(662)만 생참치라 조금 다름",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "옥수수",
+   "food_code": "R121-025010028-0000",
+   "food_name": "옥수수, 통조림, 가당",
+   "rationale": "20~35g 알갱이 용도 → 옥수수, 통조림, 가당",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "물녹말",
+   "food_code": "R102-014010006-0000",
+   "food_name": "전분, 감자, 가루",
+   "rationale": "원문 대부분 '물녹말(녹말가루 10g, 물 10g)'이라 g이 녹말 양 → 감자전분",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "물전분",
+   "food_code": "R102-014010006-0000",
+   "food_name": "전분, 감자, 가루",
+   "rationale": "물과 섞은 무게라 전분이 1인분 2~5g 많게 잡힐 수 있음 → 감자전분",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "불린 쌀",
+   "food_code": "R101-008000301-0003",
+   "food_name": "멥쌀, 백미, 생것",
+   "rationale": "DB에 불린 쌀 없음 → 멥쌀, 백미, 생것(불린 무게라 열량이 20~30% 높게 잡힘)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "불린쌀",
+   "food_code": "R101-008000301-0003",
+   "food_name": "멥쌀, 백미, 생것",
+   "rationale": "'불린 쌀'과 같음",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "팥",
+   "food_code": "R104-018020002-0000",
+   "food_name": "팥, 적색, 말린것",
+   "rationale": "팥죽·잡곡 등 조리 전 재료 → 팥, 적색, 말린것",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "깨소금",
+   "food_code": "R105-026020058-0000",
+   "food_name": "참깨, 흰색, 볶은것",
+   "rationale": "볶은 참깨를 빻아 소금을 조금 섞은 것 → 참깨, 흰색, 볶은것(나트륨은 약간 낮게 잡힘)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "사워크림",
+   "food_code": "P113-004020400-F041-001",
+   "food_name": "사워크림소스",
+   "rationale": "DB에 사워크림은 가공식품 '사워크림소스' 1종(100g당 210 kcal·지방 20g — 사워크림과 비슷)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "어간장",
+   "food_code": "R121-033170200-0000",
+   "food_name": "간장, 개량, 양조",
+   "rationale": "DB에 어간장 없음 → '맛간장'과 같이 양조간장으로 근사",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "간편 어간장",
+   "food_code": "R121-033170200-0000",
+   "food_name": "간장, 개량, 양조",
+   "rationale": "'어간장'과 같음(양조간장으로 근사)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "젓갈",
+   "food_code": "R211-717250171-0002",
+   "food_name": "새우젓",
+   "rationale": "김치·겉절이 양념, 종류 미기재 → 가장 흔한 새우젓",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "알룰로스",
+   "food_code": null,
+   "food_name": null,
+   "rationale": "DB에 알룰로스 없음(열량이 거의 없는 감미료)",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "함초가루",
+   "food_code": null,
+   "food_name": null,
+   "rationale": "DB에 함초 항목 없음. 짠맛을 내는 가루라 나트륨이 빠짐",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "피클링스파이스",
+   "food_code": null,
+   "food_name": null,
+   "rationale": "향신료 혼합, DB에 항목 없음",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "백년초가루",
+   "food_code": null,
+   "food_name": null,
+   "rationale": "DB에 백년초 항목 없음",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-13"
+  },
+  {
+   "ingredient": "라이스페이퍼",
+   "food_code": null,
+   "food_name": null,
+   "rationale": "DB에 라이스페이퍼 항목 없음(음식 '월남쌈'만 있음)",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-13"
   }

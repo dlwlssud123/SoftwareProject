@@ -1,6 +1,13 @@
 import pytest
 
-from agetech_data.nutrition.match import FoodIndex, match_ingredient, search_dishes
+from agetech_data.nutrition.match import (
+    EXCLUDE_REASONS,
+    FoodIndex,
+    load_ingredient_map,
+    match_ingredient,
+    prep_alias,
+    search_dishes,
+)
 
 
 @pytest.fixture(scope="module")
@@ -63,6 +70,59 @@ def test_manual_map_precedence_and_paren(index):
     assert match_ingredient("땅콩", index, entries=entries).rule == "manual:no_match"
     m = match_ingredient("양파", index, entries=entries)
     assert (m.status, m.rule) == ("unmapped", "manual:missing_code")
+
+
+@pytest.mark.parametrize("name,alias", [
+    ("양파다진것", "다진 양파"), ("쇠고기갈은것", "다진 쇠고기"), ("대파 다진 것", "다진 대파"),
+    ("양파채썬것", "양파"), ("당근 채친것", "당근"), ("양파작게자른것", "양파"), ("실파송송썬것", "실파"),
+    # 상태가 바뀌는 표기(영양이 달라짐)와 손질 표기가 없는 이름은 그대로
+    ("시금치데친것", None), ("감자삶은것", None), ("표고버섯마른것", None), ("양파", None), ("다진 양파", None),
+])
+def test_prep_alias_only_for_shape_words(name, alias):
+    assert prep_alias(name) == alias
+
+
+def test_suffix_prep_names_follow_the_prefix_form(index):
+    m = match_ingredient("파다진것", index, entries=())
+    assert (m.status, m.food_name, m.rule) == ("exact", "파, 생것", "손질+다진+raw")
+    m = match_ingredient("양파채썬것", index, entries=())
+    assert (m.status, m.food_name, m.rule) == ("exact", "양파, 생것", "손질+raw")
+    # DB에 이름 그대로인 식품('마늘, 다진것')이 있으면 그것이 먼저
+    m = match_ingredient("마늘다진것", index, entries=())
+    assert (m.food_name, m.rule) == ("마늘, 다진것", "full")
+
+
+def test_chopped_names_follow_the_base_manual_decision(index):
+    entries = ({"ingredient": "감자", "food_code": "R102-001140001-0000", "rationale": "품종 미기재",
+                "reviewed_by": "최재영", "reviewed_at": "2026-11-13"},)
+    for name in ("다진 감자", "다진감자", "감자다진것", "감자갈은것"):
+        m = match_ingredient(name, index, entries=entries)
+        assert (m.status, m.food_name) == ("reviewed", "감자, 수미, 생것"), name
+        assert m.rule in ("다진+manual", "손질+다진+manual") and "품종 미기재" in m.rationale
+    # 그 이름 그대로 적힌 매핑표 항목이 있으면 그것이 먼저
+    own = entries + ({"ingredient": "다진 감자", "food_code": None, "rationale": "따로 정함"},)
+    assert match_ingredient("다진 감자", index, entries=own).rule == "manual:no_match"
+    # DB에 '마늘, 다진것'이 따로 있으면 기본 재료 매핑표를 따르지 않는다
+    garlic = ({"ingredient": "마늘", "food_code": "R102-001140001-0000", "rationale": "시험"},)
+    assert match_ingredient("다진 마늘", index, entries=garlic).food_name == "마늘, 다진것"
+
+
+def test_excluded_entries_are_zero_not_unknown(index):
+    entries = ({"ingredient": "월계수잎", "food_code": None, "exclude": "not_eaten", "rationale": "건져 냄"},
+               {"ingredient": "소스", "food_code": None, "exclude": "counted_elsewhere", "rationale": "구획으로 계산"},
+               {"ingredient": "잘못", "food_code": None, "exclude": "maybe", "rationale": "x"})
+    m = match_ingredient("월계수잎", index, entries=entries)
+    assert (m.status, m.rule, m.rationale, m.usable) == ("excluded", "manual:not_eaten", "건져 냄", False)
+    assert match_ingredient("소스", index, entries=entries).rule == "manual:counted_elsewhere"
+    assert match_ingredient("월계수잎채썬것", index, entries=entries).status == "excluded"   # 손질 표기도 같음
+    with pytest.raises(ValueError):
+        match_ingredient("잘못", index, entries=entries)
+
+
+def test_real_map_exclude_values_are_known():
+    entries = load_ingredient_map()
+    assert {e["exclude"] for e in entries if e.get("exclude")} <= set(EXCLUDE_REASONS)
+    assert all(e["food_code"] is None for e in entries if e.get("exclude"))
 
 
 def test_candidates_are_not_usable(index):

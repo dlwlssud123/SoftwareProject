@@ -48,6 +48,16 @@ def test_reviewed_manual_mapping_carries_reviewer_and_order(sample_foods):
     assert curated["content_sha256"] != row["content_sha256"]
 
 
+def test_mapping_inherited_from_base_manual_entry_carries_its_reviewer(sample_foods):
+    entry = {"ingredient": "감자", "food_code": "R102-001140001-0000", "rationale": "품종 미기재",
+             "reviewed_by": "최재영", "reviewed_at": "2026-11-13"}
+    [row] = recipe_map_rows([_db_recipe(_recipe("1", "감자다진것 50g, 다진 감자 20g, 감자채썬것 10g"))],
+                            sample_foods, (entry,))
+    assert [i["match"]["rule"] for i in row["ingredients"]] == ["손질+다진+manual", "다진+manual", "손질+manual"]
+    assert all(i["match"]["status"] == "reviewed" and i["review"] == {"by": "최재영", "on": "2026-11-13"}
+               for i in row["ingredients"])
+
+
 def test_content_hash_tracks_food_values_and_map(sample_foods):
     recipe = _db_recipe(_recipe("1", "양파 50g"))
     [first] = recipe_map_rows([recipe], sample_foods, ())
@@ -73,3 +83,28 @@ def test_qualitative_seasonings_are_listed_and_kept_out_of_complete(sample_foods
     assert (got["2"]["complete"], got["2"]["complete_except_qualitative"]) == (False, False)  # 레몬 '1개'(환산표에 없음)
     assert (got["3"]["complete"], got["3"]["complete_except_qualitative"], got["3"]["qualitative_items"]) == (
         True, True, [])
+
+
+def test_missing_items_say_why_and_excluded_items_count_as_zero(sample_foods):
+    # 몰라서 뺀 재료는 이유와 함께 남기고, 먹지 않는 재료는 물처럼 0으로 쳐서 완전 판정을 막지 않는다
+    entries = (
+        {"ingredient": "월계수잎", "food_code": None, "exclude": "not_eaten", "rationale": "건져 냄"},
+        {"ingredient": "튀김기름", "food_code": None, "rationale": "흡수량 모름"},
+    )
+    rows = [_recipe("1", "양파 50g, 월계수잎 1g, 물 100ml"),
+            _recipe("2", "양파 50g, 튀김기름 200g, 이름없는재료 10g, 레몬(1개), 소금 약간")]
+    got = {r["source_id"]: r for r in build_recipe_nutrition(rows, sample_foods, entries)}
+    one = got["1"]["coverage"]
+    assert one["complete"] and one["missing_items"] == []
+    assert one["excluded_items"] == [{"name": "월계수잎", "amount_text": "1g", "note": "건져 냄"}]
+    assert one["grams_converted"] == 50.0                       # 무게 비율에서도 물·월계수잎은 뺌
+    assert [i["match"]["status"] for i in got["1"]["ingredients"]] == ["exact", "excluded", "water"]
+    assert got["1"]["ingredients"][1]["match"]["rule"] == "manual:not_eaten"
+    two = got["2"]["coverage"]
+    assert not two["complete"] and [q["name"] for q in two["qualitative_items"]] == ["소금"]
+    assert [(m["name"], m["reason"]) for m in two["missing_items"]] == [
+        ("튀김기름", "no_food"), ("이름없는재료", "food_undecided"), ("레몬", "food_undecided")]
+    assert two["missing_items"][0]["note"] == "흡수량 모름"
+    # 식품은 정했지만 g을 모르는 재료 (개당 중량표에 '봉지'가 없음)
+    [onion] = build_recipe_nutrition([_recipe("3", "양파 1봉지")], sample_foods, ())[0]["coverage"]["missing_items"]
+    assert (onion["reason"], onion["amount_text"]) == ("grams_unknown", "1봉지") and "환산표에 없어" in onion["note"]

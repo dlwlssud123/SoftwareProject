@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from agetech_data.nutrition.foods import FOOD_FLAGS
 from agetech_data.nutrition.fields import NUTRIENT_FIELDS
+from agetech_data.nutrition.foods import FOOD_FLAGS
+from agetech_data.nutrition.match import NOT_COUNTED
 from agetech_data.recipes.report import _pct, _table
 
 MATCH_LABEL = {
@@ -11,6 +12,7 @@ MATCH_LABEL = {
     "curated": ("근거를 적은 수동 매핑, 사람 확인 전", "사용 (검토 대기)"),
     "exact": ("규칙 일치, 후보 1개", "사용"),
     "water": ("물", "0으로 취급"),
+    "excluded": ("먹지 않음·이미 계산됨 (매핑표)", "0으로 취급"),
     "candidate": ("유사 후보만 있음", "사용 안 함"),
     "unmapped": ("후보 없음", "사용 안 함"),
 }
@@ -57,19 +59,19 @@ def render_report(inputs: dict, s: dict, recipes: list[dict], dishes: dict) -> s
     n_items = s["items"]
     mi, mg = s["match_items"], s["match_grams"]
     used_items = sum(mi.get(k, 0) for k in ("reviewed", "curated", "exact"))
-    g_all = sum(v for k, v in mg.items() if k != "water")
+    g_all = sum(v for k, v in mg.items() if k not in NOT_COUNTED)
     g_used = sum(mg.get(k, 0) for k in ("reviewed", "curated", "exact"))
     L += ["", "## 1. 요약", "",
           f"- 레시피 {s['recipes']}건, 재료 {n_items}개. 식품코드가 정해진 재료 **{used_items}개({_pct(used_items, n_items)})**, "
-          f"g 환산된 재료 무게(물 제외) 기준 **{_pct(round(g_used), round(g_all))}**",
-          f"- 모든 재료(물 제외)가 영양 계산에 들어간 레시피 **{s['complete_recipes']}건**. "
-          "나머지는 개수 단위·정성 분량·미매핑 재료가 있어 합계가 부분값입니다.",
+          f"g 환산된 재료 무게(물·먹지 않는 재료 제외) 기준 **{_pct(round(g_used), round(g_all))}**",
+          f"- 모든 재료(물·먹지 않는 재료 제외)가 영양 계산에 들어간 레시피 **{s['complete_recipes']}건**. "
+          "나머지는 개수 단위·정성 분량·미매핑 재료가 있어 합계가 부분값입니다(레시피마다 `coverage.missing_items`에 이유).",
           f"- 수동 매핑표 {s['manual_map']['entries']}건 중 사람 확인 {s['manual_map']['reviewed']}건"
           + ("" if s["manual_map"]["reviewed"] == s["manual_map"]["entries"]
              else " (나머지는 근거만 적은 `curated`, PR 리뷰에서 확인 요청)"), ""]
     L += _table(["매핑 상태", "의미", "영양 계산", "항목 수", "비율", "g (환산분)", "무게 비율(물 제외)"], [
         [f"`{k}`", MATCH_LABEL[k][0], MATCH_LABEL[k][1], mi.get(k, 0), _pct(mi.get(k, 0), n_items),
-         _fmt(mg.get(k), 0), "-" if k == "water" else _pct(round(mg.get(k, 0)), round(g_all))]
+         _fmt(mg.get(k), 0), "-" if k in NOT_COUNTED else _pct(round(mg.get(k, 0)), round(g_all))]
         for k in MATCH_LABEL
     ])
     L += [""]
@@ -100,12 +102,19 @@ def render_report(inputs: dict, s: dict, recipes: list[dict], dishes: dict) -> s
 
     rest = [d for d in s["review"] if d["status"] in ("candidate", "unmapped")]
     L += ["", f"## 4. 식품코드가 정해지지 않은 재료 {len(rest)}종", "",
-          "부위·품종·가공 형태를 원문만으로 정할 수 없거나 DB에 대응 식품이 없는 재료입니다. 영양 계산에서 빠집니다. "
-          "`unmapped` 중 근거가 있는 것은 매핑표에서 '매핑하지 않음'으로 정한 것입니다(먹지 않는 약재·이중 계산되는 소스 등).", ""]
+          "부위·품종·가공 형태를 원문만으로 정할 수 없거나 DB에 대응 식품이 없는 재료입니다. 영양 계산에서 빠지고, "
+          "레시피의 `coverage.missing_items`에 이유(`food_undecided`·`no_food`)와 함께 남습니다. "
+          "`unmapped` 중 근거가 있는 것은 매핑표에서 '매핑하지 않음'으로 정한 것입니다(DB에 없음·먹는 양 모름 등).", ""]
     L += _table(["재료명", "상태", "사용 횟수", "g", "결정 근거 / 상위 후보 (식품명·점수)"], [
         [d["name"], f"`{d['status']}`", d["count"], _fmt(d["grams"], 0),
          d["rationale"] or "; ".join(f"{c['name']} ({c['score']:.2f})" for c in d["candidates"]) or "-"] for d in rest
     ]) if rest else ["없음."]
+    excl = [d for d in s["review"] if d["status"] == "excluded"]
+    if excl:
+        L += ["", f"0으로 친 재료(`excluded`) {len(excl)}종 — 먹지 않거나 같은 레시피에서 이미 계산돼 빠진 것이 아니라 "
+              "0으로 취급합니다(완전 판정에 영향 없음, 레시피의 `coverage.excluded_items`).", ""]
+        L += _table(["재료명", "사용 횟수", "g", "근거"],
+                    [[d["name"], d["count"], _fmt(d["grams"], 0), d["rationale"] or "-"] for d in excl])
 
     L += ["", "## 5. 레시피 원문 영양값과 비교 (참고)", "",
           "레시피 원문 `INFO_*`는 1인분 표기지만 1인분 중량(`INFO_WGT`)이 대부분 비어 있고, 재료 분량이 몇 인분 기준인지도 "

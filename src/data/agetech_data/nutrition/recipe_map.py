@@ -16,11 +16,13 @@ from __future__ import annotations
 
 from agetech_data.nutrition.build import ingredient_nutrition
 from agetech_data.nutrition.foods import FoodRecord
-from agetech_data.nutrition.match import FoodIndex, _manual, load_ingredient_map
+from agetech_data.nutrition.match import FoodIndex, load_ingredient_map, manual_entry
 from agetech_data.textutil import sha256_json
 
-MAPPER_VERSION = "recipe-food-map-v3"  # v2: 계량 단위·출처 있는 개당 중량(unit_weight) 환산
+MAPPER_VERSION = "recipe-food-map-v4"  # v2: 계량 단위·출처 있는 개당 중량(unit_weight) 환산
 #                                        v3: coverage 에 정성 분량(qualitative_items·complete_except_qualitative)
+#                                        v4: 손질 표기(○○다진것·○○채썬것)·'다진 ○○' 이 기본 재료 매핑을 따름,
+#                                            먹지 않는 재료 excluded(0 으로 취급)·coverage.missing_items·excluded_items
 
 
 def food_records(normalized: list[dict]) -> list[FoodRecord]:
@@ -33,9 +35,10 @@ def map_sha256(entries) -> str:
 
 
 def _review(item: dict, ingredient: dict, entries) -> dict | None:
-    if item["match"]["rule"] != "manual":
+    rule = item["match"]["rule"] or ""
+    if rule != "manual" and not rule.endswith("+manual"):   # 손질+manual·다진+manual = 기본 재료의 매핑표 결정
         return None
-    entry = _manual(ingredient["name"], ingredient.get("paren_texts") or [], entries)
+    entry = manual_entry(ingredient["name"], ingredient.get("paren_texts") or [], entries)
     if not entry or not entry.get("reviewed_by"):
         return None
     return {"by": entry["reviewed_by"], "on": entry.get("reviewed_at")}
