@@ -125,18 +125,19 @@ RAG_PYTHON=<embed extra가 깔린 python> uv run python -m app.jobs.daily_refres
 | 8 | `recipes_contract` | `agetech_data.recipes.contract --input data/raw/recipes/cookrcp01_all.json --no-sample --corrections src/frontend/assets/data/recipe_corrections.json --output-json data/processed/recipes_api_all.json` (보완표 적용 행 = DB 게시 내용, `rag_index_contract.md` 4절) | `--no-rag` |
 | 9 | `rag_index` | `agetech_data.rag.index` — RAG 파이썬 | 이번 실행에서 2·3·7·8 중 하나라도 정상이 아님 / 임베딩 환경 없음 |
 | 10 | `rag_export` | `agetech_data.rag.export` — RAG 파이썬 | 9가 정상이 아님 |
-| 11 | `rag_load` | `psql -X -v ON_ERROR_STOP=1 -f load_index.sql` (`data/processed/rag`에서) | 10이 정상이 아님 / psql 없음 / RAG 표(`rag_index_version`·`rag_chunk`) 없음 |
+| 11 | `rag_load` | `app.jobs.load_rag_index --apply` — 백엔드 파이썬, psql 필요 없음 (`rag_index_contract.md` 4절) | 10이 정상이 아님 |
+| 12 | `rag_load_verify` | `app.jobs.load_rag_index --verify` (`--verify`일 때만) | 11이 정상이 아님 |
 
-- **다시 돌려도 안전하다.** 적재는 모두 같은 수집본이면 `already_imported`, RAG는 같은 판본이면 적재·전환하지 않는다.
-- **기다림은 실패가 아니다.** 미완성 수집본·임베딩 환경 없음·psql/RAG 표 없음은 `skipped`(이유 코드 `incomplete_snapshot`·`needs_not_ok`·`no_embed_env`·`no_psql`·`no_rag_tables`)로 남고 실행은 성공이다. 미완성 수집본은 적재하지 않고 DB를 마지막 완성본 상태로 둔다 — 복지 상세는 다음 실행에서 이어 받은 뒤 적재된다.
+- **다시 돌려도 안전하다.** 적재는 모두 같은 수집본이면 `already_imported`, RAG는 같은 인덱스가 같은 게시 판본에 붙으면(판본 이름이 같으면) `already_active`로 적재·전환하지 않는다. 인덱스가 그대로여도 레시피·복지 재적재로 게시 판본 지문만 바뀌었으면 새 이름으로 다시 적재한다.
+- **기다림은 실패가 아니다.** 미완성 수집본·임베딩 환경 없음은 `skipped`(이유 코드 `incomplete_snapshot`·`needs_not_ok`·`no_embed_env`)로 남고 실행은 성공이다. RAG 표는 Alembic `20261114_03`으로 생기므로 따로 기다리지 않는다(마이그레이션 전이면 `rag_load`가 실패로 알린다). 미완성 수집본은 적재하지 않고 DB를 마지막 완성본 상태로 둔다 — 복지 상세는 다음 실행에서 이어 받은 뒤 적재된다.
 - **실패해도 뒤 단계는 계속한다.** 한 소스 수집이 실패하면 그 소스는 마지막 정상 판본으로 적재된다(같은 판본이면 건너뜀). 다만 RAG는 이번 실행에서 복지·레시피 적재가 정상이었을 때만 만든다 — 새 인덱스 판본이 늘 DB 게시 판본과 맞게.
 - 실행 결과: 하나라도 `failed`면 실패, `job_runs.error_code` = 처음 실패한 단계 이름. 종료 코드 0 성공 / 1 실패 / 2 `--job-id`가 맞지 않음 / 3 다른 실행이 진행 중.
 - **동시 실행 막기**: 세션 advisory lock(키 `6711061157`)으로 하루 실행은 하나만. 강제 종료로 `running`에 남은 같은 종류 행은 다음 실행이 `failed`·`interrupted`로 정리한다. 적재마다 잡는 잠금(`6711061156`)은 그대로다.
 - **worker와 연결**: worker가 `queued` 행(재시도면 `failed` 행)을 만들고 `--job-id <id>`로 넘기면 그 행을 `running` → `succeeded`/`failed`로 바꾸고 `attempts`를 1 올린다. 없으면 행을 새로 만든다. 재시도 간격(`next_run_at`)은 worker가 정한다.
 - **RAG 파이썬**: `rag.index`·`rag.export`는 numpy·sentence-transformers가 필요하다(백엔드 가상환경에는 없음). `--rag-python` 또는 `RAG_PYTHON`에 `uv sync --extra embed`로 만든 루트 가상환경의 python을 준다. 바뀐 청크가 없으면 모델을 올리지 않는다(0.4초). 바뀐 청크가 있으면 그 단계 동안만 모델(약 2.5GB)을 올린다 — 같은 서버에서 AI 도우미 API가 모델을 올려 두고 있으면 메모리를 함께 본다.
-- **psql**: `load_index.sql`은 psql 전용 명령(`\gset`·`\if`·`\copy`)을 쓴다. 서버에 psql(postgresql-client)이 없거나 RAG 표가 아직 없으면(SQL 초안 v3, Alembic 반영 전) `rag_load`만 건너뛴다. 접속 정보는 `DATABASE_URL`에서 `PGHOST`·`PGPORT`·`PGUSER`·`PGPASSWORD`·`PGDATABASE` 환경변수로 넘긴다(명령줄에 비밀번호 안 남김).
+- **RAG 적재(11/14부터 psql 없음)**: `rag_load`는 다른 적재와 같은 백엔드 파이썬·같은 `DATABASE_URL`로 `rag_chunk.csv`를 COPY한다(psycopg). 예전 `load_index.sql`(psql 전용 `\gset`·`\if`·`\copy`)과 `--psql` 옵션은 없앴다 — 서버에 postgresql-client가 없어도 된다. 활성화하면 직전 판본 하나만 남기고 오래된 판본을 지운다(판본 하나 약 3,400행).
 - **기록 파일** (gitignore): `data/processed/daily_refresh_status.json` — 마지막 실행 `{job_run_id, status, started_at, finished_at, error_code, planned, steps[]}`, 단계마다 `{name, status, started_at, duration_sec, exit_code, summary, error | reason·detail}`(진행 중에도 단계마다 갱신). `summary`는 적재 결과 JSON(긴 목록은 10개까지), 수집은 소스별 `{status, items, changes, error}`. `daily_refresh_log.jsonl` — 실행마다 한 줄. `data/processed/daily_refresh/<단계>.log` — 단계별 마지막 출력 전체. 출력에 섞일 수 있는 DB 주소·비밀번호·공공데이터 API 키는 `***`로 가린다.
-- **일정**: 서버에서 하루 1회(예: 새벽 3시 KST — 복지 상세 한도가 00시에 초기화됨) cron/systemd timer 또는 worker가 실행하고, 종료 코드 1이면 운영 알림. 실데이터 실행(이 PC, 2026-11-13, 빈 DB + RAG 표): 전체 465초 — 수집 368초(영양 DB 응답이 느려 249초, 제철 상세 135회 81초), 적재 합계 58초, 재료 매핑 31초, RAG 5단계 8초(다시 임베딩 0, 활성 2,878청크). 수집 없이 다시 돌리면(`--skip-refresh`) 적재는 모두 `already_imported`, 약 33초.
+- **일정**: 서버에서 하루 1회(예: 새벽 3시 KST — 복지 상세 한도가 00시에 초기화됨) cron/systemd timer 또는 worker가 실행하고, 종료 코드 1이면 운영 알림. 실데이터 실행(이 PC, 2026-11-13, 빈 DB + RAG 표): 전체 465초 — 수집 368초(영양 DB 응답이 느려 249초, 제철 상세 135회 81초), 적재 합계 58초, 재료 매핑 31초, RAG 5단계 8초(다시 임베딩 0, 활성 2,878청크). 수집 없이 다시 돌리면(`--skip-refresh`) 적재는 모두 `already_imported`, 약 33초. 11/14(파이썬 적재로 바꾼 뒤, 빈 DB + Alembic head, `--skip-refresh --verify` 16단계): 183초 — 적재 60초·검증 38초·재료 매핑 33초, `rag_index` 45초(본문이 바뀐 72청크만 다시 임베딩), `rag_load` 1.6초(3,370청크 활성)·`rag_load_verify` 1.6초.
 
 ## 6. 알려진 제한
 

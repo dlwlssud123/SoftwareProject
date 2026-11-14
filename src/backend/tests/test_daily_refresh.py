@@ -33,7 +33,7 @@ class Clock:
 
 
 class FakeRunner:
-    """Answers by step: argv[2] is the module for python steps, psql steps start with 'psql'."""
+    """Answers by step: argv[2] is the module (load_rag_index answers as rag_load)."""
 
     def __init__(self, fail=(), embed=True, refresh_status=None):
         self.fail, self.embed, self.refresh_status = set(fail), embed, refresh_status
@@ -43,7 +43,9 @@ class FakeRunner:
         self.calls.append((argv, cwd, env))
         if argv[1] == "-c":
             return dr.Result(0 if self.embed else 3, "", "")
-        name = "rag_load" if argv[0] == "psql" else argv[2].split(".")[-1]
+        name = argv[2].split(".")[-1]
+        if name == "load_rag_index":
+            name = "rag_load" if argv[-1] == "--apply" else "rag_load_verify"
         if name in self.fail:
             return dr.Result(
                 1, "", f"{name} failed. password=sekretpw key=abcdef123456"
@@ -69,7 +71,12 @@ class FakeRunner:
             )
             return dr.Result(0, "[recipes] 정상\n완료: 정상 1 / 실패 0\n", "")
         if name == "rag_load":
-            return dr.Result(0, "COMMIT\n판본 V 활성 (청크 2878 개)\n", "")
+            loaded = {
+                "status": "activated",
+                "index_version": "V.0123456789ab",
+                "loaded": 2878,
+            }
+            return dr.Result(0, json.dumps(loaded, indent=2), "")
         return dr.Result(0, json.dumps({"already_imported": False, "rows": 3}), "log")
 
 
@@ -82,15 +89,14 @@ def snapshot(path, complete=True, **details):
 
 
 def local_steps(tmp_path, **build):
-    """Default steps with snapshots in tmp_path (all complete) and rag_load running there."""
+    """Default steps with snapshots in tmp_path (all complete)."""
     out = []
     for step in dr.build_steps(**build):
         snaps = tuple(
             snapshot(tmp_path / f"{step.name}_{i}.json")
             for i, _ in enumerate(step.snapshots)
         )
-        cwd = tmp_path if step.runtime == "psql" else step.cwd
-        out.append(dataclasses.replace(step, snapshots=snaps, cwd=cwd))
+        out.append(dataclasses.replace(step, snapshots=snaps))
     return out
 
 
@@ -99,10 +105,7 @@ def run(steps, runner, tmp_path, **kw):
         "runner": runner,
         "python": "py",
         "rag_python": "ragpy",
-        "psql": "psql",
         "env": {"E": "1"},
-        "psql_env": {"PGPASSWORD": "x"},
-        "rag_tables": lambda: True,
         "scrub": lambda s: s.replace("sekretpw", "***").replace("abcdef123456", "***"),
         "clock": Clock(),
         "output_dir": tmp_path / "out",
@@ -142,6 +145,15 @@ def test_build_steps_order_and_options():
     ]
     assert [s.needs for s in verify] == [(n,) for n in DEFAULT_ORDER[1:6]]
     assert all(s.args[-1] == "--verify" for s in verify)
+    # the RAG load runs in the backend python (no psql) and is re-checked with --verify
+    assert steps["rag_load"].runtime == "backend"
+    assert steps["rag_load"].args == ("-m", "app.jobs.load_rag_index", "--apply")
+    last = dr.build_steps(verify=True)[-1]
+    assert (last.name, last.needs, last.args[-1]) == (
+        "rag_load_verify",
+        ("rag_load",),
+        "--verify",
+    )
 
 
 def test_all_steps_ok_with_summaries_and_logs(tmp_path):
@@ -159,13 +171,17 @@ def test_all_steps_ok_with_summaries_and_logs(tmp_path):
         }
     }
     assert rows["import_welfare"]["summary"] == {"already_imported": False, "rows": 3}
-    assert rows["rag_load"]["summary"] == "판본 V 활성 (청크 2878 개)"
-    calls = {c[0][2] if c[0][0] != "psql" else "psql": c for c in runner.calls}
+    assert rows["rag_load"]["summary"] == {
+        "status": "activated",
+        "index_version": "V.0123456789ab",
+        "loaded": 2878,
+    }
+    calls = {c[0][2]: c for c in runner.calls if c[0][1] == "-m"}
     assert calls["agetech_data.rag.index"][0][0] == "ragpy"
     assert calls["app.jobs.import_seasonal"][0][0] == "py"
-    psql_argv, psql_cwd, psql_env = calls["psql"]
-    assert psql_argv[-2:] == ["-f", "load_index.sql"] and psql_cwd == tmp_path
-    assert psql_env == {"PGPASSWORD": "x"}
+    load_argv, load_cwd, load_env = calls["app.jobs.load_rag_index"]
+    assert load_argv == ["py", "-m", "app.jobs.load_rag_index", "--apply"]
+    assert load_cwd == dr.BACKEND_DIR and load_env == {"E": "1"}
     assert (
         (tmp_path / "out" / "import_welfare.log")
         .read_text(encoding="utf-8")
@@ -195,7 +211,7 @@ def test_incomplete_snapshot_waits_and_rag_keeps_previous_version(tmp_path):
         == "ok"
     )
     assert dr.outcome(list(rows.values())) == ("succeeded", None)
-    ran = [c[0][2] for c in runner.calls if c[0][0] != "psql" and c[0][1] == "-m"]
+    ran = [c[0][2] for c in runner.calls if c[0][1] == "-m"]
     assert "app.jobs.import_welfare" not in ran and "agetech_data.rag.index" not in ran
 
 
@@ -219,19 +235,21 @@ def test_failure_continues_and_first_failure_is_error_code(tmp_path):
     assert dr.outcome(rows) == ("failed", "import_public_data")
 
 
-def test_rag_steps_wait_for_embed_env_psql_and_tables(tmp_path):
+def test_rag_steps_wait_for_embed_env(tmp_path):
     rows = by_name(run(local_steps(tmp_path), FakeRunner(embed=False), tmp_path))
     assert rows["rag_index"]["reason"] == "no_embed_env"
     assert rows["rag_export"]["reason"] == rows["rag_load"]["reason"] == "needs_not_ok"
-    rows = by_name(run(local_steps(tmp_path), FakeRunner(), tmp_path, psql=None))
-    assert (
-        rows["rag_export"]["status"] == "ok" and rows["rag_load"]["reason"] == "no_psql"
-    )
-    rows = by_name(
-        run(local_steps(tmp_path), FakeRunner(), tmp_path, rag_tables=lambda: False)
-    )
-    assert rows["rag_load"]["reason"] == "no_rag_tables"
     assert dr.outcome(list(rows.values())) == ("succeeded", None)
+
+
+def test_failed_rag_load_fails_the_run_and_skips_its_verify(tmp_path):
+    rows = run(
+        local_steps(tmp_path, verify=True), FakeRunner(fail={"rag_load"}), tmp_path
+    )
+    named = by_name(rows)
+    assert named["rag_load"]["status"] == "failed"
+    assert named["rag_load_verify"]["reason"] == "needs_not_ok"
+    assert dr.outcome(rows) == ("failed", "rag_load")
 
 
 def test_scrubber_and_child_environment(monkeypatch):
@@ -240,18 +258,8 @@ def test_scrubber_and_child_environment(monkeypatch):
     scrub = dr.secrets_scrubber(url)
     leaked = f"connect {url} failed; serviceKey=abcdef123456 pw=sekretpw"
     assert "sekretpw" not in scrub(leaked) and "abcdef123456" not in scrub(leaked)
-    env, psql_env = dr.child_environment(url)
+    env = dr.child_environment(url)
     assert env["DATABASE_URL"] == url and env["PYTHONIOENCODING"] == "utf-8"
-    assert {
-        k: psql_env[k]
-        for k in ("PGHOST", "PGPORT", "PGUSER", "PGPASSWORD", "PGDATABASE")
-    } == {
-        "PGHOST": "db.internal",
-        "PGPORT": "5433",
-        "PGUSER": "app",
-        "PGPASSWORD": "sekretpw",
-        "PGDATABASE": "valueflow",
-    }
 
 
 def test_snapshot_wait_only_for_readable_incomplete_snapshots(tmp_path):
@@ -295,9 +303,7 @@ def daily(conn, tmp_path, runner, **kw):
         runner=runner,
         python="py",
         rag_python="py",
-        psql=None,
         env={},
-        psql_env={},
         scrub=lambda s: s,
         **kw,
     )
@@ -378,11 +384,3 @@ def test_postgres_second_run_waits_for_the_lock(tmp_path, pg_connection):
         assert runner.calls == [] and job_rows(pg_connection) == []
         holder.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": dr.RUN_LOCK})
         holder.commit()
-
-
-def test_postgres_rag_tables_check(pg_connection):
-    assert dr.rag_tables_exist(pg_connection) is False
-    pg_connection.execute(text("CREATE TABLE rag_index_version (index_version text)"))
-    pg_connection.execute(text("CREATE TABLE rag_chunk (index_version text)"))
-    pg_connection.commit()
-    assert dr.rag_tables_exist(pg_connection) is True
