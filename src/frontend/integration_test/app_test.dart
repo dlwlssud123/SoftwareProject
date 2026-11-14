@@ -52,6 +52,7 @@ void main() {
     }
 
     await capture('01-home');
+    await tap('tab-0');
     await tap('meal-start');
     await completeForm('02-meal');
     expect(find.byKey(const Key('recipe-results')), findsOneWidget);
@@ -107,7 +108,7 @@ void main() {
     await capture('05-welfare-details');
     expect(tester.takeException(), isNull);
 
-    for (var i = 1; i < 5; i++) {
+    for (var i = 0; i < 4; i++) {
       await tap('tab-$i');
       expect(tester.takeException(), isNull);
       await capture('tab-$i');

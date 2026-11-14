@@ -48,22 +48,24 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  int selected = 0;
-  final visitedTabs = <int>{0};
-  final navigators = List.generate(5, (_) => GlobalKey<NavigatorState>());
+  static const initialTab = 0;
+  int selected = initialTab;
+  final visitedTabs = <int>{initialTab};
+  final navigators = List.generate(
+    labels.length,
+    (_) => GlobalKey<NavigatorState>(),
+  );
   late final List<Widget> pages = [
     MealScreen(repository: widget.repository, settings: widget.settings),
     NutritionScreen(repository: widget.repository, settings: widget.settings),
     AssistantScreen(repository: widget.repository, settings: widget.settings),
     const ContentScreen(),
-    const ContentScreen(playground: true),
   ];
-  static const labels = ['식단추천', '영양분석', 'AI 도우미', '건강쇼츠', '놀이터'];
+  static const labels = ['식단추천', '영양분석', 'AI 도우미', '놀이터'];
   static const icons = [
     Icons.restaurant_rounded,
     Icons.document_scanner_outlined,
-    Icons.add_rounded,
-    Icons.smart_display_outlined,
+    Icons.chat_bubble_outline_rounded,
     Icons.sports_esports_rounded,
   ];
   @override
@@ -71,7 +73,7 @@ class _AppShellState extends State<AppShell> {
     body: IndexedStack(
       index: selected,
       children: List.generate(
-        5,
+        labels.length,
         (index) => !visitedTabs.contains(index)
             ? const SizedBox.shrink()
             : TickerMode(
@@ -119,7 +121,7 @@ class _AppShellState extends State<AppShell> {
           padding: const EdgeInsets.symmetric(vertical: 7),
           child: Row(
             children: List.generate(
-              5,
+              labels.length,
               (i) => Expanded(
                 child: Semantics(
                   selected: selected == i,
@@ -147,36 +149,16 @@ class _AppShellState extends State<AppShell> {
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            if (i == 2)
-                              Container(
-                                width: 32,
-                                height: 32,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Color(0xFFF58B3F),
-                                      Color(0xFFEC4276),
-                                    ],
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.add_rounded,
-                                  color: Colors.white,
-                                  size: 27,
-                                ),
-                              )
-                            else
-                              SizedBox(
-                                height: 32,
-                                child: Icon(
-                                  icons[i],
-                                  size: 26,
-                                  color: selected == i
-                                      ? blue
-                                      : const Color(0xFF80858D),
-                                ),
+                            SizedBox(
+                              height: 32,
+                              child: Icon(
+                                icons[i],
+                                size: 26,
+                                color: selected == i
+                                    ? blue
+                                    : const Color(0xFF80858D),
                               ),
+                            ),
                             const SizedBox(height: 4),
                             FittedBox(
                               fit: BoxFit.scaleDown,
