@@ -406,27 +406,6 @@
    "evidence": "시판 판젤라틴 1장 약 2 g"
   },
   {
-   "ingredient": "치즈",
-   "unit": "장",
-   "grams": 18,
-   "source": "estimate",
-   "evidence": "시판 슬라이스 치즈 1장 약 18 g"
-  },
-  {
-   "ingredient": "슬라이스치즈",
-   "unit": "장",
-   "grams": 18,
-   "source": "estimate",
-   "evidence": "시판 슬라이스 치즈 1장 약 18 g"
-  },
-  {
-   "ingredient": "치즈슬라이스",
-   "unit": "장",
-   "grams": 18,
-   "source": "estimate",
-   "evidence": "시판 슬라이스 치즈 1장 약 18 g"
-  },
-  {
    "ingredient": "배춧잎",
    "unit": "장",
    "grams": 40,
@@ -487,7 +466,7 @@
    "unit": "장",
    "grams": 10,
    "source": "estimate",
-   "evidence": "지름 22 cm 라이스페이퍼 1장 약 10 g",
+   "evidence": "지름 22 cm 라이스페이퍼 1장 약 10 g — 해외 판매 22 cm 제품 표기가 '400 g, 48장'(8.3 g)과 '약 30장'(13.3 g)으로 갈려 출처로 쓰지 않고 그 사이 값을 둠",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-14"
   },
@@ -511,15 +490,6 @@
    "grams": 10,
    "source": "estimate",
    "evidence": "얇은 건두부(포두부) 1장 약 10 g"
-  },
-  {
-   "ingredient": "광어",
-   "unit": "마리",
-   "grams": 400,
-   "source": "estimate",
-   "evidence": "손질 전 1 kg 미만 광어 1마리의 살(가식부) 약 400 g",
-   "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "김치",
@@ -756,13 +726,6 @@
    "evidence": "달걀 1개 60 g에서 껍데기(약 10%) 뺀 약 50 g"
   },
   {
-   "ingredient": "슬라이스 체더치즈",
-   "unit": "장",
-   "grams": 18,
-   "source": "estimate",
-   "evidence": "슬라이스 치즈 1장 18 g('치즈' 장과 같음)"
-  },
-  {
    "ingredient": "식용 꽃",
    "unit": "개",
    "grams": 0.5,
@@ -833,18 +796,11 @@
    "evidence": "'풋고추' 1개 11.1 g과 같음"
   },
   {
-   "ingredient": "춘권피",
-   "unit": "장",
-   "grams": 10,
-   "source": "estimate",
-   "evidence": "춘권피 1장 약 10 g"
-  },
-  {
    "ingredient": "치아바타",
    "unit": "개",
    "grams": 100,
    "source": "estimate",
-   "evidence": "치아바타 1개 약 100 g",
+   "evidence": "치아바타 1개 약 100 g — 국내 몰 제품 표기가 1개 45~155 g으로 제품마다 달라 가운데 값을 둠",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-14"
   },
