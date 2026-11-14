@@ -72,6 +72,19 @@
       "source_url": "https://www.foodsafetykorea.go.kr/portal/cookrcp/cookrcpInfoDtl.do?menu_grp=MENU_NEW03&menu_no=3608&rcp_seq=276",
       "reason": "Close one unmatched terminal parenthesis; original ingredient names and quantities are unchanged.",
       "source_document_sha256": "ba06fdf85da8513717a5f55478c22809830a0725510d6b96dc2051c1e12f6330"
+    },
+    {
+      "source_id": "981",
+      "recipe_name": "치킨 버거 스테이크",
+      "field": "RCP_PARTS_DTLS",
+      "expected_value": "닭가슴살 80g, 빵가루 5g, 차이브 2g, 바질 1g, 파슬리 1g, 소금적당량, 후추적당량[양송이 속양파다진것 10g, 버터적당량, 양송이 30g, 빵가루 5g, 생크림 적당량",
+      "value": "닭가슴살 80g, 빵가루 5g, 차이브 2g, 바질 1g, 파슬리 1g, 소금적당량, 후추적당량[양송이 속]양파다진것 10g, 버터적당량, 양송이 30g, 빵가루 5g, 생크림 적당량",
+      "kind": "format_only",
+      "source_url": "https://www.foodsafetykorea.go.kr/portal/cookrcp/cookrcpInfoDtl.do?menu_grp=MENU_NEW03&menu_no=3608&rcp_seq=981",
+      "reason": "구획 제목 '[양송이 속'에 닫는 대괄호 하나만 넣음 — 공식 상세에도 같은 표기 오류. 조리 1·2단계(양파를 곱게 다져 버터에 볶다가 양송이를 넣음)로 '양파다진것 10g'부터가 양송이 속 재료임을 확인했고, 재료 이름·분량은 그대로다.",
+      "source_document_sha256": "09f21aa1afe8b7e7957e03c8ad114bc81a014bb21392d2690a91d730f11d8020",
+      "verified_at": "2026-11-14",
+      "verified_by": "최재영"
     }
   ]
 }

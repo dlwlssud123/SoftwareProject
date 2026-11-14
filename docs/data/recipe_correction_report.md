@@ -3,7 +3,7 @@
 > `python -m agetech_data.recipes.correct`로 생성합니다. 수집 원본은 변경하지 않습니다.
 
 - 수집 원본 SHA-256: `d5db8e9435fe667902790df87b621ee88d88e40732a8a8128ea6e2dc62cfb354`
-- 보완 목록 SHA-256: `a65aa83fad372106822faf4671ed37829841df69f637d339fa8d64dbf3d1e6e0`
+- 보완 목록 SHA-256: `6cb801120f6b4ab4117217cb38d3f2dcdd33d24f3cd1a364a48bc21f023613f1`
 - 원본/보완본 단계 수: 213 → 217
 - 누락 단계: 4 → 0
 - 품질 상태: `{'ok': 37, 'flagged': 11, 'hold': 2}` → `{'ok': 40, 'flagged': 10, 'hold': 0}`
