@@ -834,6 +834,72 @@
           }
         }
       }
+    },
+    "/api/v1/meal/recommendations": {
+      "post": {
+        "tags": [
+          "meal"
+        ],
+        "summary": "Recommend Meal",
+        "operationId": "recommend_meal_api_v1_meal_recommendations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecipeRecommendationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_RecommendationResult_RecipeRecord__"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -1649,6 +1715,72 @@
         ],
         "title": "RecipeQuality"
       },
+      "RecipeRecommendationRequest": {
+        "properties": {
+          "meal_time": {
+            "type": "string",
+            "enum": [
+              "breakfast",
+              "lunch",
+              "dinner",
+              "snack"
+            ],
+            "title": "Meal Time"
+          },
+          "exclude_allergens": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "알류",
+                "우유",
+                "메밀",
+                "땅콩",
+                "대두",
+                "밀",
+                "고등어",
+                "게",
+                "새우",
+                "돼지고기",
+                "복숭아",
+                "토마토",
+                "아황산류",
+                "호두",
+                "닭고기",
+                "쇠고기",
+                "오징어",
+                "조개류",
+                "잣"
+              ]
+            },
+            "type": "array",
+            "maxItems": 19,
+            "title": "Exclude Allergens"
+          },
+          "exclude_ingredients": {
+            "items": {
+              "type": "string",
+              "maxLength": 100,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Exclude Ingredients"
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "default": 5
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "meal_time"
+        ],
+        "title": "RecipeRecommendationRequest"
+      },
       "RecipeRecord": {
         "properties": {
           "recipe_id": {
@@ -1874,6 +2006,63 @@
         ],
         "title": "RecipeStep"
       },
+      "RecommendationResult_RecipeRecord_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Recommendation_RecipeRecord_"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "evaluated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Evaluated At"
+          },
+          "rules_version": {
+            "type": "string",
+            "title": "Rules Version"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "evaluated_at",
+          "rules_version",
+          "warnings"
+        ],
+        "title": "RecommendationResult[RecipeRecord]"
+      },
+      "Recommendation_RecipeRecord_": {
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/RecipeRecord"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "item",
+          "reasons"
+        ],
+        "title": "Recommendation[RecipeRecord]"
+      },
       "ResponseMeta": {
         "properties": {
           "request_id": {
@@ -2027,6 +2216,22 @@
           "meta"
         ],
         "title": "SuccessResponse[RecipeRecord]"
+      },
+      "SuccessResponse_RecommendationResult_RecipeRecord__": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RecommendationResult_RecipeRecord_"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[RecommendationResult[RecipeRecord]]"
       },
       "SuccessResponse_RevokedData_": {
         "properties": {

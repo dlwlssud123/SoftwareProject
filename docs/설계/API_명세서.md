@@ -9,7 +9,7 @@
 - 실행 안내: [백엔드 README](../../src/backend/README.md)
 - 기계 판독용 명세: [openapi.json](./openapi.json)
 
-상태 확인, 게스트 세션 발급·조회·갱신·폐기, 관리자 권한 확인, 레시피 DB 목록·상세와 동의 기반 프로필 CRUD를 구현했다. 복지 목록·상세와 추천은 [예정 계약](./catalog.openapi.json) 및 [요청·응답 표본](./api_examples.json)을 제공한다. 기업 서버 주소와 HTTPS 경로는 배포 시 확정한다.
+상태 확인, 게스트 세션 발급·조회·갱신·폐기, 관리자 권한 확인, 레시피 DB 목록·상세, 식단 추천과 동의 기반 프로필 CRUD를 구현했다. 복지 목록·상세와 복지 추천은 [예정 계약](./catalog.openapi.json) 및 [요청·응답 표본](./api_examples.json)을 제공한다. 기업 서버 주소와 HTTPS 경로는 배포 시 확정한다.
 
 ## 1. 공통 규칙
 
@@ -157,6 +157,10 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 `openapi.json`은 실행 코드의 `app.openapi()`에서 생성한 스냅샷이다. `catalog.openapi.json`은 모든 경로에 `x-implementation-status: planned`를 붙인 별도 인계 문서다. 실행 서버에 예정 경로를 추가하지 않는다. `src/backend`에서 `python -m app.jobs.export_api_contract`로 둘을 재생성한다. 표본 갱신은 `PYTHONPATH=../data` 설정 후 같은 명령에 `--welfare-snapshot <실제 수집 JSON 경로>`를 전달한다. 실제/예정 스냅샷과 DTO 표본은 테스트에서 대조한다.
 
+### 식단 추천
+
+`POST /api/v1/meal/recommendations`에는 게스트 또는 사용자 Bearer 세션이 필요하다. 요청은 `meal_time`과 선택 항목인 `exclude_allergens`, `exclude_ingredients`, `limit`를 받는다. 계정에 저장된 제외 조건은 요청 조건과 합친다. 현재 공개된 레시피 중 제외 조건을 충족하는 메뉴를 대상으로 선호 재료, 시간대별 메뉴 유형, 본인의 최근 7일 섭취 기록, 결과의 메뉴 유형 다양성을 반영한다. 부드러운 음식을 선호하면 죽 메뉴에 가점을 준다. 응답은 레시피별 이유, 평가 시각, 규칙 버전과 안내를 포함한다. 후보가 없으면 빈 `items`를 반환한다.
+
 ## 7. 미구현 예정 API
 
 다음은 후속 경로다. 현재 서버에서 호출하면 404가 반환된다. 카탈로그 DTO와 표본은 9절에 정의했다. 나머지 기능의 세부 계약은 착수 시 관련 담당자와 맞춘다.
@@ -164,7 +168,6 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 | 영역 | 예정 경로 | 상태 |
 | --- | --- | --- |
 | 카카오 식별 | `POST /api/v1/auth/kakao` | 제공자 연동 후속. 게스트 세션은 8절 구현 |
-| 추천 | `POST /api/v1/meal/recommendations` | 미구현 |
 | 섭취 기록 | `POST/GET /api/v1/meals`, `PATCH/DELETE /api/v1/meals/{id}` | 미구현 |
 | 사진 영양 분석 | `POST /api/v1/nutrition/analyses`, `GET /api/v1/nutrition/analyses/{id}`, `POST /api/v1/nutrition/analyses/{id}/confirm` | 미구현 |
 | 복지 | `GET /api/v1/welfare`, `GET /api/v1/welfare/{service_id}`, `POST /api/v1/welfare/recommendations` | DTO 계약 제공·실제 조회 후속 |
@@ -202,7 +205,7 @@ python -m app.jobs.set_user_role <사용자-UUID> --role user
 
 ## 9. 앱·관리자 카탈로그 DTO 인계
 
-DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세는 DB에 연결되었으며 [openapi.json](./openapi.json)에 포함한다. 나머지 예정 경로의 기계 판독 계약은 [catalog.openapi.json](./catalog.openapi.json), JSON 예제는 [api_examples.json](./api_examples.json)이다. 공개 원천 조회는 개인 프로필을 읽지 않는다. 개인 기록은 `CurrentAuth`의 사용자로 제한한다.
+DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세와 식단 추천은 DB에 연결되었으며 [openapi.json](./openapi.json)에 포함한다. 나머지 예정 경로의 기계 판독 계약은 [catalog.openapi.json](./catalog.openapi.json), JSON 예제는 [api_examples.json](./api_examples.json)이다. 공개 원천 조회는 개인 프로필을 읽지 않는다. 개인 기록은 `CurrentAuth`의 사용자로 제한한다.
 
 | 경로 | 요청 필드 | 성공 `data` |
 | --- | --- | --- |
@@ -268,4 +271,4 @@ DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세는 DB
 - HTTP 오류는 `error.code`로 분기하고 `error.message`를 표시한다. 입력 오류는 `error.fields`, 서버가 재시도 가능하다고 표시한 오류는 `error.retryable`을 읽는다. JSON 본문이 없는 네트워크·프록시 오류는 앱의 기본 안내로 처리한다.
 - React는 관리자 요청에 `Authorization: Bearer <access_token>`을 보내고 `data.role`을 확인한다. 401은 세션 재확인, 403은 권한 부족 상태로 표시한다. Flutter와 React 모두 토큰·프로필을 요청 및 응답 로그에서 제외한다.
 
-현재 Flutter 화면은 `DemoRepository`의 번들 JSON과 기기 내 규칙으로 식단·복지를 추천한다. 서버 전환은 연결된 레시피 목록·상세와 세션·프로필부터 진행한다. 식단 추천과 복지 목록·상세·추천은 [예정 OpenAPI](./catalog.openapi.json)와 [JSON 표본](./api_examples.json)으로 화면을 먼저 맞추고, 실제 서버 연결은 해당 기능이 구현된 뒤 검증한다. [Flutter 통신 PR #6](https://github.com/dlwlssud123/SoftwareProject/pull/6)의 오류 파서는 화면 연동 시 `error.message`를 읽도록 맞춘다.
+현재 Flutter 화면은 `DemoRepository`의 번들 JSON과 기기 내 규칙으로 식단·복지를 추천한다. 서버 전환은 연결된 레시피 목록·상세와 세션·프로필부터 진행한다. 식단 추천은 실행 API에서 확인할 수 있다. 복지 목록·상세·추천은 [예정 OpenAPI](./catalog.openapi.json)와 [JSON 표본](./api_examples.json)으로 화면을 먼저 맞추고, 실제 서버 연결은 해당 기능이 구현된 뒤 검증한다. [Flutter 통신 PR #6](https://github.com/dlwlssud123/SoftwareProject/pull/6)의 오류 파서는 화면 연동 시 `error.message`를 읽도록 맞춘다.

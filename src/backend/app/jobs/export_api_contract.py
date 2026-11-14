@@ -23,12 +23,6 @@ from app.schemas.common import ErrorDetail, ErrorResponse, ResponseMeta, Success
 
 ROOT = Path(__file__).resolve().parents[4]
 PLANNED = (
-    (
-        "/api/v1/meal/recommendations",
-        "post",
-        RecipeRecommendationRequest,
-        RecipeRecommendationResponse,
-    ),
     ("/api/v1/welfare", "get", WelfareListQuery, WelfareListResponse),
     ("/api/v1/welfare/{service_id}", "get", None, WelfareDetailResponse),
     (

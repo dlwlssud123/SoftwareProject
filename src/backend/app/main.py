@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.admin import router as admin_router
 from app.api.auth import router as auth_router
 from app.api.health import router as health_router
+from app.api.meal import router as meal_router
 from app.api.profile import router as profile_router
 from app.api.recipes import router as recipes_router
 from app.core.config import get_settings
@@ -77,6 +78,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_router, prefix="/api/v1")
     app.include_router(profile_router, prefix="/api/v1")
     app.include_router(recipes_router, prefix="/api/v1")
+    app.include_router(meal_router, prefix="/api/v1")
 
     return app
 

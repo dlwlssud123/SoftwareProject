@@ -26,7 +26,7 @@ router = APIRouter(
 )
 
 
-def _active_recipes():
+def active_recipes():
     return (
         select(Recipe, RecipeRevision, DataImportRun.inputs)
         .join(RecipeRevision, Recipe.active_revision_id == RecipeRevision.id)
@@ -37,7 +37,7 @@ def _active_recipes():
     )
 
 
-def _record(recipe: Recipe, revision: RecipeRevision, inputs: dict) -> RecipeRecord:
+def recipe_record(recipe: Recipe, revision: RecipeRevision, inputs: dict) -> RecipeRecord:
     source_meta = inputs.get("recipes", {}).get("meta", {})
     checked = check_recipe(revision.effective)
     data = to_api_record(checked, revision.effective, source_meta)
@@ -50,7 +50,7 @@ def _record(recipe: Recipe, revision: RecipeRevision, inputs: dict) -> RecipeRec
     return RecipeRecord.model_validate(data)
 
 
-def _matches_allergies(record: RecipeRecord, excluded: set[str]) -> bool:
+def matches_allergies(record: RecipeRecord, excluded: set[str]) -> bool:
     allergens = record.allergens
     possible = {d.allergen for d in allergens.detected}
     possible.update(a for item in allergens.needs_check for a in item.candidates)
@@ -68,7 +68,7 @@ def _unavailable() -> AppError:
 def list_recipes(
     request: Request, query: Annotated[RecipeListQuery, Query()], db: DbSession
 ):
-    stmt = _active_recipes()
+    stmt = active_recipes()
     if query.q:
         stmt = stmt.where(RecipeRevision.name.icontains(query.q, autoescape=True))
     if query.category:
@@ -82,14 +82,14 @@ def list_recipes(
             matches = [
                 record
                 for row in db.execute(ordered)
-                if _matches_allergies(record := _record(*row), excluded)
+                if matches_allergies(record := recipe_record(*row), excluded)
             ]
             total = len(matches)
             items = matches[query.offset : query.offset + query.limit]
         else:
             total = db.scalar(select(func.count()).select_from(stmt.subquery()))
             items = [
-                _record(*row)
+                recipe_record(*row)
                 for row in db.execute(ordered.offset(query.offset).limit(query.limit))
             ]
     except SQLAlchemyError:
@@ -112,10 +112,10 @@ def get_recipe(
 ):
     try:
         row = db.execute(
-            _active_recipes().where(Recipe.source_id == recipe_id)
+            active_recipes().where(Recipe.source_id == recipe_id)
         ).one_or_none()
     except SQLAlchemyError:
         raise _unavailable() from None
     if row is None:
         raise AppError(404, "RECIPE_NOT_FOUND", "레시피를 찾을 수 없습니다.")
-    return RecipeDetailResponse(data=_record(*row), meta=build_meta(request))
+    return RecipeDetailResponse(data=recipe_record(*row), meta=build_meta(request))
