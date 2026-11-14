@@ -357,13 +357,6 @@
    "evidence": "원문 '호두 1알(6g)'"
   },
   {
-   "ingredient": "김",
-   "unit": "장",
-   "grams": 3,
-   "source": "recipe_pairs",
-   "evidence": "원문 '김 4g(1장)'·'김(6g(3장))'의 1장 무게 중앙값 3 g"
-  },
-  {
    "ingredient": "삶은달걀",
    "unit": "개",
    "grams": 60,
@@ -404,47 +397,6 @@
    "grams": 0.05,
    "source": "estimate",
    "evidence": "말린 후추 열매 1알(지름 4~5 mm) 약 0.05 g"
-  },
-  {
-   "ingredient": "인삼",
-   "unit": "뿌리",
-   "grams": 40,
-   "source": "estimate",
-   "evidence": "수삼 중간 크기 1뿌리 약 40 g",
-   "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-14"
-  },
-  {
-   "ingredient": "수삼",
-   "unit": "뿌리",
-   "grams": 40,
-   "source": "estimate",
-   "evidence": "수삼 중간 크기 1뿌리 약 40 g",
-   "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-14"
-  },
-  {
-   "ingredient": "닭고기",
-   "unit": "마리",
-   "grams": 600,
-   "source": "estimate",
-   "evidence": "시판 닭 1마리 약 1 kg 중 뼈를 뺀 먹는 부분 약 60%"
-  },
-  {
-   "ingredient": "닭",
-   "unit": "마리",
-   "grams": 600,
-   "source": "estimate",
-   "evidence": "시판 닭 1마리 약 1 kg 중 뼈를 뺀 먹는 부분 약 60%"
-  },
-  {
-   "ingredient": "고등어",
-   "unit": "마리",
-   "grams": 240,
-   "source": "estimate",
-   "evidence": "중간 크기 고등어 1마리 약 400 g 중 먹는 부분 약 60%",
-   "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "판젤라틴",
@@ -496,20 +448,6 @@
    "evidence": "배추 겉잎 1장 약 40 g"
   },
   {
-   "ingredient": "양상추",
-   "unit": "장",
-   "grams": 15,
-   "source": "estimate",
-   "evidence": "양상추 잎 1장 약 15 g"
-  },
-  {
-   "ingredient": "상추",
-   "unit": "장",
-   "grams": 10,
-   "source": "estimate",
-   "evidence": "상추 잎 1장 약 10 g"
-  },
-  {
    "ingredient": "케일",
    "unit": "장",
    "grams": 10,
@@ -517,25 +455,11 @@
    "evidence": "쌈 케일 잎 1장 약 10 g"
   },
   {
-   "ingredient": "잣",
-   "unit": "알",
-   "grams": 0.3,
-   "source": "estimate",
-   "evidence": "잣 1알 약 0.3 g"
-  },
-  {
    "ingredient": "건포도",
    "unit": "알",
    "grams": 0.5,
    "source": "estimate",
    "evidence": "건포도 1알 약 0.5 g"
-  },
-  {
-   "ingredient": "은행",
-   "unit": "알",
-   "grams": 1.5,
-   "source": "estimate",
-   "evidence": "깐 은행 1알 약 1.5 g"
   },
   {
    "ingredient": "바질",
@@ -557,59 +481,6 @@
    "grams": 0.5,
    "source": "estimate",
    "evidence": "바질 잎 1장 약 0.5 g"
-  },
-  {
-   "ingredient": "팽이버섯",
-   "unit": "봉",
-   "grams": 150,
-   "source": "estimate",
-   "evidence": "시판 팽이버섯 1봉 150 g"
-  },
-  {
-   "ingredient": "팽이버섯",
-   "unit": "봉지",
-   "grams": 150,
-   "source": "estimate",
-   "evidence": "시판 팽이버섯 1봉 150 g"
-  },
-  {
-   "ingredient": "쪽파",
-   "unit": "대",
-   "grams": 6,
-   "source": "estimate",
-   "evidence": "쪽파 1대 약 6 g"
-  },
-  {
-   "ingredient": "곶감",
-   "unit": "개",
-   "grams": 35,
-   "source": "estimate",
-   "evidence": "곶감 1개 약 35 g"
-  },
-  {
-   "ingredient": "홍시",
-   "unit": "개",
-   "grams": 150,
-   "source": "estimate",
-   "evidence": "홍시(연시) 1개 약 150 g"
-  },
-  {
-   "ingredient": "식빵",
-   "unit": "장",
-   "grams": 35,
-   "source": "estimate",
-   "evidence": "시판 식빵 1장 약 35 g",
-   "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-14"
-  },
-  {
-   "ingredient": "식빵",
-   "unit": "쪽",
-   "grams": 35,
-   "source": "estimate",
-   "evidence": "시판 식빵 1장 약 35 g",
-   "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "라이스페이퍼",
@@ -651,13 +522,6 @@
    "reviewed_at": "2026-11-14"
   },
   {
-   "ingredient": "구운 김",
-   "unit": "장",
-   "grams": 3,
-   "source": "estimate",
-   "evidence": "김 1장 3 g('김'과 같음)"
-  },
-  {
    "ingredient": "김치",
    "unit": "포기",
    "grams": 1600,
@@ -674,13 +538,6 @@
    "evidence": "배추김치 1포기 약 1.6 kg('김치'와 같음)",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-14"
-  },
-  {
-   "ingredient": "꽈리고추",
-   "unit": "개",
-   "grams": 4,
-   "source": "estimate",
-   "evidence": "꽈리고추 1개 약 3~5 g"
   },
   {
    "ingredient": "녹차",
@@ -753,22 +610,6 @@
    "evidence": "지단 1장 ≈ 달걀 1개에서 껍질·부친 수분 뺀 약 50 g"
   },
   {
-   "ingredient": "닭다리",
-   "unit": "개",
-   "grams": 80,
-   "source": "estimate",
-   "evidence": "닭다리 1개 뼈 포함 약 110 g, 먹는 살 약 80 g",
-   "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-14"
-  },
-  {
-   "ingredient": "닭날개",
-   "unit": "개",
-   "grams": 25,
-   "source": "estimate",
-   "evidence": "닭날개 1개 뼈 포함 약 40 g, 먹는 살 약 25 g"
-  },
-  {
    "ingredient": "닭봉",
    "unit": "개",
    "grams": 25,
@@ -822,13 +663,6 @@
    "evidence": "Lettuce, cos or romaine, raw: 1 leaf inner 6 g ~ outer 28 g → 쌈용 약 10 g"
   },
   {
-   "ingredient": "청상추",
-   "unit": "장",
-   "grams": 10,
-   "source": "estimate",
-   "evidence": "상추 1장 10 g('상추'와 같음)"
-  },
-  {
    "ingredient": "로즈메리",
    "unit": "줄기",
    "grams": 1,
@@ -862,13 +696,6 @@
    "grams": 4,
    "source": "estimate",
    "evidence": "모시조개 1개 껍데기 포함 약 15 g, 살 약 4 g"
-  },
-  {
-   "ingredient": "바지락",
-   "unit": "개",
-   "grams": 3,
-   "source": "estimate",
-   "evidence": "바지락 1개 껍데기 포함 약 10 g, 살 약 3 g"
   },
   {
    "ingredient": "미니 단호박",
@@ -906,13 +733,6 @@
    "grams": 1.4,
    "source": "usda_fdc_sr",
    "evidence": "Blueberries, raw: 50 berries = 68 g"
-  },
-  {
-   "ingredient": "생강",
-   "unit": "톨",
-   "grams": 12,
-   "source": "estimate",
-   "evidence": "생강 1톨(엄지 크기) 약 10~15 g"
   },
   {
    "ingredient": "표고버섯",
@@ -957,13 +777,6 @@
    "evidence": "Nuts, almonds: 1 almond = 1.2 g"
   },
   {
-   "ingredient": "알배추",
-   "unit": "개",
-   "grams": 600,
-   "source": "estimate",
-   "evidence": "알배추 1통 약 600 g"
-  },
-  {
    "ingredient": "애플민트잎",
    "unit": "장",
    "grams": 0.05,
@@ -976,13 +789,6 @@
    "grams": 30,
    "source": "estimate",
    "evidence": "양배추 잎 1장 약 30 g"
-  },
-  {
-   "ingredient": "오징어",
-   "unit": "마리",
-   "grams": 200,
-   "source": "estimate",
-   "evidence": "오징어 1마리(약 270 g) 손질 후 약 200 g"
   },
   {
    "ingredient": "정향",
@@ -1080,13 +886,6 @@
    "evidence": "할라페뇨 절임 1조각 약 3 g"
   },
   {
-   "ingredient": "현미밥",
-   "unit": "공기",
-   "grams": 210,
-   "source": "estimate",
-   "evidence": "밥 1공기 210 g(unit_weights.json '밥' 공기와 같게)"
-  },
-  {
    "ingredient": "호박",
    "unit": "개",
    "grams": 226.7,
@@ -1113,22 +912,6 @@
    "grams": 2,
    "source": "estimate",
    "evidence": "국물용 멸치 1마리 약 2 g"
-  },
-  {
-   "ingredient": "가자미",
-   "unit": "마리",
-   "grams": 200,
-   "source": "estimate",
-   "evidence": "가자미 1마리 살 약 200 g"
-  },
-  {
-   "ingredient": "닭다릿살",
-   "unit": "개",
-   "grams": 80,
-   "source": "estimate",
-   "evidence": "닭다리(넓적다리) 1개 뼈 포함 약 110 g, 먹는 살 약 80 g",
-   "reviewed_by": "최재영",
-   "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "미니양배추",

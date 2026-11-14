@@ -314,6 +314,209 @@
    "grams": 35.7,
    "source": "khidi_2007_portion",
    "evidence": "전복(11525) 중 1개 전체 80.7 g·가식부 35.7 g(별첨 135쪽)"
+  },
+  {
+   "ingredient": "김",
+   "unit": "장",
+   "grams": 2.4,
+   "source": "khidi_2007_portion",
+   "evidence": "김(12010) 1장 2.4 g(별첨 139쪽)"
+  },
+  {
+   "ingredient": "인삼",
+   "unit": "뿌리",
+   "grams": 37.8,
+   "source": "khidi_2007_portion",
+   "evidence": "수삼(18018) 생 중 1뿌리 38.3 g, 가식부 37.8 g(별첨 162쪽)"
+  },
+  {
+   "ingredient": "수삼",
+   "unit": "뿌리",
+   "grams": 37.8,
+   "source": "khidi_2007_portion",
+   "evidence": "수삼(18018) 생 중 1뿌리 38.3 g, 가식부 37.8 g(별첨 162쪽)"
+  },
+  {
+   "ingredient": "닭고기",
+   "unit": "마리",
+   "grams": 607.9,
+   "source": "khidi_2007_portion",
+   "evidence": "통닭(9018) 생것 1마리 가식부 대 749.6 g(전체 1,153.2 g)·소 466.2 g(717.3 g) — '중' 행이 없어 대·소 평균 607.9 g(별첨 113~114쪽)"
+  },
+  {
+   "ingredient": "닭",
+   "unit": "마리",
+   "grams": 607.9,
+   "source": "khidi_2007_portion",
+   "evidence": "통닭(9018) 생것 1마리 가식부 대 749.6 g(전체 1,153.2 g)·소 466.2 g(717.3 g) — '중' 행이 없어 대·소 평균 607.9 g(별첨 113~114쪽)"
+  },
+  {
+   "ingredient": "고등어",
+   "unit": "마리",
+   "grams": 247.1,
+   "source": "khidi_2007_portion",
+   "evidence": "고등어(11039) 생것 중 1마리 366.6 g, 가식부 247.1 g(별첨 124쪽)"
+  },
+  {
+   "ingredient": "양상추",
+   "unit": "장",
+   "grams": 35.4,
+   "source": "khidi_2007_portion",
+   "evidence": "양상추(6238) 낱장 중 1장 가식부 35.4 g(대 49.4·소 24.6 g)(별첨 98쪽)"
+  },
+  {
+   "ingredient": "상추",
+   "unit": "장",
+   "grams": 4.18,
+   "source": "khidi_2007_portion",
+   "evidence": "적상추(6184) 10장 46.4 g·청상추 10장 37.2 g → 1장 평균 4.18 g(별첨 96쪽)"
+  },
+  {
+   "ingredient": "잣",
+   "unit": "알",
+   "grams": 0.18,
+   "source": "khidi_2007_portion",
+   "evidence": "잣(5041) 10알 1.8 g → 1알 0.18 g(1알만 잰 값 0.15 g)(별첨 83쪽)"
+  },
+  {
+   "ingredient": "은행",
+   "unit": "알",
+   "grams": 2.0,
+   "source": "khidi_2007_portion",
+   "evidence": "은행(5039) 1큰술(5알) 10.0 g → 1알 2.0 g(별첨 83쪽)"
+  },
+  {
+   "ingredient": "팽이버섯",
+   "unit": "봉",
+   "grams": 80.9,
+   "source": "khidi_2007_portion",
+   "evidence": "팽이버섯(7032) 1송이(1봉) 95.8 g, 가식부 80.9 g(별첨 106쪽)"
+  },
+  {
+   "ingredient": "팽이버섯",
+   "unit": "봉지",
+   "grams": 80.9,
+   "source": "khidi_2007_portion",
+   "evidence": "팽이버섯(7032) 1송이(1봉) 95.8 g, 가식부 80.9 g(별첨 106쪽)"
+  },
+  {
+   "ingredient": "쪽파",
+   "unit": "대",
+   "grams": 9.06,
+   "source": "khidi_2007_portion",
+   "evidence": "실파(6331, 깐쪽파) 5뿌리 45.3 g → 1뿌리 9.06 g(1뿌리만 잰 값 11.9 g)(별첨 102쪽)"
+  },
+  {
+   "ingredient": "곶감",
+   "unit": "개",
+   "grams": 42.5,
+   "source": "khidi_2007_portion",
+   "evidence": "곶감(8005) 중 1개 45.3 g, 가식부 42.5 g(별첨 108쪽)"
+  },
+  {
+   "ingredient": "홍시",
+   "unit": "개",
+   "grams": 288.1,
+   "source": "khidi_2007_portion",
+   "evidence": "연시(8002) 1개 388.0 g, 가식부 288.1 g(별첨 108쪽)"
+  },
+  {
+   "ingredient": "식빵",
+   "unit": "장",
+   "grams": 39.0,
+   "source": "khidi_2007_portion",
+   "evidence": "빵,식빵(1087) 1개(장) 제품 3종 32.0·39.0·55.0 g의 중앙값(별첨 69쪽)"
+  },
+  {
+   "ingredient": "식빵",
+   "unit": "쪽",
+   "grams": 39.0,
+   "source": "khidi_2007_portion",
+   "evidence": "빵,식빵(1087) 1개(장) 제품 3종 32.0·39.0·55.0 g의 중앙값(별첨 69쪽)"
+  },
+  {
+   "ingredient": "구운 김",
+   "unit": "장",
+   "grams": 2.4,
+   "source": "khidi_2007_portion",
+   "evidence": "김(12010) 1장 2.4 g(별첨 139쪽)"
+  },
+  {
+   "ingredient": "꽈리고추",
+   "unit": "개",
+   "grams": 3.22,
+   "source": "khidi_2007_portion",
+   "evidence": "꽈리고추(6027) 5개 17.1 g, 가식부 16.1 g → 1개 3.22 g(별첨 85쪽)"
+  },
+  {
+   "ingredient": "닭다리",
+   "unit": "개",
+   "grams": 64.6,
+   "source": "khidi_2007_portion",
+   "evidence": "닭다리(9044) 생것 1개 113.3 g, 가식부 64.6 g(별첨 114쪽)"
+  },
+  {
+   "ingredient": "닭날개",
+   "unit": "개",
+   "grams": 49.0,
+   "source": "khidi_2007_portion",
+   "evidence": "닭날개(9032) 생것 1개 73.1 g, 가식부 49.0 g(별첨 114쪽)"
+  },
+  {
+   "ingredient": "청상추",
+   "unit": "장",
+   "grams": 3.72,
+   "source": "khidi_2007_portion",
+   "evidence": "청상추(6184) 10장 37.2 g → 1장 3.72 g(별첨 96쪽)"
+  },
+  {
+   "ingredient": "바지락",
+   "unit": "개",
+   "grams": 2.1,
+   "source": "khidi_2007_portion",
+   "evidence": "바지락조개(11490) 전체 생것 1개 8.0 g, 가식부 2.1 g(별첨 133쪽)"
+  },
+  {
+   "ingredient": "생강",
+   "unit": "톨",
+   "grams": 19.3,
+   "source": "khidi_2007_portion",
+   "evidence": "생강(6186) 1알 23.6 g, 가식부 19.3 g — 1톨을 1알로 봄(별첨 96쪽)"
+  },
+  {
+   "ingredient": "알배추",
+   "unit": "개",
+   "grams": 1409.4,
+   "source": "khidi_2007_portion",
+   "evidence": "알배추(6158) 통째 생것 중 1통 1,532.0 g, 가식부 1,409.4 g(별첨 94쪽)"
+  },
+  {
+   "ingredient": "오징어",
+   "unit": "마리",
+   "grams": 322.5,
+   "source": "khidi_2007_portion",
+   "evidence": "오징어(11633) 생것 중 1마리 407.6 g, 가식부 322.5 g(별첨 137쪽)"
+  },
+  {
+   "ingredient": "현미밥",
+   "unit": "공기",
+   "grams": 210,
+   "source": "mfds_nq_elderly",
+   "evidence": "'밥으로 1공기(210 g)'(25쪽) — 현미밥도 밥 1공기로 봄"
+  },
+  {
+   "ingredient": "가자미",
+   "unit": "마리",
+   "grams": 251.8,
+   "source": "khidi_2007_portion",
+   "evidence": "가자미(11018) 생것 중 1마리 403.2 g, 가식부 251.8 g(대 275.7·소 101.2 g)(별첨 124쪽)"
+  },
+  {
+   "ingredient": "닭다릿살",
+   "unit": "개",
+   "grams": 64.6,
+   "source": "khidi_2007_portion",
+   "evidence": "닭다리(9044) 생것 1개 113.3 g, 가식부 64.6 g(별첨 114쪽)"
   }
  ],
  "volume_units": [

@@ -19,7 +19,7 @@ def _item(raw):
     ("후춧가루 0.1g", 0.1, "direct"),
     ("물 300ml(1½컵)", 300.0, "approx_ml"),
     ("아스파라거스(3개)", None, "count_unit"),
-    ("인삼(1뿌리)", None, "count_unit"),
+    ("인삼(1뿌리)", 37.8, "unit_weight"),       # 눈대중량 DB 수삼 중 1뿌리 가식부
     ("참깨 약간", None, "qualitative"),
     ("표고버섯 기둥", None, "missing"),
 ])
