@@ -77,7 +77,7 @@ class SettingsScreen extends StatelessWidget {
           TextButton(onPressed: settings.stop, child: const Text('읽어주기 중지')),
           const SectionTitle('개인정보 안내'),
           const Notice(
-            '입력한 개인·건강 정보는 이번 추천에만 사용하고 서버로 보내지 않아요. 사진을 별도로 보관하거나 전송하지 않아요. 글자 크기와 음성 설정만 기기에 저장해요.',
+            '서버 연결 식단 추천에서는 식사·건강 조건을 전송하고 추천 결과를 서버에 보관해요. 전송 항목은 추천을 요청하기 전에 안내해요. 사진은 기기에서만 사용해요.',
             color: muted,
           ),
           const SectionTitle('앱 정보'),

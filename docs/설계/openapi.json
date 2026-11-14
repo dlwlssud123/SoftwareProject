@@ -858,7 +858,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessResponse_RecommendationResult_RecipeRecord__"
+                  "$ref": "#/components/schemas/SuccessResponse_RecipeRecommendationResult_"
                 }
               }
             }
@@ -1715,6 +1715,34 @@
         ],
         "title": "RecipeQuality"
       },
+      "RecipeRecommendation": {
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/RecipeRecord"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "seasonal_ingredients": {
+            "items": {
+              "$ref": "#/components/schemas/SeasonalMatch"
+            },
+            "type": "array",
+            "title": "Seasonal Ingredients"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "item",
+          "reasons"
+        ],
+        "title": "RecipeRecommendation"
+      },
       "RecipeRecommendationRequest": {
         "properties": {
           "meal_time": {
@@ -1726,6 +1754,23 @@
               "snack"
             ],
             "title": "Meal Time"
+          },
+          "health_conditions": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "hypertension",
+                "diabetes"
+              ]
+            },
+            "type": "array",
+            "maxItems": 2,
+            "title": "Health Conditions"
+          },
+          "soft_food": {
+            "type": "boolean",
+            "title": "Soft Food",
+            "default": false
           },
           "exclude_allergens": {
             "items": {
@@ -1780,6 +1825,54 @@
           "meal_time"
         ],
         "title": "RecipeRecommendationRequest"
+      },
+      "RecipeRecommendationResult": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RecipeRecommendation"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "evaluated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Evaluated At"
+          },
+          "rules_version": {
+            "type": "string",
+            "title": "Rules Version"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "recommendation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommendation Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "evaluated_at",
+          "rules_version",
+          "warnings"
+        ],
+        "title": "RecipeRecommendationResult"
       },
       "RecipeRecord": {
         "properties": {
@@ -2006,63 +2099,6 @@
         ],
         "title": "RecipeStep"
       },
-      "RecommendationResult_RecipeRecord_": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/Recommendation_RecipeRecord_"
-            },
-            "type": "array",
-            "title": "Items"
-          },
-          "evaluated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Evaluated At"
-          },
-          "rules_version": {
-            "type": "string",
-            "title": "Rules Version"
-          },
-          "warnings": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Warnings"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "items",
-          "evaluated_at",
-          "rules_version",
-          "warnings"
-        ],
-        "title": "RecommendationResult[RecipeRecord]"
-      },
-      "Recommendation_RecipeRecord_": {
-        "properties": {
-          "item": {
-            "$ref": "#/components/schemas/RecipeRecord"
-          },
-          "reasons": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Reasons"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "item",
-          "reasons"
-        ],
-        "title": "Recommendation[RecipeRecord]"
-      },
       "ResponseMeta": {
         "properties": {
           "request_id": {
@@ -2110,6 +2146,30 @@
         },
         "type": "object",
         "title": "RevokedData"
+      },
+      "SeasonalMatch": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url"
+          },
+          "shopping_search_url": {
+            "type": "string",
+            "title": "Shopping Search Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "source_url",
+          "shopping_search_url"
+        ],
+        "title": "SeasonalMatch"
       },
       "SessionData": {
         "properties": {
@@ -2201,6 +2261,22 @@
         ],
         "title": "SuccessResponse[Page[RecipeRecord]]"
       },
+      "SuccessResponse_RecipeRecommendationResult_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RecipeRecommendationResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[RecipeRecommendationResult]"
+      },
       "SuccessResponse_RecipeRecord_": {
         "properties": {
           "data": {
@@ -2216,22 +2292,6 @@
           "meta"
         ],
         "title": "SuccessResponse[RecipeRecord]"
-      },
-      "SuccessResponse_RecommendationResult_RecipeRecord__": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/RecommendationResult_RecipeRecord_"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ResponseMeta"
-          }
-        },
-        "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
-        "title": "SuccessResponse[RecommendationResult[RecipeRecord]]"
       },
       "SuccessResponse_RevokedData_": {
         "properties": {

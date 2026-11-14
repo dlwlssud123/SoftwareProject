@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import '../core/network/api_client.dart';
+import '../core/network/api_config.dart';
 import '../data/demo_repository.dart';
+import '../data/meal_recommendation_api.dart';
 import '../models/recommendations.dart';
 import '../services/settings.dart';
 import '../theme.dart';
@@ -7,7 +11,7 @@ import '../widgets/common.dart';
 import 'profile_form.dart';
 import 'recommendation_results.dart';
 
-class MealScreen extends StatelessWidget {
+class MealScreen extends StatefulWidget {
   const MealScreen({
     required this.repository,
     required this.settings,
@@ -15,6 +19,34 @@ class MealScreen extends StatelessWidget {
   });
   final DemoRepository repository;
   final AppSettings settings;
+
+  @override
+  State<MealScreen> createState() => _MealScreenState();
+}
+
+class _MealScreenState extends State<MealScreen> {
+  DemoRepository get repository => widget.repository;
+  AppSettings get settings => widget.settings;
+  late final MealRecommendationApi? _mealApi = _createMealApi();
+
+  MealRecommendationApi? _createMealApi() {
+    final server = Uri.tryParse(ApiConfig.baseUrl);
+    if (server == null || server.host.isEmpty || server.userInfo.isNotEmpty) {
+      return null;
+    }
+    if (server.scheme == 'https' ||
+        (kDebugMode &&
+            server.scheme == 'http' &&
+            const {
+              '10.0.2.2',
+              '127.0.0.1',
+              'localhost',
+            }.contains(server.host))) {
+      return MealRecommendationApi(ApiClient());
+    }
+    return null;
+  }
+
   void start(
     BuildContext context, {
     bool welfare = false,
@@ -27,6 +59,7 @@ class MealScreen extends StatelessWidget {
           settings: settings,
           welfare: welfare,
           initialTime: time,
+          mealApi: welfare ? null : _mealApi,
         ),
       ),
     );
@@ -132,9 +165,9 @@ class MealScreen extends StatelessWidget {
           ),
         ),
       const SizedBox(height: 8),
-      const Text(
-        '식품안전나라 API 데이터 · 추천 규칙은 발표용 예시',
-        style: TextStyle(fontSize: 13, color: muted),
+      Text(
+        _mealApi == null ? '식품안전나라 API 데이터 · 추천 규칙은 발표용 예시' : '식품안전나라 API 데이터',
+        style: const TextStyle(fontSize: 13, color: muted),
       ),
     ],
   );

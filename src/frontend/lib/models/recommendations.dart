@@ -43,12 +43,15 @@ class Recipe {
     required this.method,
     required this.allergens,
     required this.soft,
+    this.fromServer = false,
+    this.imageUrl,
   });
   final String id, name, ingredients, method;
   final List<String> steps;
-  final double calories, sodium, protein, carbs, fat;
+  final double? calories, sodium, protein, carbs, fat;
   final Set<String> allergens;
-  final bool soft;
+  final bool soft, fromServer;
+  final String? imageUrl;
   String get image => 'assets/images/$id.png';
 
   List<int> get missingStepNumbers {
@@ -106,10 +109,26 @@ class Recipe {
 }
 
 class RecipeMatch {
-  const RecipeMatch(this.recipe, this.reasons);
+  const RecipeMatch(this.recipe, this.reasons, {this.seasonal = const []});
   final Recipe recipe;
   final List<String> reasons;
+  final List<SeasonalIngredient> seasonal;
 }
+
+class SeasonalIngredient {
+  const SeasonalIngredient(this.name, this.shoppingUrl);
+  final String name;
+  final Uri? shoppingUrl;
+}
+
+class MealRecommendations {
+  const MealRecommendations(this.items, this.warnings);
+  final List<RecipeMatch> items;
+  final List<String> warnings;
+}
+
+String nutrientLabel(double? value, String unit) =>
+    value == null ? '정보 없음' : '${value.toStringAsFixed(0)} $unit';
 
 class WelfareService {
   const WelfareService({

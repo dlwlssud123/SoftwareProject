@@ -1,13 +1,19 @@
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
+from statistics import median
+from uuid import UUID
 
 from agetech_data.textutil import nfc
 
-from app.schemas.catalog import RecipeRecommendationRequest, RecipeRecord
+from app.schemas.catalog import RecipeRecommendationRequest, RecipeRecord, SeasonalMatch
 from app.schemas.profile import Preferences
 
-RULES_VERSION = "meal-rules-1"
+RULES_VERSION = "meal-rules-2"
+HEALTH_METRICS = {
+    "hypertension": ("sodium_mg", "나트륨"),
+    "diabetes": ("carbohydrate_g", "탄수화물"),
+}
 
 TIME_CATEGORIES = {
     "breakfast": {"밥", "국&찌개"},
@@ -29,11 +35,22 @@ class Candidate:
     reasons: list[str]
 
 
+def _nutrient(record: RecipeRecord, field: str) -> float | None:
+    value = getattr(record.nutrition, field)
+    # The public source uses unverified serving sizes and may contain zero placeholders.
+    return (
+        value
+        if not record.nutrition.suspect and value is not None and value > 0
+        else None
+    )
+
+
 def recommend(
     records: Iterable[RecipeRecord],
     payload: RecipeRecommendationRequest,
     preferences: Preferences,
     recent_foods: Iterable[str],
+    seasonal: dict[UUID, list[SeasonalMatch]],
 ) -> list[tuple[RecipeRecord, list[str]]]:
     exclusions = {
         _key(name)
@@ -59,7 +76,9 @@ def recommend(
         favorite = bool(ingredients & preferred)
         time_match = category in TIME_CATEGORIES[payload.meal_time]
         recent_match = bool(ingredients & recent or _key(record.name) in recent)
-        soft_match = preferences.soft_food and record.name.endswith("죽")
+        soft_match = (
+            preferences.soft_food or payload.soft_food
+        ) and record.name.endswith("죽")
         reasons = []
         if has_allergies:
             reasons.append("재료 정보에서 선택한 알레르기 제외 조건을 확인했어요.")
@@ -75,7 +94,27 @@ def recommend(
             reasons.append("최근 식사 기록에 이름이 일치하는 메뉴나 재료가 없어요.")
         score = 4 * int(favorite) + 3 * int(time_match) + 3 * int(bool(soft_match))
         score -= 4 * int(recent_match)
+        if seasonal.get(record.source.revision_id):
+            score += 1
+            reasons.append("이달의 식재료가 들어 있어요.")
         pool.append(Candidate(record, category, score, reasons))
+
+    for condition in dict.fromkeys(payload.health_conditions):
+        field, label = HEALTH_METRICS[condition]
+        known = [
+            (entry, value)
+            for entry in pool
+            if (value := _nutrient(entry.record, field)) is not None
+        ]
+        if len({value for _, value in known}) < 2:
+            continue
+        middle = median(value for _, value in known)
+        for entry, value in known:
+            if value < middle:
+                entry.score += 2
+                entry.reasons.append(
+                    f"공개 수치가 있는 후보 중 {label} 표기량이 중간값보다 낮아요."
+                )
 
     used_categories: Counter[str] = Counter()
     used_names: set[str] = set()

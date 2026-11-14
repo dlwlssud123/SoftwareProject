@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../core/network/api_exception.dart';
 import '../data/demo_repository.dart';
+import '../data/meal_recommendation_api.dart';
 import '../models/recommendations.dart';
 import '../services/settings.dart';
 import '../theme.dart';
@@ -13,12 +15,14 @@ class ProfileForm extends StatefulWidget {
     required this.settings,
     this.welfare = false,
     this.initialTime = MealTime.lunch,
+    this.mealApi,
     super.key,
   });
   final DemoRepository repository;
   final AppSettings settings;
   final bool welfare;
   final MealTime initialTime;
+  final MealRecommendationApi? mealApi;
   @override
   State<ProfileForm> createState() => _ProfileFormState();
 }
@@ -37,6 +41,7 @@ class _ProfileFormState extends State<ProfileForm> {
   var consent = false;
   var step = 0;
   var loading = false;
+  String? errorMessage;
   final conditions = <String>{};
   final allergies = <String>{};
   late MealTime time = widget.initialTime;
@@ -87,6 +92,7 @@ class _ProfileFormState extends State<ProfileForm> {
   }
 
   Future<void> next() async {
+    if (loading) return;
     FocusScope.of(context).unfocus();
     if (step == 0) {
       if (!form.currentState!.validate()) return;
@@ -98,10 +104,11 @@ class _ProfileFormState extends State<ProfileForm> {
       showMessage(context, '정보 이용 안내를 확인해 주세요.');
       return;
     }
-    setState(() => loading = true);
-    // Keep the loading state short and deterministic for offline presentations.
-    await Future<void>.delayed(const Duration(milliseconds: 500));
-    if (!mounted) return;
+    setState(() {
+      loading = true;
+      errorMessage = null;
+    });
+    final requestedTime = time;
     final profile = UserProfile(
       name: name.text,
       age: int.parse(age.text),
@@ -114,14 +121,29 @@ class _ProfileFormState extends State<ProfileForm> {
       allergies: Set.of(allergies),
       softFood: softFood,
     );
-    setState(() => loading = false);
+    MealRecommendations? recommendations;
+    try {
+      final api = widget.mealApi;
+      if (api == null) {
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+      } else {
+        recommendations = await api.recommend(profile, requestedTime);
+      }
+    } on ApiException catch (error) {
+      if (mounted) setState(() => errorMessage = error.message);
+      return;
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+    if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => RecommendationResults(
           repository: widget.repository,
           settings: widget.settings,
           profile: profile,
-          time: time,
+          time: requestedTime,
+          serverMeals: recommendations,
           welfare: widget.welfare,
         ),
       ),
@@ -357,9 +379,11 @@ class _ProfileFormState extends State<ProfileForm> {
                 '이번 추천에 입력 정보를 사용하는 것을 확인했어요.',
                 style: TextStyle(fontSize: 16),
               ),
-              subtitle: const Text(
-                '발표 모드에서는 외부로 전송하거나 저장하지 않아요.',
-                style: TextStyle(fontSize: 13),
+              subtitle: Text(
+                widget.mealApi == null
+                    ? '입력 정보는 기기에서 이번 추천에만 사용해요.'
+                    : '식사 시간, 건강·알레르기 조건과 식감 선호를 추천 서버에 보내요. 서버에는 추천 결과와 사용한 기준을 저장해요.',
+                style: const TextStyle(fontSize: 13),
               ),
               value: consent,
               onChanged: (v) => setState(() => consent = v ?? false),
@@ -373,39 +397,46 @@ class _ProfileFormState extends State<ProfileForm> {
       child: Container(
         color: canvas,
         padding: const EdgeInsets.fromLTRB(22, 10, 22, 12),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            if (step == 1) ...[
-              IconButton(
-                tooltip: '기본 정보 수정',
-                onPressed: loading
-                    ? null
-                    : () {
-                        setState(() => step = 0);
-                        scroll.jumpTo(0);
-                      },
-                icon: const Icon(Icons.arrow_back_rounded),
-              ),
-              const SizedBox(width: 8),
-            ],
-            Expanded(
-              child: FilledButton(
-                key: Key(step == 0 ? 'profile-next' : 'recommend-submit'),
-                onPressed: loading ? null : next,
-                child: loading
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(
-                        step == 0
-                            ? '다음으로'
-                            : widget.welfare
-                            ? '맞춤 복지 서비스 찾기'
-                            : '맞춤 레시피 추천받기',
-                      ),
-              ),
+            if (errorMessage case final message?)
+              Semantics(liveRegion: true, child: Notice(message)),
+            Row(
+              children: [
+                if (step == 1) ...[
+                  IconButton(
+                    tooltip: '기본 정보 수정',
+                    onPressed: loading
+                        ? null
+                        : () {
+                            setState(() => step = 0);
+                            scroll.jumpTo(0);
+                          },
+                    icon: const Icon(Icons.arrow_back_rounded),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: FilledButton(
+                    key: Key(step == 0 ? 'profile-next' : 'recommend-submit'),
+                    onPressed: loading ? null : next,
+                    child: loading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            step == 0
+                                ? '다음으로'
+                                : widget.welfare
+                                ? '맞춤 복지 서비스 찾기'
+                                : '맞춤 레시피 추천받기',
+                          ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

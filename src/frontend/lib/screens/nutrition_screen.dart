@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../data/demo_repository.dart';
+import '../models/recommendations.dart' show nutrientLabel;
 import '../services/settings.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -154,11 +155,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
             child: Column(
               children: [
                 for (final entry in {
-                  '열량': '${recipe.calories.toStringAsFixed(0)} kcal',
-                  '탄수화물': '${recipe.carbs.toStringAsFixed(0)} g',
-                  '단백질': '${recipe.protein.toStringAsFixed(0)} g',
-                  '지방': '${recipe.fat.toStringAsFixed(0)} g',
-                  '나트륨': '${recipe.sodium.toStringAsFixed(0)} mg',
+                  '열량': nutrientLabel(recipe.calories, 'kcal'),
+                  '탄수화물': nutrientLabel(recipe.carbs, 'g'),
+                  '단백질': nutrientLabel(recipe.protein, 'g'),
+                  '지방': nutrientLabel(recipe.fat, 'g'),
+                  '나트륨': nutrientLabel(recipe.sodium, 'mg'),
                 }.entries)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),

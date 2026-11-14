@@ -159,7 +159,11 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 ### 식단 추천
 
-`POST /api/v1/meal/recommendations`에는 게스트 또는 사용자 Bearer 세션이 필요하다. 요청은 `meal_time`과 선택 항목인 `exclude_allergens`, `exclude_ingredients`, `limit`를 받는다. 계정에 저장된 제외 조건은 요청 조건과 합친다. 현재 공개된 레시피 중 제외 조건을 충족하는 메뉴를 대상으로 선호 재료, 시간대별 메뉴 유형, 본인의 최근 7일 섭취 기록, 결과의 메뉴 유형 다양성을 반영한다. 부드러운 음식을 선호하면 죽 메뉴에 가점을 준다. 응답은 레시피별 이유, 평가 시각, 규칙 버전과 안내를 포함한다. 후보가 없으면 빈 `items`를 반환한다.
+`POST /api/v1/meal/recommendations`에는 게스트 또는 사용자 Bearer 세션이 필요하다. 요청은 `meal_time`과 선택 항목인 `exclude_allergens`, `exclude_ingredients`, `health_conditions`(`hypertension`, `diabetes`), `soft_food`, `limit`를 받는다. 계정에 저장된 제외 조건은 요청 조건과 합친다. 현재 공개된 레시피를 대상으로 제외 조건을 먼저 적용하고, 선호 재료, 시간대, 본인의 최근 7일 섭취 기록과 메뉴 유형 다양성을 반영한다.
+
+고혈압은 나트륨, 당뇨는 탄수화물 공개 표기량을 비교한다. 수치가 양수이고 원천 품질 검사에서 의심으로 판정되지 않은 후보 중 중간값보다 낮은 메뉴에 가점을 준다. 한국 시간 기준 해당 월에 게시 중이고 현재 레시피 판본과 연결된 제철 재료에 가점을 주며, 원문과 쿠팡 검색 링크를 반환한다.
+
+응답의 `recommendation_id`로 추천 실행을 식별한다. DB에는 계정 ID, 식사 시간, 평가 시각, 규칙 버전, 추천 레시피 판본과 이유·제철 근거를 저장한다. 요청의 건강 상태·알레르기 원문은 추천 이력에 저장하지 않는다. 후보가 없으면 빈 `items`를 반환한다.
 
 ## 7. 미구현 예정 API
 
@@ -211,7 +215,7 @@ DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세와 �
 | --- | --- | --- |
 | `GET /recipes` | `limit=20`(1~100), `offset=0`(0~10000), 선택 `q`·`category`·`cooking_method`·반복 `exclude_allergens` | `items[]`, `limit`, `offset`, `total` |
 | `GET /recipes/{recipe_id}` | COOKRCP01 원천 ID 문자열, 예 `108` | `RecipeRecord` |
-| `POST /meal/recommendations` | 필수 `meal_time`(`breakfast/lunch/dinner/snack`), 선택 `exclude_allergens=[]`·`exclude_ingredients=[]`·`limit=5`(1~20) | `items[].item`·`reasons[]`, `evaluated_at`, `rules_version`, `warnings[]` |
+| `POST /meal/recommendations` | 필수 `meal_time`(`breakfast/lunch/dinner/snack`), 선택 `exclude_allergens=[]`·`exclude_ingredients=[]`·`health_conditions=[]`·`soft_food=false`·`limit=5`(1~20) | `recommendation_id`, `items[].item`·`reasons[]`·`seasonal_ingredients[]`, `evaluated_at`, `rules_version`, `warnings[]` |
 | `GET /welfare` | `limit`·`offset`·선택 `q`, 선택 `scope`(`central_nationwide`/`local`, 없으면 둘 다), 선택 `region`·`district`(`district`는 `region`과 함께) | 같은 페이지 구조의 `WelfareRecord` |
 | `GET /welfare/{service_id}` | 원천 ID 문자열, 예 `WLF00000060` | `WelfareRecord` |
 | `POST /welfare/recommendations` | 필수 `age`(0~120)·`region`(1~50자), 선택 `district`·`lives_alone`·`limit=5`(1~20) | 같은 추천 구조의 `WelfareRecord` |
@@ -224,7 +228,7 @@ DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세와 �
 
 레시피 출처는 `provider/service/source_id/fetched_at/raw_sha256`, 복지는 `provider/source_id/source_url/checked_at/detail_checked_at/raw_sha256`를 제공한다. 두 출처의 `revision_id`는 DB 판본 UUID이며 수집 원문 표본에서는 `null`이다. DB 조회 구현에서는 활성 판본을 채운다. 기존 공통 `meta.revision`은 정수 계약을 유지하며 원천 ID나 DB UUID를 대신 넣지 않는다. 시간은 시간대 포함 ISO 8601이며 미수집 시각은 추정하지 않는다.
 
-빈 목록·추천은 200과 `items=[]`, 없는 ID 또는 노출 불가 자료는 404, 잘못된 입력은 422, 저장소 일시 장애는 503을 사용한다. 추천 이유·규칙 버전은 실제 추천 구현에서 생성한다. 현재 표본은 공개 원천을 DTO로 검증한 예시이며 추천 기능 실행 결과가 아니다. 건강 상태·소득 기준 추가는 근거·규칙과 함께 후속 계약으로 확장한다.
+빈 목록·추천은 200과 `items=[]`, 없는 ID 또는 노출 불가 자료는 404, 잘못된 입력은 422, 저장소 일시 장애는 503을 사용한다. 추천 이유·규칙 버전은 실제 추천 구현에서 생성한다. 현재 표본은 공개 원천을 DTO로 검증한 예시이며 추천 기능 실행 결과가 아니다.
 
 ## 10. 레시피 DB 조회와 프로필
 

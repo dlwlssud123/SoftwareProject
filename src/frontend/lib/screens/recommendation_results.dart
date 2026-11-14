@@ -14,6 +14,7 @@ class RecommendationResults extends StatelessWidget {
     required this.profile,
     required this.time,
     this.welfare = false,
+    this.serverMeals,
     super.key,
   });
   final DemoRepository repository;
@@ -21,12 +22,13 @@ class RecommendationResults extends StatelessWidget {
   final UserProfile profile;
   final MealTime time;
   final bool welfare;
+  final MealRecommendations? serverMeals;
 
   @override
   Widget build(BuildContext context) {
     final meals = welfare
         ? <RecipeMatch>[]
-        : repository.recommendMeals(profile, time);
+        : serverMeals?.items ?? repository.recommendMeals(profile, time);
     final services = welfare
         ? repository.recommendWelfare(profile)
         : <WelfareMatch>[];
@@ -94,7 +96,7 @@ class RecommendationResults extends StatelessWidget {
             Text(
               welfare
                   ? '입력 정보를 확인하거나 복지로에서 다른 서비스를 찾아보세요.'
-                  : '현재 저장된 레시피 ${repository.recipes.length}개에서 찾고 있어요.\n알레르기 조건은 유지하고 다른 조건을 확인해 주세요.',
+                  : '알레르기 조건은 유지하고 다른 조건을 확인해 주세요.',
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -107,11 +109,14 @@ class RecommendationResults extends StatelessWidget {
             _RecipeCard(match: match, settings: settings),
           for (final match in services) _WelfareCard(match: match),
           const SizedBox(height: 12),
-          Notice(
-            welfare
-                ? '입력 정보로 관련 제도를 정리했어요. 신청 자격은 각 서비스의 지원대상·선정기준과 담당 기관에서 확인해 주세요.'
-                : '시간대와 건강 상태별로 정해 둔 예시 메뉴예요. 전문적인 식단 처방은 아니에요.',
-          ),
+          if (serverMeals case final recommendations?)
+            for (final warning in recommendations.warnings) Notice(warning)
+          else
+            Notice(
+              welfare
+                  ? '입력 정보로 관련 제도를 정리했어요. 신청 자격은 각 서비스의 지원대상·선정기준과 담당 기관에서 확인해 주세요.'
+                  : '시간대와 건강 상태별로 정해 둔 예시 메뉴예요. 전문적인 식단 처방은 아니에요.',
+            ),
           const SizedBox(height: 12),
           Text(
             welfare
@@ -121,6 +126,43 @@ class RecommendationResults extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _RecipeImage extends StatelessWidget {
+  const _RecipeImage({
+    required this.recipe,
+    required this.width,
+    required this.height,
+  });
+  final Recipe recipe;
+  final double width, height;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!recipe.fromServer) {
+      return Image.asset(
+        recipe.image,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+      );
+    }
+    final placeholder = Container(
+      width: width,
+      height: height,
+      color: const Color(0xFFF2F2F5),
+      child: const Icon(Icons.restaurant_outlined, color: muted),
+    );
+    final url = recipe.imageUrl;
+    if (url == null) return placeholder;
+    return Image.network(
+      url,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => placeholder,
     );
   }
 }
@@ -144,7 +186,11 @@ class _RecipeCard extends StatelessWidget {
         child: InkWell(
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => RecipeDetail(recipe: r, settings: settings),
+              builder: (_) => RecipeDetail(
+                recipe: r,
+                settings: settings,
+                seasonal: match.seasonal,
+              ),
             ),
           ),
           child: Column(
@@ -160,11 +206,10 @@ class _RecipeCard extends StatelessWidget {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
-                          child: Image.asset(
-                            r.image,
+                          child: _RecipeImage(
+                            recipe: r,
                             width: 92,
                             height: 106,
-                            fit: BoxFit.cover,
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -181,10 +226,10 @@ class _RecipeCard extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              Tag(r.method),
+                              if (r.method.isNotEmpty) Tag(r.method),
                               const SizedBox(height: 8),
                               Text(
-                                '${r.calories.toStringAsFixed(0)} kcal · 단백질 ${r.protein.toStringAsFixed(0)}g',
+                                '${nutrientLabel(r.calories, 'kcal')} · 단백질 ${nutrientLabel(r.protein, 'g')}',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: muted,
@@ -357,9 +402,15 @@ class _WelfareCard extends StatelessWidget {
 }
 
 class RecipeDetail extends StatelessWidget {
-  const RecipeDetail({required this.recipe, required this.settings, super.key});
+  const RecipeDetail({
+    required this.recipe,
+    required this.settings,
+    this.seasonal = const [],
+    super.key,
+  });
   final Recipe recipe;
   final AppSettings settings;
+  final List<SeasonalIngredient> seasonal;
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('레시피 살펴보기')),
@@ -369,11 +420,10 @@ class RecipeDetail extends StatelessWidget {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(24),
-          child: Image.asset(
-            recipe.image,
+          child: _RecipeImage(
+            recipe: recipe,
             height: 240,
             width: double.infinity,
-            fit: BoxFit.cover,
           ),
         ),
         const SizedBox(height: 22),
@@ -383,7 +433,7 @@ class RecipeDetail extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            Tag(recipe.method),
+            if (recipe.method.isNotEmpty) Tag(recipe.method),
             for (final allergen in recipe.allergens)
               Tag('$allergen 포함', color: const Color(0xFFAE652F)),
           ],
@@ -393,10 +443,10 @@ class RecipeDetail extends StatelessWidget {
           spacing: 10,
           runSpacing: 10,
           children: [
-            _Nutrient('열량', '${recipe.calories.toStringAsFixed(0)} kcal'),
-            _Nutrient('단백질', '${recipe.protein.toStringAsFixed(0)} g'),
-            _Nutrient('탄수화물', '${recipe.carbs.toStringAsFixed(0)} g'),
-            _Nutrient('나트륨', '${recipe.sodium.toStringAsFixed(0)} mg'),
+            _Nutrient('열량', nutrientLabel(recipe.calories, 'kcal')),
+            _Nutrient('단백질', nutrientLabel(recipe.protein, 'g')),
+            _Nutrient('탄수화물', nutrientLabel(recipe.carbs, 'g')),
+            _Nutrient('나트륨', nutrientLabel(recipe.sodium, 'mg')),
           ],
         ),
         const SizedBox(height: 10),
@@ -413,6 +463,18 @@ class RecipeDetail extends StatelessWidget {
           ),
         ),
         _IngredientList(source: recipe.ingredients),
+        if (seasonal.isNotEmpty) ...[
+          const SectionTitle('이달의 식재료'),
+          for (final item in seasonal)
+            if (item.shoppingUrl case final url?)
+              OutlinedButton.icon(
+                onPressed: () => openLink(context, url),
+                icon: const Icon(Icons.open_in_new_rounded),
+                label: Text('${item.name} 쿠팡에서 검색'),
+              )
+            else
+              Text(item.name),
+        ],
         SectionTitle(
           '조리 방법',
           trailing: recipe.steps.isEmpty

@@ -7,9 +7,20 @@ from sqlalchemy.orm import Session
 from test_auth import guest
 from test_public_data_import import corrections, snapshot
 
+from app.api.meal import KOREA_TIMEZONE
 from app.core.database import get_db
 from app.jobs.import_public_data import apply_import, prepare_import
-from app.models import FoodRevision, MealLog, MealLogItem, RecipeRevision
+from app.models import (
+    FoodRevision,
+    MealLog,
+    MealLogItem,
+    Recipe,
+    RecipeRevision,
+    RecommendationItem,
+    RecommendationRun,
+    SeasonalFood,
+    SeasonalRecipeLink,
+)
 
 PATH = "/api/v1/meal/recommendations"
 
@@ -40,6 +51,7 @@ def test_recommendations_use_own_profile_and_confirmed_history(
                 "RCP_PARTS_DTLS": ingredients,
                 "RCP_PAT2": category,
                 "MANUAL01": "1. 재료를 익힌다.",
+                "INFO_NA": "50" if source_id == "1" else "300",
             }
             for source_id, name, ingredients, category in rows
         ],
@@ -88,7 +100,19 @@ def test_recommendations_use_own_profile_and_confirmed_history(
         assert response.status_code == 200
         assert response.headers["Cache-Control"] == "no-store"
         data = response.json()["data"]
-        assert data["rules_version"] == "meal-rules-1"
+        assert data["rules_version"] == "meal-rules-2"
+        run_id = UUID(data["recommendation_id"])
+        run = db.get(RecommendationRun, run_id)
+        assert run.user_id == UUID(user["user_id"])
+        assert run.rules_version == data["rules_version"]
+        assert [
+            row.rank
+            for row in db.scalars(
+                select(RecommendationItem)
+                .where(RecommendationItem.run_id == run_id)
+                .order_by(RecommendationItem.rank)
+            )
+        ] == [1, 2, 3]
         assert [item["item"]["recipe_id"] for item in data["items"]] == ["7", "4", "1"]
         assert "좋아하는 재료가 들어 있어요." in data["items"][0]["reasons"]
         assert all(
@@ -112,6 +136,60 @@ def test_recommendations_use_own_profile_and_confirmed_history(
             headers=headers,
         )
         assert empty.json()["data"]["items"] == []
+        assert db.get(
+            RecommendationRun, UUID(empty.json()["data"]["recommendation_id"])
+        )
+
+        recipe, revision = db.execute(
+            select(Recipe, RecipeRevision)
+            .join(RecipeRevision, Recipe.active_revision_id == RecipeRevision.id)
+            .where(Recipe.source_id == "7")
+        ).one()
+        now = datetime.now(KOREA_TIMEZONE)
+        seasonal = SeasonalFood(
+            provider="test",
+            source_id="7",
+            month=now.month,
+            fdmt_sn="7",
+            name="오이",
+            terms=[],
+            detail={},
+            detail_status="ok",
+            official_related_recipes=[],
+            normalized={},
+            shopping_search_url="https://www.coupang.com/np/search?q=오이",
+            source_url="https://example.test/seasonal",
+            checked_on=now.date(),
+            content_sha256="0" * 64,
+            links_sha256="0" * 64,
+            is_published=True,
+            last_seen_at=now,
+            last_seen_run_id=revision.import_run_id,
+        )
+        db.add(seasonal)
+        db.flush()
+        db.add(
+            SeasonalRecipeLink(
+                seasonal_food_id=seasonal.id,
+                recipe_id=recipe.id,
+                recipe_revision_id=revision.id,
+                ingredient_names=["오이"],
+            )
+        )
+        db.commit()
+        health = client.post(
+            PATH,
+            json={**payload, "health_conditions": ["hypertension"]},
+            headers=headers,
+        ).json()["data"]
+        by_recipe = {item["item"]["recipe_id"]: item for item in health["items"]}
+        assert any("나트륨" in reason for reason in by_recipe["1"]["reasons"])
+        assert by_recipe["7"]["seasonal_ingredients"][0]["name"] == "오이"
+        assert "2" not in by_recipe
+        seasonal.is_published = False
+        db.commit()
+        result = client.post(PATH, json=payload, headers=headers).json()["data"]
+        assert all(not item["seasonal_ingredients"] for item in result["items"])
 
 
 def _food_id(db):

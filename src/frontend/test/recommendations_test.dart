@@ -31,7 +31,7 @@ void main() {
   test('public recipe source retains usable images and cooking steps', () {
     expect(repository.recipes, hasLength(50));
     expect(
-      repository.recipes.every((r) => r.steps.isNotEmpty && r.calories > 0),
+      repository.recipes.every((r) => r.steps.isNotEmpty && (r.calories ?? 0) > 0),
       isTrue,
     );
     expect(
