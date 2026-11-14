@@ -60,6 +60,16 @@ def test_mapping_inherited_from_base_manual_entry_carries_its_reviewer(sample_fo
                for i in row["ingredients"])
 
 
+def test_fragment_joined_name_carries_its_reviewer(sample_foods):
+    # '미니' / '양배추(5개)' 는 '미니 양배추'로 매핑되므로 확인자도 그 항목에서 가져온다(재료 행 이름은 '양배추')
+    entry = {"ingredient": "미니 양배추", "food_code": "R102-001140001-0000", "rationale": "방울양배추",
+             "reviewed_by": "최재영", "reviewed_at": "2026-11-14"}
+    [row] = recipe_map_rows([_db_recipe(_recipe("1", "양파 50g, 미니\n양배추(5개)"))], sample_foods, (entry,))
+    cabbage = row["ingredients"][-1]
+    assert cabbage["name"] == "미니 양배추" and cabbage["match"]["status"] == "reviewed"
+    assert cabbage["review"] == {"by": "최재영", "on": "2026-11-14"}
+
+
 def test_content_hash_tracks_food_values_and_map(sample_foods):
     recipe = _db_recipe(_recipe("1", "양파 50g"))
     [first] = recipe_map_rows([recipe], sample_foods, ())
@@ -111,3 +121,46 @@ def test_missing_items_say_why_and_excluded_items_count_as_zero(sample_foods):
     [onion] = build_recipe_nutrition([_recipe("3", "양파 1봉지")], sample_foods, (),
                                      estimates=NO_EST)[0]["coverage"]["missing_items"]
     assert (onion["reason"], onion["amount_text"]) == ("grams_unknown", "1봉지") and "환산표에 없어" in onion["note"]
+
+
+def test_recipe_item_overrides_drop_strained_broth_solids_and_scale_gross_weight(sample_foods, monkeypatch):
+    from agetech_data.nutrition import build
+
+    parts = "●육수 : 양파 50g, 감자 100g\n●재료 : 양파 50g"
+    plain = recipe_map_rows([_db_recipe(_recipe("9", parts))], sample_foods, ())[0]
+    overrides = {
+        ("9", "육수", "양파 50g"): {"action": "not_eaten", "reason": "1단계 '체에 걸러'"},
+        ("9", "육수", "감자 100g"): {"action": "edible_ratio", "ratio": 0.5, "reason": "손질 전 무게"},
+    }
+    monkeypatch.setattr(build, "load_item_overrides", lambda: overrides)
+    [row] = recipe_map_rows([_db_recipe(_recipe("9", parts))], sample_foods, ())
+    broth_onion, potato, onion = row["ingredients"]
+    # 같은 원문('양파 50g')이라도 구획이 다르면 따로 — 육수의 양파만 0
+    assert broth_onion["match"]["status"] == "excluded" and broth_onion["match"]["rule"] == "recipe:not_eaten"
+    assert onion["match"]["status"] != "excluded" and onion["contribution"]
+    assert potato["grams"]["grams"] == 50.0 and "가식부 0.5" in potato["grams"]["basis"]
+    assert row["computed"]["energy_kcal"] < plain["computed"]["energy_kcal"]
+    assert row["content_sha256"] != plain["content_sha256"]
+    # 다른 레시피(같은 원문)는 그대로
+    [other] = recipe_map_rows([_db_recipe(_recipe("8", parts))], sample_foods, ())
+    assert other["computed"] == plain["computed"]
+
+
+def test_recipe_item_overrides_match_the_collected_source():
+    import pytest
+    from agetech_data import paths
+    from agetech_data.nutrition.build import load_item_overrides
+    from agetech_data.recipes.correct import apply_corrections
+    from agetech_data.recipes.validate import load_rows
+
+    if not paths.RECIPES_ALL_RAW.is_file():
+        pytest.skip("전체 레시피 수집본 없음(gitignore)")
+    rows, _ = apply_corrections(load_rows(paths.RECIPES_ALL_RAW),
+                                json.loads(paths.RECIPE_CORRECTIONS.read_text(encoding="utf-8")))
+    lines = {}
+    for row in rows:
+        for ing in check_recipe(row).to_dict()["ingredients"]:
+            key = (str(row["RCP_SEQ"]), ing["section"] or "", ing["raw_item"])
+            lines[key] = lines.get(key, 0) + 1
+    overrides = load_item_overrides()
+    assert overrides and all(lines.get(key) == 1 for key in overrides), [k for k in overrides if lines.get(k) != 1]

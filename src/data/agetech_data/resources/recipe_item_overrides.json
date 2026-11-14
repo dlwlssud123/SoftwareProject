@@ -1,0 +1,696 @@
+{
+ "description": "레시피 하나에만 해당하는 재료 줄 예외 — (source_id, section, raw_item)이 원문과 정확히 같을 때만 적용하고, 원문이 바뀌면 적용되지 않는다. action: not_eaten = 조리 단계에서 건져 내거나 버려 먹지 않음(0으로 취급, 근거 단계를 reason에), edible_ratio = 원문 g이 손질 전(뼈·껍데기 포함) 무게라 가식부 비율을 곱함",
+ "items": [
+  {
+   "source_id": "38",
+   "section": "멸치육수",
+   "raw_item": "다시마 1장(5×1cm)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 2단계 '육수의 표고버섯 기둥, 멸치, 다시마, 양파를 건진 후'"
+  },
+  {
+   "source_id": "38",
+   "section": "멸치육수",
+   "raw_item": "양파 10g(2×1cm)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 2단계 '육수의 표고버섯 기둥, 멸치, 다시마, 양파를 건진 후'"
+  },
+  {
+   "source_id": "231",
+   "section": "육수",
+   "raw_item": "다시마(1g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '찬물에 다시마를 넣고 끓여 건져 내고'"
+  },
+  {
+   "source_id": "259",
+   "section": "육수",
+   "raw_item": "마늘(7g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 3단계 '육수 재료를 넣고 끓인 뒤 체에 걸러 육수를 만든다'"
+  },
+  {
+   "source_id": "259",
+   "section": "육수",
+   "raw_item": "대파(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 3단계 '육수 재료를 넣고 끓인 뒤 체에 걸러 육수를 만든다'"
+  },
+  {
+   "source_id": "259",
+   "section": "육수",
+   "raw_item": "통후추(5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 3단계 '육수 재료를 넣고 끓인 뒤 체에 걸러 육수를 만든다'"
+  },
+  {
+   "source_id": "259",
+   "section": "육수",
+   "raw_item": "양파(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 3단계 '육수 재료를 넣고 끓인 뒤 체에 걸러 육수를 만든다'"
+  },
+  {
+   "source_id": "259",
+   "section": "육수",
+   "raw_item": "가다랑어포(5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 3단계 '육수 재료를 넣고 끓인 뒤 체에 걸러 육수를 만든다'"
+  },
+  {
+   "source_id": "263",
+   "section": "육수",
+   "raw_item": "다시마(7g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '끓어오르면 다시마를 건진 뒤'(콩나물·관자는 건져 두었다가 씀 — 그대로 계산)"
+  },
+  {
+   "source_id": "268",
+   "section": "육수",
+   "raw_item": "무(20g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 10분 정도 끓여 체에 걸러 육수를 만든다'"
+  },
+  {
+   "source_id": "268",
+   "section": "육수",
+   "raw_item": "다시마(3g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 10분 정도 끓여 체에 걸러 육수를 만든다'"
+  },
+  {
+   "source_id": "268",
+   "section": "육수",
+   "raw_item": "대파(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 10분 정도 끓여 체에 걸러 육수를 만든다'"
+  },
+  {
+   "source_id": "268",
+   "section": "육수",
+   "raw_item": "마른 표고버섯(3g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 10분 정도 끓여 체에 걸러 육수를 만든다'"
+  },
+  {
+   "source_id": "268",
+   "section": "육수",
+   "raw_item": "양파(30g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 10분 정도 끓여 체에 걸러 육수를 만든다'"
+  },
+  {
+   "source_id": "269",
+   "section": "육수",
+   "raw_item": "양파(40g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '양파, 마늘을 넣고 … 면포에 걸러 육수를 만든다'(쇠고기는 2단계에서 건져 썰어 냄 — 그대로 계산)"
+  },
+  {
+   "source_id": "269",
+   "section": "육수",
+   "raw_item": "마늘(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '양파, 마늘을 넣고 … 면포에 걸러 육수를 만든다'(쇠고기는 2단계에서 건져 썰어 냄 — 그대로 계산)"
+  },
+  {
+   "source_id": "271",
+   "section": "육수",
+   "raw_item": "다시마(5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 중간 불로 끓인 뒤 체에 걸러 육수를 만든다'(청주는 국물에 남음)"
+  },
+  {
+   "source_id": "271",
+   "section": "육수",
+   "raw_item": "무(40g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 중간 불로 끓인 뒤 체에 걸러 육수를 만든다'(청주는 국물에 남음)"
+  },
+  {
+   "source_id": "271",
+   "section": "육수",
+   "raw_item": "대파(5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 중간 불로 끓인 뒤 체에 걸러 육수를 만든다'(청주는 국물에 남음)"
+  },
+  {
+   "source_id": "271",
+   "section": "육수",
+   "raw_item": "양파(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 중간 불로 끓인 뒤 체에 걸러 육수를 만든다'(청주는 국물에 남음)"
+  },
+  {
+   "source_id": "271",
+   "section": "육수",
+   "raw_item": "마른 고추(3g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 중간 불로 끓인 뒤 체에 걸러 육수를 만든다'(청주는 국물에 남음)"
+  },
+  {
+   "source_id": "271",
+   "section": "육수",
+   "raw_item": "멸치(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 중간 불로 끓인 뒤 체에 걸러 육수를 만든다'(청주는 국물에 남음)"
+  },
+  {
+   "source_id": "271",
+   "section": "육수",
+   "raw_item": "마늘(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 중간 불로 끓인 뒤 체에 걸러 육수를 만든다'(청주는 국물에 남음)"
+  },
+  {
+   "source_id": "272",
+   "section": "육수",
+   "raw_item": "대파(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '대파, 마늘, 쇠고기를 물과 함께 끓인 뒤 면포에 걸러 육수를 만든다' — 쇠고기를 다시 쓰는 단계 없음"
+  },
+  {
+   "source_id": "272",
+   "section": "육수",
+   "raw_item": "마늘(5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '대파, 마늘, 쇠고기를 물과 함께 끓인 뒤 면포에 걸러 육수를 만든다' — 쇠고기를 다시 쓰는 단계 없음"
+  },
+  {
+   "source_id": "272",
+   "section": "육수",
+   "raw_item": "쇠고기(50g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '대파, 마늘, 쇠고기를 물과 함께 끓인 뒤 면포에 걸러 육수를 만든다' — 쇠고기를 다시 쓰는 단계 없음"
+  },
+  {
+   "source_id": "274",
+   "section": "육수",
+   "raw_item": "무(50g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 끓인 뒤 체로 걸러 육수를 낸다'"
+  },
+  {
+   "source_id": "274",
+   "section": "육수",
+   "raw_item": "다시마(5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 끓인 뒤 체로 걸러 육수를 낸다'"
+  },
+  {
+   "source_id": "274",
+   "section": "육수",
+   "raw_item": "대파(20g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 끓인 뒤 체로 걸러 육수를 낸다'"
+  },
+  {
+   "source_id": "274",
+   "section": "육수",
+   "raw_item": "멸치(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 끓인 뒤 체로 걸러 육수를 낸다'"
+  },
+  {
+   "source_id": "275",
+   "section": "육수 재료",
+   "raw_item": "다시마(5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '물이 끓어오르면 다시마를 건지고'"
+  },
+  {
+   "source_id": "282",
+   "section": "육수",
+   "raw_item": "다시마(3g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 3단계 '끓으면 건더기를 건져 육수를 만든다'"
+  },
+  {
+   "source_id": "282",
+   "section": "육수",
+   "raw_item": "표고버섯 밑동(3g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 3단계 '끓으면 건더기를 건져 육수를 만든다'"
+  },
+  {
+   "source_id": "284",
+   "section": "육수",
+   "raw_item": "무(15g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 10분간 끓여 건진다'"
+  },
+  {
+   "source_id": "284",
+   "section": "육수",
+   "raw_item": "멸치(2.5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 10분간 끓여 건진다'"
+  },
+  {
+   "source_id": "284",
+   "section": "육수",
+   "raw_item": "다시마(2.5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 10분간 끓여 건진다'"
+  },
+  {
+   "source_id": "286",
+   "section": "육수",
+   "raw_item": "대파(50g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 10분간 끓여 체로 건진다'"
+  },
+  {
+   "source_id": "286",
+   "section": "육수",
+   "raw_item": "양파(50g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 10분간 끓여 체로 건진다'"
+  },
+  {
+   "source_id": "287",
+   "section": "육수",
+   "raw_item": "무(50g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣어 20분간 끓인 뒤 … 체에 걸러'"
+  },
+  {
+   "source_id": "287",
+   "section": "육수",
+   "raw_item": "다시마(1g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣어 20분간 끓인 뒤 … 체에 걸러'"
+  },
+  {
+   "source_id": "287",
+   "section": "육수",
+   "raw_item": "대파(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣어 20분간 끓인 뒤 … 체에 걸러'"
+  },
+  {
+   "source_id": "288",
+   "section": "육수",
+   "raw_item": "다시마(2g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '끓어오르면 다시마를 건지고 … 고기가 익으면 체에 거른다'(무·고기는 5단계에서 다시 넣음 — 그대로 계산)"
+  },
+  {
+   "source_id": "288",
+   "section": "육수",
+   "raw_item": "보리새우(3g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '끓어오르면 다시마를 건지고 … 고기가 익으면 체에 거른다'(무·고기는 5단계에서 다시 넣음 — 그대로 계산)"
+  },
+  {
+   "source_id": "292",
+   "section": "육수",
+   "raw_item": "멸치(2g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 3단계 '육수 재료를 끓여낸 뒤 건진다'"
+  },
+  {
+   "source_id": "292",
+   "section": "육수",
+   "raw_item": "다시마(2g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 3단계 '육수 재료를 끓여낸 뒤 건진다'"
+  },
+  {
+   "source_id": "293",
+   "section": "육수",
+   "raw_item": "멸치(2g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '체로 건더기를 건지고'"
+  },
+  {
+   "source_id": "293",
+   "section": "육수",
+   "raw_item": "다시마(1g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '체로 건더기를 건지고'"
+  },
+  {
+   "source_id": "294",
+   "section": "육수",
+   "raw_item": "돼지고기(앞다리살, 100g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '저염된장을 제외한 육수 재료와 물을 넣고 … 면포에 거른다' — 돼지고기를 다시 쓰는 단계 없음(된장은 풀려 남음)"
+  },
+  {
+   "source_id": "294",
+   "section": "육수",
+   "raw_item": "무(70g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '저염된장을 제외한 육수 재료와 물을 넣고 … 면포에 거른다' — 돼지고기를 다시 쓰는 단계 없음(된장은 풀려 남음)"
+  },
+  {
+   "source_id": "294",
+   "section": "육수",
+   "raw_item": "양파(40g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '저염된장을 제외한 육수 재료와 물을 넣고 … 면포에 거른다' — 돼지고기를 다시 쓰는 단계 없음(된장은 풀려 남음)"
+  },
+  {
+   "source_id": "294",
+   "section": "육수",
+   "raw_item": "대파(40g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '저염된장을 제외한 육수 재료와 물을 넣고 … 면포에 거른다' — 돼지고기를 다시 쓰는 단계 없음(된장은 풀려 남음)"
+  },
+  {
+   "source_id": "309",
+   "section": "육수",
+   "raw_item": "대파(20g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 대파·생강 '면포에 거른다', 2단계 가다랑어포 '면포에 거른다'(돼지고기는 3단계에서 조림 — 그대로 계산)"
+  },
+  {
+   "source_id": "309",
+   "section": "육수",
+   "raw_item": "얇게 썬 생강(5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 대파·생강 '면포에 거른다', 2단계 가다랑어포 '면포에 거른다'(돼지고기는 3단계에서 조림 — 그대로 계산)"
+  },
+  {
+   "source_id": "309",
+   "section": "육수",
+   "raw_item": "가다랑어포(3g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 대파·생강 '면포에 거른다', 2단계 가다랑어포 '면포에 거른다'(돼지고기는 3단계에서 조림 — 그대로 계산)"
+  },
+  {
+   "source_id": "311",
+   "section": "육수",
+   "raw_item": "다시마(2.5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 10분간 끓여 건더기를 건진다'"
+  },
+  {
+   "source_id": "311",
+   "section": "육수",
+   "raw_item": "멸치(2.5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 10분간 끓여 건더기를 건진다'"
+  },
+  {
+   "source_id": "311",
+   "section": "육수",
+   "raw_item": "무(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '육수 재료를 넣고 10분간 끓여 건더기를 건진다'"
+  },
+  {
+   "source_id": "408",
+   "section": "국물",
+   "raw_item": "마늘 20g",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '국물 재료로 국을 끓여준 뒤 체에 걸러주고'(양지는 찢어 넣고, 청양고추는 5단계에서 볶아 넣음 — 그대로 계산)"
+  },
+  {
+   "source_id": "516",
+   "section": "육수",
+   "raw_item": "건새우(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 2단계 '건새우와 … 멸치, 다시마, 무, 마늘, 양파를 넣고 약 30분 정도 끓여 체에 걸러 육수를 만들어'"
+  },
+  {
+   "source_id": "516",
+   "section": "육수",
+   "raw_item": "멸치(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 2단계 '건새우와 … 멸치, 다시마, 무, 마늘, 양파를 넣고 약 30분 정도 끓여 체에 걸러 육수를 만들어'"
+  },
+  {
+   "source_id": "516",
+   "section": "육수",
+   "raw_item": "다시마(5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 2단계 '건새우와 … 멸치, 다시마, 무, 마늘, 양파를 넣고 약 30분 정도 끓여 체에 걸러 육수를 만들어'"
+  },
+  {
+   "source_id": "516",
+   "section": "육수",
+   "raw_item": "무(50g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 2단계 '건새우와 … 멸치, 다시마, 무, 마늘, 양파를 넣고 약 30분 정도 끓여 체에 걸러 육수를 만들어'"
+  },
+  {
+   "source_id": "516",
+   "section": "육수",
+   "raw_item": "양파(20g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 2단계 '건새우와 … 멸치, 다시마, 무, 마늘, 양파를 넣고 약 30분 정도 끓여 체에 걸러 육수를 만들어'"
+  },
+  {
+   "source_id": "516",
+   "section": "육수",
+   "raw_item": "마늘(20g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 2단계 '건새우와 … 멸치, 다시마, 무, 마늘, 양파를 넣고 약 30분 정도 끓여 체에 걸러 육수를 만들어'"
+  },
+  {
+   "source_id": "518",
+   "section": "육수",
+   "raw_item": "양파(20g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '멸치와 다시마, 건새우, 양파를 넣고 약 30분 정도 끓여 체에 걸러 육수를 만들어'"
+  },
+  {
+   "source_id": "518",
+   "section": "육수",
+   "raw_item": "다시마(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '멸치와 다시마, 건새우, 양파를 넣고 약 30분 정도 끓여 체에 걸러 육수를 만들어'"
+  },
+  {
+   "source_id": "518",
+   "section": "육수",
+   "raw_item": "건새우(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '멸치와 다시마, 건새우, 양파를 넣고 약 30분 정도 끓여 체에 걸러 육수를 만들어'"
+  },
+  {
+   "source_id": "518",
+   "section": "육수",
+   "raw_item": "건멸치(20g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '멸치와 다시마, 건새우, 양파를 넣고 약 30분 정도 끓여 체에 걸러 육수를 만들어'"
+  },
+  {
+   "source_id": "547",
+   "section": "육수",
+   "raw_item": "건새우(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 3단계 '건새우와 … 멸치, 양파, 다시마, 무, 통마늘을 넣고 끓인 육수를 소창에 걸러'"
+  },
+  {
+   "source_id": "547",
+   "section": "육수",
+   "raw_item": "멸치(20g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 3단계 '건새우와 … 멸치, 양파, 다시마, 무, 통마늘을 넣고 끓인 육수를 소창에 걸러'"
+  },
+  {
+   "source_id": "547",
+   "section": "육수",
+   "raw_item": "양파(20g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 3단계 '건새우와 … 멸치, 양파, 다시마, 무, 통마늘을 넣고 끓인 육수를 소창에 걸러'"
+  },
+  {
+   "source_id": "547",
+   "section": "육수",
+   "raw_item": "다시마(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 3단계 '건새우와 … 멸치, 양파, 다시마, 무, 통마늘을 넣고 끓인 육수를 소창에 걸러'"
+  },
+  {
+   "source_id": "547",
+   "section": "육수",
+   "raw_item": "마늘(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 3단계 '건새우와 … 멸치, 양파, 다시마, 무, 통마늘을 넣고 끓인 육수를 소창에 걸러'"
+  },
+  {
+   "source_id": "547",
+   "section": "육수",
+   "raw_item": "무(50g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 3단계 '건새우와 … 멸치, 양파, 다시마, 무, 통마늘을 넣고 끓인 육수를 소창에 걸러'"
+  },
+  {
+   "source_id": "549",
+   "section": "육수",
+   "raw_item": "멸치(20g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '멸치, 건새우, 무, 양파, 마늘을 넣고 육수를 만들어 소창에 걸러'"
+  },
+  {
+   "source_id": "549",
+   "section": "육수",
+   "raw_item": "건새우(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '멸치, 건새우, 무, 양파, 마늘을 넣고 육수를 만들어 소창에 걸러'"
+  },
+  {
+   "source_id": "549",
+   "section": "육수",
+   "raw_item": "무(20g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '멸치, 건새우, 무, 양파, 마늘을 넣고 육수를 만들어 소창에 걸러'"
+  },
+  {
+   "source_id": "549",
+   "section": "육수",
+   "raw_item": "양파(20g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '멸치, 건새우, 무, 양파, 마늘을 넣고 육수를 만들어 소창에 걸러'"
+  },
+  {
+   "source_id": "549",
+   "section": "육수",
+   "raw_item": "마늘(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '멸치, 건새우, 무, 양파, 마늘을 넣고 육수를 만들어 소창에 걸러'"
+  },
+  {
+   "source_id": "651",
+   "section": "육수",
+   "raw_item": "다시마(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '다시마 우린 물에 가다랑어포를 넣고 10분간 담갔다가 체에 거르고'"
+  },
+  {
+   "source_id": "779",
+   "section": "육수",
+   "raw_item": "양파(40g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '양파, 마늘을 넣고 … 면포에 걸러 육수를 만든다'(소고기는 2단계에서 건져 썰어 냄 — 그대로 계산)"
+  },
+  {
+   "source_id": "779",
+   "section": "육수",
+   "raw_item": "마늘(10g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '양파, 마늘을 넣고 … 면포에 걸러 육수를 만든다'(소고기는 2단계에서 건져 썰어 냄 — 그대로 계산)"
+  },
+  {
+   "source_id": "2991",
+   "section": "육수재료",
+   "raw_item": "다시마(3g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '육수가 우러나면 체에 육수를 걸러낸다'(닭뼈는 '닭뼈 육수'로 매핑돼 그대로)"
+  },
+  {
+   "source_id": "2991",
+   "section": "육수재료",
+   "raw_item": "대파(5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '육수가 우러나면 체에 육수를 걸러낸다'(닭뼈는 '닭뼈 육수'로 매핑돼 그대로)"
+  },
+  {
+   "source_id": "2991",
+   "section": "육수재료",
+   "raw_item": "마늘(2g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '육수가 우러나면 체에 육수를 걸러낸다'(닭뼈는 '닭뼈 육수'로 매핑돼 그대로)"
+  },
+  {
+   "source_id": "2994",
+   "section": "다시마 육수",
+   "raw_item": "다시마(5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 1단계 '다시마육수에 데친 뒤 찬물에 헹궈' — 데치는 물로만 씀"
+  },
+  {
+   "source_id": "3064",
+   "section": "육수",
+   "raw_item": "다시마(5g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 2단계 '육수가 끓으면 청양고추와 다시마를 건진다'"
+  },
+  {
+   "source_id": "3064",
+   "section": "육수",
+   "raw_item": "청양고추(3g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 2단계 '육수가 끓으면 청양고추와 다시마를 건진다'"
+  },
+  {
+   "source_id": "3071",
+   "section": "육수",
+   "raw_item": "다시마(1g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 2단계 '끓인 육수를 체에 거른다'"
+  },
+  {
+   "source_id": "3071",
+   "section": "육수",
+   "raw_item": "표고버섯(1g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 2단계 '끓인 육수를 체에 거른다'"
+  },
+  {
+   "source_id": "3071",
+   "section": "육수",
+   "raw_item": "대파(1g)",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 2단계 '끓인 육수를 체에 거른다'"
+  },
+  {
+   "source_id": "3769",
+   "section": "소바육수 재료",
+   "raw_item": "가다랑어포 4g",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '끓인 육수를 체에 거르고'(간장·맛술·유자청은 국물에 남음 — 그대로 계산)"
+  },
+  {
+   "source_id": "3769",
+   "section": "소바육수 재료",
+   "raw_item": "다시마 3g",
+   "action": "not_eaten",
+   "reason": "국물을 내고 건져 냄 — 4단계 '끓인 육수를 체에 거르고'(간장·맛술·유자청은 국물에 남음 — 그대로 계산)"
+  },
+  {
+   "source_id": "777",
+   "section": "육수",
+   "raw_item": "닭 550g(1마리)",
+   "action": "edible_ratio",
+   "ratio": 0.65,
+   "reason": "원문 550g은 뼈 포함 1마리 무게 — 한국보건산업진흥원 2007 눈대중량 DB 별첨 1 통닭 생것 가식부/전체 대 749.6/1,153.2·소 466.2/717.3 g(둘 다 65.0%, 113~114쪽)"
+  },
+  {
+   "source_id": "390",
+   "section": "",
+   "raw_item": "오징어 1마리(220g)",
+   "action": "edible_ratio",
+   "ratio": 0.791,
+   "reason": "원문 220g은 손질 전 1마리 무게 — 한국보건산업진흥원 2007 눈대중량 DB 별첨 1 오징어 생것 중 1마리 가식부 322.5/407.6 g(79.1%, 137쪽)"
+  },
+  {
+   "source_id": "416",
+   "section": "",
+   "raw_item": "조기 1마리(250g)",
+   "action": "edible_ratio",
+   "ratio": 0.593,
+   "reason": "원문 250g은 손질 전 1마리 무게 — 한국보건산업진흥원 2007 눈대중량 DB 별첨 1 조기 생것 중 1마리 가식부 103.1/173.9 g(59.3%, 130쪽)"
+  },
+  {
+   "source_id": "3468",
+   "section": "가정 간편식 재료",
+   "raw_item": "고등어(1마리=250g)",
+   "action": "edible_ratio",
+   "ratio": 0.674,
+   "reason": "원문 250g은 손질 전 1마리 무게 — 한국보건산업진흥원 2007 눈대중량 DB 별첨 1 고등어 생것 중 1마리 가식부 247.1/366.6 g(67.4%, 124쪽)"
+  },
+  {
+   "source_id": "3574",
+   "section": "주재료",
+   "raw_item": "갈치(70g(1토막))",
+   "action": "edible_ratio",
+   "ratio": 0.801,
+   "reason": "원문 70g은 뼈 포함 1토막 무게 — 한국보건산업진흥원 2007 눈대중량 DB 별첨 1 갈치 생것 1토막 가식부 45.0/56.2 g(80.1%, 124쪽)"
+  }
+ ]
+}
