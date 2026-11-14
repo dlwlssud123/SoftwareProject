@@ -130,3 +130,73 @@ def test_corrected_export_contains_traceable_hashes():
         if item["source_raw_sha256"] != item["effective_sha256"]
     }
     assert changed == {"33", "36", "642", "276"}
+
+
+def _bracket_entry(manifest):
+    return next(item for item in manifest["corrections"] if item["source_id"] == "981")
+
+
+def _row_for(entry):
+    """981 is not in the app's 50 recipes, so build its upstream row from the entry."""
+    return {
+        "RCP_SEQ": entry["source_id"],
+        "RCP_NM": entry["recipe_name"],
+        "RCP_PARTS_DTLS": entry["expected_value"],
+    }
+
+
+def test_format_correction_closes_one_section_bracket(manifest):
+    entry = _bracket_entry(manifest)
+    corrected, audit = apply_corrections([_row_for(entry)], manifest)
+
+    assert corrected[0]["RCP_PARTS_DTLS"] == entry["value"]
+    assert [(item["source_id"], item["state"]) for item in audit] == [
+        ("981", "applied")
+    ]
+    # The entry names its own verifier; the others keep the manifest-level one.
+    assert (audit[0]["verified_at"], audit[0]["verified_by"]) == (
+        "2026-11-14",
+        "최재영",
+    )
+    ingredients = check_recipe(corrected[0]).to_dict()["ingredients"]
+    onion = next(item for item in ingredients if item["name_raw"] == "양파다진것")
+    assert (onion["section"], onion["amount"], onion["unit"]) == (
+        "양송이 속",
+        10.0,
+        "g",
+    )
+    pepper = next(item for item in ingredients if item["name_raw"] == "후추")
+    assert (pepper["raw_item"], pepper["amount_kind"]) == ("후추적당량", "qualitative")
+
+
+def test_manifest_level_verifier_still_applies_without_entry_override(manifest):
+    _, audit = apply_corrections(load_rows(paths.RECIPES_RAW), manifest)
+    assert {(item["verified_at"], item["verified_by"]) for item in audit} == {
+        (manifest["verified_at"], manifest["verified_by"])
+    }
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        # extra change besides the bracket
+        lambda e: e["value"].replace("10g", "100g"),
+        # a bracket that closes nothing
+        lambda e: e["expected_value"].replace("닭가슴살", "닭가슴살]", 1),
+        # two brackets
+        lambda e: e["value"].replace("양파다진것", "]양파다진것"),
+        # a different mark
+        lambda e: e["expected_value"].replace("[양송이 속", "[양송이 속)"),
+    ],
+)
+def test_bracket_correction_cannot_change_anything_else(manifest, mutate):
+    entry = _bracket_entry(manifest)
+    entry["value"] = mutate(entry)
+    with pytest.raises(ValueError, match="parenthesis"):
+        apply_corrections([_row_for(entry)], manifest)
+
+
+def test_entry_verifier_must_be_complete(manifest):
+    _bracket_entry(manifest)["verified_by"] = ""
+    with pytest.raises(ValueError, match="attribution"):
+        apply_corrections(load_rows(paths.RECIPES_RAW), manifest)
