@@ -60,6 +60,16 @@ def test_mapping_inherited_from_base_manual_entry_carries_its_reviewer(sample_fo
                for i in row["ingredients"])
 
 
+def test_fragment_joined_name_carries_its_reviewer(sample_foods):
+    # '미니' / '양배추(5개)' 는 '미니 양배추'로 매핑되므로 확인자도 그 항목에서 가져온다(재료 행 이름은 '양배추')
+    entry = {"ingredient": "미니 양배추", "food_code": "R102-001140001-0000", "rationale": "방울양배추",
+             "reviewed_by": "최재영", "reviewed_at": "2026-11-14"}
+    [row] = recipe_map_rows([_db_recipe(_recipe("1", "양파 50g, 미니\n양배추(5개)"))], sample_foods, (entry,))
+    cabbage = row["ingredients"][-1]
+    assert cabbage["name"] == "미니 양배추" and cabbage["match"]["status"] == "reviewed"
+    assert cabbage["review"] == {"by": "최재영", "on": "2026-11-14"}
+
+
 def test_content_hash_tracks_food_values_and_map(sample_foods):
     recipe = _db_recipe(_recipe("1", "양파 50g"))
     [first] = recipe_map_rows([recipe], sample_foods, ())

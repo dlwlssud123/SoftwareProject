@@ -41,7 +41,10 @@ def _review(item: dict, ingredient: dict, entries) -> dict | None:
     rule = item["match"]["rule"] or ""
     if rule != "manual" and not rule.endswith("+manual"):   # 손질+manual·다진+manual = 기본 재료의 매핑표 결정
         return None
-    entry = manual_entry(ingredient["name"], ingredient.get("paren_texts") or [], entries)
+    parens = ingredient.get("paren_texts") or []
+    # 갈라진 앞말을 붙여 찾은 줄('미니' / '양배추(5개)' → '미니 양배추')은 매칭에 쓴 이름(item)으로 찾는다
+    entry = manual_entry(item.get("name") or ingredient["name"], parens, entries) or manual_entry(
+        ingredient["name"], parens, entries)
     if not entry or not entry.get("reviewed_by"):
         return None
     return {"by": entry["reviewed_by"], "on": entry.get("reviewed_at")}
