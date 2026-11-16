@@ -7,6 +7,7 @@ import '../services/settings.dart';
 import '../theme.dart';
 import '../widgets/async_state_view.dart';
 import '../widgets/common.dart';
+import 'recommendation_results.dart';
 
 const _recipeColor = Color(0xFFB85A00);
 
@@ -226,6 +227,9 @@ class _RecipeBody extends StatelessWidget {
     final nutrition = recipe.nutrition;
     final allergens = recipe.allergens;
     final uncertain = allergens.needsCheck.difference(allergens.detected);
+    final cookingSteps = [
+      for (final step in recipe.steps) '${step.no}. ${step.text}',
+    ];
     return ListView(
       key: const Key('server-recipe-detail'),
       padding: const EdgeInsets.fromLTRB(22, 8, 22, 28),
@@ -304,11 +308,8 @@ class _RecipeBody extends StatelessWidget {
               ? null
               : IconButton(
                   tooltip: '전체 조리 방법 읽어주기',
-                  onPressed: () => readAloud(
-                    context,
-                    settings,
-                    recipe.steps.map((s) => '${s.no}. ${s.text}').join('\n'),
-                  ),
+                  onPressed: () =>
+                      readAloud(context, settings, cookingSteps.join('\n')),
                   icon: const Icon(Icons.volume_up_outlined, color: green),
                 ),
         ),
@@ -330,6 +331,19 @@ class _RecipeBody extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => CookingScreen(
+                  recipeName: recipe.name,
+                  steps: cookingSteps,
+                  settings: settings,
+                ),
+              ),
+            ),
+            icon: const Icon(Icons.play_arrow_rounded),
+            label: const Text('한 단계씩 따라 만들기'),
+          ),
         ],
         if (recipe.sodiumTip case final tip?) ...[
           const SectionTitle('나트륨 줄이는 팁'),
@@ -350,7 +364,7 @@ class _RecipeBody extends StatelessWidget {
 
   String _ingredientsSpeech() => [
     for (final item in recipe.ingredients)
-      [item.name, ?item.amountText].join(' '),
+      [item.displayName, ?item.amountText].join(' '),
   ].join(', ');
 }
 
@@ -406,7 +420,7 @@ class _IngredientGroups extends StatelessWidget {
                       runSpacing: 6,
                       children: [
                         Text(
-                          group.value[i].name,
+                          group.value[i].displayName,
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,

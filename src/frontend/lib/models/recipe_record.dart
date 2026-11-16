@@ -75,19 +75,23 @@ class RecipeIngredientItem {
     required this.orderNo,
     required this.section,
     required this.name,
+    required this.nameRaw,
     required this.amountText,
   });
 
   final int orderNo;
   final String? section;
   final String name;
+  final String nameRaw;
   final String? amountText;
+  String get displayName => nameRaw.trim().isEmpty ? name : nameRaw;
 
   factory RecipeIngredientItem.fromJson(Map<String, dynamic> json) =>
       RecipeIngredientItem(
         orderNo: json['order_no'] as int,
         section: json['section'] as String?,
         name: json['name'] as String,
+        nameRaw: json['name_raw'] as String? ?? '',
         amountText: json['amount_text'] as String?,
       );
 }

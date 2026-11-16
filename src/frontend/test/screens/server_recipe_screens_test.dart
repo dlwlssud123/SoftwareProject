@@ -44,6 +44,13 @@ class _FakeRecipeApi implements RecipeApi {
       records.firstWhere((recipe) => recipe.recipeId == recipeId);
 }
 
+class _ReadingSettings extends AppSettings {
+  String? lastReading;
+
+  @override
+  Future<void> read(String text) async => lastReading = text;
+}
+
 /// 계약 표본(docs/설계/api_examples.json)의 레시피 상세를 바탕으로 만든다.
 Map<String, dynamic> _sampleRecipe() {
   final file = File('../../docs/설계/api_examples.json');
@@ -61,6 +68,7 @@ void main() {
     String name, {
     Map<String, Object?> nutrition = const {},
     Map<String, Object?>? allergens,
+    List<Map<String, Object?>>? ingredients,
   }) {
     final json = jsonDecode(jsonEncode(sample)) as Map<String, dynamic>;
     json['recipe_id'] = id;
@@ -69,6 +77,7 @@ void main() {
     json['images'] = {'small': null, 'large': null};
     (json['nutrition'] as Map<String, dynamic>).addAll(nutrition);
     if (allergens != null) json['allergens'] = allergens;
+    if (ingredients != null) json['ingredients'] = ingredients;
     return RecipeRecord.fromJson(json);
   }
 
@@ -133,6 +142,44 @@ void main() {
     expect(find.text('달걀 포함'), findsOneWidget);
     expect(find.text('우유 확인 필요'), findsOneWidget);
     expect(find.textContaining('재료 분석이 끝나지 않은'), findsOneWidget);
+  });
+
+  testWidgets('원문 재료명을 표시하고 읽으며 단계별 조리에 들어간다', (tester) async {
+    final api = _FakeRecipeApi([
+      recipe(
+        '201',
+        '민들레 샐러드',
+        ingredients: [
+          {
+            'order_no': 1,
+            'name': '오렌지',
+            'name_raw': '오렌지(껍질)',
+            'amount_text': '40g',
+          },
+        ],
+      ),
+    ]);
+    final settings = _ReadingSettings();
+    await pump(
+      tester,
+      ServerRecipeDetail(api: api, recipeId: '201', settings: settings),
+    );
+
+    final ingredient = find.text('오렌지(껍질)');
+    await tester.scrollUntilVisible(ingredient, 220);
+    expect(find.text('오렌지'), findsNothing);
+    final read = find.byTooltip('재료 읽어주기');
+    await tester.ensureVisible(read);
+    await tester.tap(read);
+    expect(settings.lastReading, '오렌지(껍질) 40g');
+
+    final start = find.text('한 단계씩 따라 만들기');
+    await tester.scrollUntilVisible(start, 260);
+    await tester.tap(start);
+    await tester.pumpAndSettle();
+    expect(find.text('천천히 따라 만들어요'), findsOneWidget);
+    expect(find.text('제공된 단계 1 / 6'), findsOneWidget);
+    expect(find.text('1분 타이머 시작'), findsOneWidget);
   });
 
   testWidgets('목록을 못 불러오면 안내하고 다시 시도할 수 있다', (tester) async {
