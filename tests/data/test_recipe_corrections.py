@@ -200,3 +200,71 @@ def test_entry_verifier_must_be_complete(manifest):
     _bracket_entry(manifest)["verified_by"] = ""
     with pytest.raises(ValueError, match="attribution"):
         apply_corrections(load_rows(paths.RECIPES_RAW), manifest)
+
+
+def _entry(manifest, source_id):
+    return next(item for item in manifest["corrections"] if item["source_id"] == source_id)
+
+
+@pytest.mark.parametrize(
+    "source_id,names",
+    [
+        # a stray 'm' typed for the comma (the next item was the garlic's amount text)
+        ("485", ["마늘", "적양배추"]),
+        # one extra opening parenthesis swallowed the next item
+        ("523", ["두부", "부추"]),
+        # an opening mark written for the closing one swallowed the other eight items
+        ("781", ["바지락", "양파", "마늘", "마른 홍고추", "올리브유", "호이트와인", "쳥양고추", "저염치즈", "후추", "바질"]),
+    ],
+)
+def test_format_correction_fixes_one_mark_that_hid_items(manifest, source_id, names):
+    entry = _entry(manifest, source_id)
+    corrected, audit = apply_corrections([_row_for(entry)], manifest)
+
+    assert [(item["source_id"], item["state"]) for item in audit] == [(source_id, "applied")]
+    assert (audit[0]["verified_at"], audit[0]["verified_by"]) == ("2026-11-17", "최재영")
+    before = {issue.code for issue in check_recipe(_row_for(entry)).all_issues}
+    assert before & {"ingredient_item_in_amount", "ingredient_unclosed_paren"}
+    after = check_recipe(corrected[0])
+    ingredients = after.to_dict()["ingredients"]
+    found = [item["name"] for item in ingredients]
+    assert all(name in found for name in names), found
+    assert all(item["amount_kind"] != "none" for item in ingredients)
+    codes = {issue["code"] for issue in after.to_dict()["issues"]}
+    assert not codes & {"ingredient_item_in_amount", "ingredient_unclosed_paren"}
+
+
+@pytest.mark.parametrize(
+    "source_id,mutate",
+    [
+        # a Hangul character changes too
+        ("485", lambda e: e["value"].replace("마늘(20g), 적양배추", "마늘(20g), 적양배")),
+        # the comma replaces part of a unit, not a stray letter
+        ("485", lambda e: e["expected_value"].replace("마늘(20g)m", "마늘(20,)m")),
+        # a comma typed in where nothing was wrong
+        ("523", lambda e: e["expected_value"].replace("배추(100g)", "배추(100g,)")),
+        # two marks change
+        ("523", lambda e: e["value"].replace("두부(30g)", "두부(30g")),
+        # the bracket edit leaves the line still unbalanced
+        ("781", lambda e: e["value"].replace("바지락(모시조개) 200g", "바지락(모시조개 200g")),
+    ],
+)
+def test_format_correction_rejects_more_than_one_mark(manifest, source_id, mutate):
+    entry = _entry(manifest, source_id)
+    entry["value"] = mutate(entry)
+    assert entry["value"] != entry["expected_value"]
+    with pytest.raises(ValueError, match="parenthesis"):
+        apply_corrections([_row_for(entry)], manifest)
+
+
+def test_collected_source_hides_no_item_in_an_amount_after_corrections(manifest):
+    if not paths.RECIPES_ALL_RAW.is_file():
+        pytest.skip("전체 레시피 수집본 없음(gitignore)")
+    rows, _ = apply_corrections(load_rows(paths.RECIPES_ALL_RAW), manifest)
+    hidden = [
+        (str(row["RCP_SEQ"]), issue["detail"].get("raw_item"))
+        for row in rows
+        for issue in check_recipe(row).to_dict()["issues"]
+        if issue["code"] == "ingredient_item_in_amount"
+    ]
+    assert hidden == []

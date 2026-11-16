@@ -85,6 +85,45 @@
       "source_document_sha256": "09f21aa1afe8b7e7957e03c8ad114bc81a014bb21392d2690a91d730f11d8020",
       "verified_at": "2026-11-14",
       "verified_by": "최재영"
+    },
+    {
+      "source_id": "485",
+      "recipe_name": "유자등갈비구이",
+      "field": "RCP_PARTS_DTLS",
+      "expected_value": "등갈비(150g), 월계수잎(2g), 생강(10g), 통후추(3g)\n식용유(10g), 마늘(20g)m 적양배추(20g), 양파(20g)\n당근(20g)\n- 소스 : 유자청(30g), 사과(20g), 밤(10g), 생크림(10g)\n설탕(10g), 소금(0.2g), 식초(10g)",
+      "value": "등갈비(150g), 월계수잎(2g), 생강(10g), 통후추(3g)\n식용유(10g), 마늘(20g), 적양배추(20g), 양파(20g)\n당근(20g)\n- 소스 : 유자청(30g), 사과(20g), 밤(10g), 생크림(10g)\n설탕(10g), 소금(0.2g), 식초(10g)",
+      "kind": "format_only",
+      "source_url": "https://www.foodsafetykorea.go.kr/portal/cookrcp/cookrcpInfoDtl.do?menu_grp=MENU_NEW03&menu_no=3608&rcp_seq=485",
+      "reason": "재료 사이 쉼표 자리에 잘못 친 'm' 한 글자를 쉼표로 — 공식 상세에도 같은 표기 오류. 조리 2단계(적양배추와 당근, 양파를 채 썰어)로 적양배추 20g이 따로 쓰이는 재료임을 확인했고, 재료 이름·분량은 그대로다.",
+      "source_document_sha256": "e1aa51733f9cd3655c13ec7d1c92e0b859d2115fe00622c8662611f763360eb6",
+      "verified_at": "2026-11-17",
+      "verified_by": "최재영"
+    },
+    {
+      "source_id": "523",
+      "recipe_name": "배추만두탕",
+      "field": "RCP_PARTS_DTLS",
+      "expected_value": "배추(100g), 미나리(20g), 두부((30g), 부추(20g)\n표고버섯(20g), 느타리(20g), 소고기(30g), 저염간장(10g)\n대파(10g), 마늘(10g), 참기름(10g), 통깨(3g)\n후춧가루(0.05g)\n- 육수 : 양지육(50g), 무(30g), 마늘(10g), 저염간장(10g)",
+      "value": "배추(100g), 미나리(20g), 두부(30g), 부추(20g)\n표고버섯(20g), 느타리(20g), 소고기(30g), 저염간장(10g)\n대파(10g), 마늘(10g), 참기름(10g), 통깨(3g)\n후춧가루(0.05g)\n- 육수 : 양지육(50g), 무(30g), 마늘(10g), 저염간장(10g)",
+      "kind": "format_only",
+      "source_url": "https://www.foodsafetykorea.go.kr/portal/cookrcp/cookrcpInfoDtl.do?menu_grp=MENU_NEW03&menu_no=3608&rcp_seq=523",
+      "reason": "여는 괄호가 둘('두부((30g)')이라 뒤의 '부추(20g)'까지 두부의 분량 글자로 붙던 것 — 여분 여는 괄호 하나만 뺌. 공식 상세에도 같은 표기 오류. 조리 3·4단계(두부는 물기를 짜고, 부추는 송송 썰어 만두속)로 두 재료임을 확인했고, 재료 이름·분량은 그대로다.",
+      "source_document_sha256": "a75cc483f7cb86d46a947adcb34e815e0e2a4796160b6cb3452358dc215190f9",
+      "verified_at": "2026-11-17",
+      "verified_by": "최재영"
+    },
+    {
+      "source_id": "781",
+      "recipe_name": "갯벌의 여왕 모시조개의 달콤한 유혹",
+      "field": "RCP_PARTS_DTLS",
+      "expected_value": "바지락(모시조개( 200g(30개), 양파 15g(2*4cm), 마늘 10g(2쪽), 마른 홍고추 1g(1/5개), 올리브유 15g(1큰술), 호이트와인 15ml(1큰술), 쳥양고추 3g(1/3개), 저염치즈 10g(2작은술), 후추 약간, 바질 약간",
+      "value": "바지락(모시조개) 200g(30개), 양파 15g(2*4cm), 마늘 10g(2쪽), 마른 홍고추 1g(1/5개), 올리브유 15g(1큰술), 호이트와인 15ml(1큰술), 쳥양고추 3g(1/3개), 저염치즈 10g(2작은술), 후추 약간, 바질 약간",
+      "kind": "format_only",
+      "source_url": "https://www.foodsafetykorea.go.kr/portal/cookrcp/cookrcpInfoDtl.do?menu_grp=MENU_NEW03&menu_no=3608&rcp_seq=781",
+      "reason": "'모시조개' 뒤 괄호가 닫히지 않고 여는 괄호로 적혀('바지락(모시조개( 200g') 나머지 재료 8개가 바지락의 분량 글자로 붙던 것 — 그 괄호 하나를 닫는 괄호로. 공식 상세에도 같은 표기 오류. 조리 1~6단계(양파·청양고추·마늘·마른 홍고추·올리브오일·화이트와인·저염치즈·후추·바질)로 모두 따로 쓰이는 재료임을 확인했고, 재료 이름·분량은 그대로다.",
+      "source_document_sha256": "b064ac5e3a146272f85608efbe96064360635050e140d335fa8428af76e4e3b0",
+      "verified_at": "2026-11-17",
+      "verified_by": "최재영"
     }
   ]
 }

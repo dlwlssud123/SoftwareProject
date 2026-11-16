@@ -9657,6 +9657,30 @@
    "rationale": "작은 햄버거빵 → '버거빵'과 같음(원문 '미니,버거빵 12g'은 파서가 이어 붙임)",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-14"
+  },
+  {
+   "ingredient": "마른 홍고추",
+   "food_code": "R106-018008102-0000",
+   "food_name": "고추, 빨간색, 말린것",
+   "rationale": "말린 고추 — 매핑표 '말린 홍고추'와 같음",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-17"
+  },
+  {
+   "ingredient": "쳥양고추",
+   "food_code": "R106-018080001-0000",
+   "food_name": "고추, 청양고추, 생것",
+   "rationale": "'청양고추' 오타",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-17"
+  },
+  {
+   "ingredient": "호이트와인",
+   "food_code": "R121-013010500-0000",
+   "food_name": "발효주, 과실주, 포도주, 백포도주, 샤르도네",
+   "rationale": "'화이트와인' 오타(조리 5단계 '화이트와인을 넣어'). 매핑표 '화이트와인'과 같음",
+   "reviewed_by": "최재영",
+   "reviewed_at": "2026-11-17"
   }
  ]
 }

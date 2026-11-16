@@ -16,21 +16,64 @@ from agetech_data.textutil import sha256_json
 ALLOWED_FIELD = re.compile(r"MANUAL(?:0[1-9]|1[0-9]|20)|RCP_PARTS_DTLS")
 
 
-def _closes_one_mark(expected: str, value: str) -> bool:
-    """Allow only one added closing mark: a terminal ')' or a ']' that closes an open '['."""
-    if value == expected + ")":
-        return expected.count("(") == expected.count(")") + 1
-    if len(value) != len(expected) + 1:
-        return False
+_BRACKETS = "()[]"
+
+
+def _single_edit(expected: str, value: str) -> tuple[int, str, str] | None:
+    """(position, removed, inserted) when the texts differ by one inserted, deleted or replaced character."""
+    if expected == value:
+        return None
+    shorter = min(len(expected), len(value))
     at = next(
-        (i for i, (a, b) in enumerate(zip(value, expected)) if a != b), len(expected)
+        (i for i in range(shorter) if expected[i] != value[i]), shorter
     )
-    if value[at] != "]" or value[:at] + value[at + 1 :] != expected:
+    tail = 0
+    while tail < shorter - at and expected[-1 - tail] == value[-1 - tail]:
+        tail += 1
+    removed, inserted = expected[at : len(expected) - tail], value[at : len(value) - tail]
+    if len(removed) > 1 or len(inserted) > 1:
+        return None
+    return at, removed, inserted
+
+
+def _line_at(text: str, at: int) -> str:
+    end = text.find("\n", at)
+    return text[text.rfind("\n", 0, at) + 1 : len(text) if end < 0 else end]
+
+
+def _well_formed(line: str) -> bool:
+    """Every '(' / '[' on the line is closed by its own kind, in order."""
+    stack = []
+    for ch in line:
+        if ch in "([":
+            stack.append(ch)
+        elif ch in ")]":
+            if not stack or "([".index(stack.pop()) != ")]".index(ch):
+                return False
+    return not stack
+
+
+def _fixes_one_mark(expected: str, value: str) -> bool:
+    """Allow one punctuation character to change; Hangul, digits and units stay exactly as they were.
+
+    - a bracket edit (add a closing mark, drop an extra opening mark, or turn an opening mark into a
+      closing one) that makes its own line's ( ) [ ] well formed when it was not, or
+    - a stray Latin letter typed for the comma between two items ('마늘(20g)m 적양배추' → '마늘(20g), 적양배추').
+    """
+    edit = _single_edit(expected, value)
+    if edit is None:
         return False
-    line = expected[expected.rfind("\n", 0, at) + 1 : at]
+    at, removed, inserted = edit
+    if set(removed + inserted) <= set(_BRACKETS):
+        return not _well_formed(_line_at(expected, at)) and _well_formed(
+            _line_at(value, at)
+        )
     return (
-        line.count("[") == line.count("]") + 1
-        and expected.count("[") == expected.count("]") + 1
+        removed.isascii()
+        and removed.isalpha()
+        and inserted == ","
+        and expected[at - 1 : at] == ")"
+        and expected[at + 1 : at + 2].isspace()
     )
 
 
@@ -102,11 +145,11 @@ def apply_corrections(
             raise ValueError("Official source recovery may only fill missing fields")
         if entry["kind"] == "format_only" and not (
             field == "RCP_PARTS_DTLS"
-            and _closes_one_mark(entry["expected_value"], entry["value"])
+            and _fixes_one_mark(entry["expected_value"], entry["value"])
         ):
             raise ValueError(
-                "Format correction may only close a single unmatched terminal parenthesis"
-                " or section bracket"
+                "Format correction may only fix a single parenthesis or bracket mark"
+                " (or one stray letter typed for a comma)"
             )
         verified_at, verified_by = _attribution(entry, manifest)
         seen.add(key)
@@ -188,7 +231,8 @@ def render_report(audit: dict) -> str:
         "",
         "- ID 38의 표고버섯 기둥 분량은 공식 상세·배포 자료에도 수치가 없어 미확정으로 유지합니다.",
         f"- `INFO_WGT` {after['nutrition_blank']['INFO_WGT']}건 누락은 조리 후 중량 근거 없이 재료 합계로 대체하지 않습니다.",
-        "- 괄호 보완은 기존 재료·수치에 닫는 괄호만 추가하는 표기 수정입니다. 공식 원문에도 같은 표기 오류가 있습니다.",
+        "- 표기 보완(format_only)은 재료 이름·수치·단위는 그대로 두고 괄호·대괄호 한 글자(닫는 괄호 넣기·여분 여는 괄호 빼기·"
+        "여는 괄호를 닫는 괄호로) 또는 쉼표 자리에 잘못 친 영문 한 글자만 고치는 수정입니다. 공식 원문에도 같은 표기 오류가 있습니다.",
         "- 보완본은 `data/processed/recipes_corrected.json`, 상세 감사 기록은 `recipe_correction_audit.json`입니다.",
         "- 백엔드 적재와 데이터 처리는 같은 보완 목록을 적용합니다. upstream 값이 바뀌면 재검증 오류를 냅니다. Flutter 앱의 보완 목록 연결은 후속 작업입니다.",
     ]
