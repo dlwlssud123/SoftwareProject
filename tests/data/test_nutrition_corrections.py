@@ -81,6 +81,27 @@ def test_corrections_file_shape():
     assert all(c.get("kind") in (None, "fill_missing") for c in entries)
 
 
+@pytest.mark.skipif(not (paths.NUTRITION_RAW.is_file() and paths.RECIPES_ALL_RAW.is_file()), reason="수집 원본 없음")
+def test_no_recipe_lacks_the_nutrients_the_app_shows():
+    """앱 영양 화면의 다섯 성분(열량·탄수화물·단백질·지방·나트륨)은 전체 레시피 어느 재료에서도 비지 않는다 —
+    원천이 빈 식품은 빈 값 채우기로 채우고, 채운 재료는 coverage.filled_items 로 드러난다."""
+    from agetech_data.nutrition.build import build_recipe_nutrition
+    from agetech_data.nutrition.match import load_ingredient_map
+    from agetech_data.recipes.correct import apply_corrections as apply_recipe_corrections
+    from agetech_data.recipes.validate import load_rows
+
+    foods = clean_foods(json.loads(paths.NUTRITION_RAW.read_text(encoding="utf-8"))["items"])
+    rows, _ = apply_recipe_corrections(load_rows(paths.RECIPES_ALL_RAW),
+                                       json.loads(paths.RECIPE_CORRECTIONS.read_text(encoding="utf-8")))
+    recipes = build_recipe_nutrition(rows, foods, load_ingredient_map())
+    shown = ("energy_kcal", "carbohydrate_g", "protein_g", "fat_g", "sodium_mg")
+    assert [r["source_id"] for r in recipes if any(r["computed_missing"].get(k) for k in shown)] == []
+    complete = [r for r in recipes if r["coverage"]["complete"]]
+    assert all(r["density"]["sodium_mg_per_1000kcal"] is not None for r in complete)
+    filled = {i["food_name"] for r in recipes for i in r["coverage"]["filled_items"]}
+    assert {"대구, 생것", "전복, 북방전복, 생것"} <= filled
+
+
 def _fill(rec, to=50.0, **kw):
     return {**_c(rec, "nutrients.sodium_mg", None, to), "kind": "fill_missing", **kw}
 
@@ -147,9 +168,10 @@ def test_real_corrections_all_apply():
         flag = "filled" if c.get("kind") == "fill_missing" else "corrected"
         assert r.name == c["food_name"] and flag in r.quality_flags
         if c.get("kind") == "fill_missing":
-            # 빈 값 채우기: 원천은 비어 있고, 같은 DB의 같은 식품 행에서 근거를 댄 값
+            # 빈 값 채우기: 원천은 비어 있고, 근거 종류([같은 식품]/[가까운 식품])와 근거 자료를 적은 값
             assert c["from"] is None and r.nutrients[c["field"].split(".", 1)[1]] == c["to"]
-            assert "같은 식품의약품안전처 식품영양성분DB" in c["evidence"]
+            assert ("[같은 식품]" in c["reason"]) != ("[가까운 식품]" in c["reason"])
+            assert any(src in c["evidence"] for src in ("식품영양성분DB", "USDA"))
         if c["field"] == "basis_text":
             # 분말 기준량 보정: 고친 뒤 성분 합이 기준량(100g)과 맞아야 한다
             n = r.nutrients

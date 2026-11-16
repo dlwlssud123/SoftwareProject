@@ -28,6 +28,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from agetech_data import paths
+from agetech_data.nutrition.corrections import FILL
 from agetech_data.nutrition.dish_eval import evaluate as evaluate_dish_search
 from agetech_data.nutrition.fields import NUTRIENT_FIELDS, SUM_NUTRIENTS
 from agetech_data.nutrition.estimates import Estimates, load_estimates, qualitative_word
@@ -416,6 +417,14 @@ def ingredient_nutrition(ingredients, index: FoodIndex, by_code: dict[str, FoodR
     quantified = [i for i in counted if i["grams"]["status"] != "qualitative"]
     complete_except_qualitative = bool(quantified) and all(i["contribution"] is not None for i in quantified)
     computed = {k: round(v, 2) for k, v in totals.items()}
+    # 원천에 측정값이 없어 근거를 대고 채운 성분(보정표 fill_missing)을 쓴 재료 — 그 성분 합계는 '추정 포함'
+    filled = []
+    for i in counted:
+        if i["contribution"] is not None:
+            keys = [c["field"].split(".", 1)[1] for c in by_code[i["match"]["food_code"]].corrections
+                    if c.get("kind") == FILL]
+            if keys:
+                filled.append({"name": i["name"], "food_name": i["match"]["food_name"], "nutrients": keys})
     return {
         "ingredients": items,
         "computed": computed,
@@ -434,6 +443,8 @@ def ingredient_nutrition(ingredients, index: FoodIndex, by_code: dict[str, FoodR
             # 정성 분량 말고 계산에서 빠진 재료 — 화면이 "무엇을 몰라서 뺐는지" 말할 수 있게 이유와 함께
             "missing_items": [_missing(i) for i in quantified if i["contribution"] is None],
             # 출처 있는 무게가 없어 추정한 g으로 계산에 넣은 재료 (화면이 "추정"이라고 알릴 수 있게)
+            # 원천에 값이 없던 성분을 같은 식품의 다른 자료·가까운 식품으로 채운 재료 (food_nutrition_contract 2.1)
+            "filled_items": filled,
             "estimated_items": [{"name": i["name"], "amount_text": i["amount_text"], "grams": i["grams"]["grams"],
                                  "basis": i["grams"]["basis"]}
                                 for i in counted if i["grams"]["status"] == "estimated" and i["contribution"] is not None],
