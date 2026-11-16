@@ -14,6 +14,8 @@ from app.models import (
     MealLogItem,
     Profile,
     Recipe,
+    RecipeIngredientFood,
+    RecipeRevision,
     RecommendationItem,
     RecommendationRun,
     SeasonalFood,
@@ -54,8 +56,8 @@ def recommend_meal(
             if profile
             else Preferences()
         )
-        recent = db.scalars(
-            select(FoodRevision.name)
+        recent = db.execute(
+            select(FoodRevision.food_id, FoodRevision.name)
             .join(MealLogItem, FoodRevision.id == MealLogItem.food_revision_id)
             .join(MealLog, MealLogItem.meal_log_id == MealLog.id)
             .where(
@@ -65,9 +67,55 @@ def recommend_meal(
             )
             .distinct()
         ).all()
+        recently_eaten_revisions = set()
+        if recent:
+            recently_eaten_revisions.update(
+                db.scalars(
+                    select(RecipeIngredientFood.recipe_revision_id)
+                    .join(
+                        Recipe,
+                        Recipe.active_revision_id
+                        == RecipeIngredientFood.recipe_revision_id,
+                    )
+                    .where(
+                        RecipeIngredientFood.food_id.in_(
+                            {food_id for food_id, _ in recent}
+                        )
+                    )
+                    .distinct()
+                )
+            )
         excluded_allergens = set(payload.exclude_allergens) | set(
             preferences.exclude_allergens
         )
+        recent_runs = (
+            select(RecommendationRun.id)
+            .where(
+                RecommendationRun.user_id == auth.user.id,
+                RecommendationRun.meal_time == payload.meal_time,
+                RecommendationRun.evaluated_at >= now - timedelta(days=2),
+                RecommendationRun.evaluated_at <= now,
+                select(RecommendationItem.run_id)
+                .where(RecommendationItem.run_id == RecommendationRun.id)
+                .exists(),
+            )
+            .order_by(
+                RecommendationRun.evaluated_at.desc(), RecommendationRun.id.desc()
+            )
+            .limit(2)
+        )
+        recently_featured = db.execute(
+            select(Recipe.source_id, RecipeRevision.name)
+            .join(RecipeRevision, Recipe.id == RecipeRevision.recipe_id)
+            .join(
+                RecommendationItem,
+                RecipeRevision.id == RecommendationItem.recipe_revision_id,
+            )
+            .where(
+                RecommendationItem.run_id.in_(recent_runs),
+                RecommendationItem.rank <= 3,
+            )
+        ).all()
         seasonal = defaultdict(list)
         for revision_id, name, source_url, shopping_url in db.execute(
             select(
@@ -102,8 +150,10 @@ def recommend_meal(
             ),
             payload,
             preferences,
-            recent,
+            (name for _, name in recent),
             seasonal,
+            recently_featured,
+            recently_eaten_revisions,
         )
         items = [
             RecipeRecommendation(

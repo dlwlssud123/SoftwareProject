@@ -55,18 +55,25 @@ class RecipeListQuery(PageQuery):
     exclude_allergens: list[Allergen] = Field(default_factory=list, max_length=19)
 
 
+IngredientPreference = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+]
+
+
 class RecipeRecommendationRequest(ContractModel):
     meal_time: Literal["breakfast", "lunch", "dinner", "snack"]
     health_conditions: list[Literal["hypertension", "diabetes"]] = Field(
         default_factory=list, max_length=2
     )
     soft_food: bool = False
+    simple_cooking: bool = False
+    preferred_ingredients: list[IngredientPreference] = Field(
+        default_factory=list, max_length=30
+    )
     exclude_allergens: list[Allergen] = Field(default_factory=list, max_length=19)
-    exclude_ingredients: list[
-        Annotated[
-            str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
-        ]
-    ] = Field(default_factory=list, max_length=30)
+    exclude_ingredients: list[IngredientPreference] = Field(
+        default_factory=list, max_length=30
+    )
     limit: int = Field(default=5, ge=1, le=20)
 
 

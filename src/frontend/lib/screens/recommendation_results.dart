@@ -39,16 +39,19 @@ class RecommendationResults extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(22, 10, 22, 28),
         children: [
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Tag(welfare ? '맞춤 복지 · 공공데이터' : '맞춤 식단 · 공공데이터'),
-              const Spacer(),
               IconButton(
                 tooltip: '추천 안내 읽어주기',
                 onPressed: () => readAloud(
                   context,
                   settings,
-                  '${profile.displayName}님을 위한 ${welfare ? '복지 서비스' : '레시피'} $count개를 찾았어요.',
+                  serverMeals != null
+                      ? '${time.label} 레시피 $count개를 찾았어요.'
+                      : '${profile.displayName}님을 위한 ${welfare ? '복지 서비스' : '레시피'} $count개를 찾았어요.',
                 ),
                 icon: const Icon(Icons.volume_up_outlined, color: green),
               ),
@@ -56,7 +59,9 @@ class RecommendationResults extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            '${profile.displayName}님을 위한\n${welfare ? '복지 서비스' : '${time.label} 레시피'}',
+            serverMeals != null
+                ? '추천 ${time.label} 레시피'
+                : '${profile.displayName}님을 위한\n${welfare ? '복지 서비스' : '${time.label} 레시피'}',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 14),
@@ -64,24 +69,32 @@ class RecommendationResults extends StatelessWidget {
             spacing: 7,
             runSpacing: 8,
             children: [
-              Tag('${profile.age}세', color: muted),
+              if (serverMeals == null) Tag('${profile.age}세', color: muted),
               if (welfare) ...[
                 Tag(profile.location, color: muted),
                 Tag(profile.livesAlone ? '1인 가구' : '동거 가구', color: muted),
               ] else ...[
                 for (final c in profile.conditions) Tag(c, color: muted),
                 if (profile.softFood) const Tag('부드러운 음식', color: muted),
+                if (profile.simpleCooking) const Tag('간단한 조리', color: muted),
                 if (profile.allergies.isNotEmpty)
                   Tag('${profile.allergies.join('·')} 제외', color: muted),
               ],
             ],
           ),
-          SectionTitle(
-            '추천 ${welfare ? '서비스' : '레시피'} $count개',
-            trailing: TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('조건 수정'),
-            ),
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                '추천 ${welfare ? '서비스' : '레시피'} $count개',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('조건 수정'),
+              ),
+            ],
           ),
           if (count == 0) ...[
             const SizedBox(height: 25),
@@ -253,7 +266,7 @@ class _RecipeCard extends StatelessWidget {
                         const SizedBox(width: 7),
                         Expanded(
                           child: Text(
-                            match.reasons.join(' · '),
+                            match.reasons.join(r.fromServer ? '\n' : ' · '),
                             style: const TextStyle(
                               fontSize: 14,
                               color: green,

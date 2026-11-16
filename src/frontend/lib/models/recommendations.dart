@@ -20,10 +20,14 @@ class UserProfile {
     this.conditions = const {},
     this.allergies = const {},
     this.softFood = false,
+    this.simpleCooking = false,
+    this.preferredIngredients = const {},
   });
   final String name, gender, region, district, income;
   final int age;
   final bool livesAlone, softFood;
+  final bool simpleCooking;
+  final Set<String> preferredIngredients;
   final Set<String> conditions, allergies;
   String get displayName => name.trim().isEmpty ? '어르신' : name.trim();
   String get location => '$region $district';

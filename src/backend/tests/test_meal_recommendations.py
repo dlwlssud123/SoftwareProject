@@ -85,7 +85,7 @@ def test_recommendations_use_own_profile_and_confirmed_history(
             raw_sha256="0" * 64,
             raw={},
             normalized={},
-            name="오이",
+            name="오이, 생것",
             nutrients={},
             quality_flags=[],
         )
@@ -100,7 +100,7 @@ def test_recommendations_use_own_profile_and_confirmed_history(
         assert response.status_code == 200
         assert response.headers["Cache-Control"] == "no-store"
         data = response.json()["data"]
-        assert data["rules_version"] == "meal-rules-2"
+        assert data["rules_version"] == "meal-rules-3"
         run_id = UUID(data["recommendation_id"])
         run = db.get(RecommendationRun, run_id)
         assert run.user_id == UUID(user["user_id"])
@@ -114,7 +114,7 @@ def test_recommendations_use_own_profile_and_confirmed_history(
             )
         ] == [1, 2, 3]
         assert [item["item"]["recipe_id"] for item in data["items"]] == ["7", "4", "1"]
-        assert "좋아하는 재료가 들어 있어요." in data["items"][0]["reasons"]
+        assert "좋아하는 재료 오이가 들어 있어요." in data["items"][0]["reasons"]
         assert all(
             "최근 식사 기록" not in " ".join(item["reasons"]) for item in data["items"]
         )
@@ -190,6 +190,39 @@ def test_recommendations_use_own_profile_and_confirmed_history(
         db.commit()
         result = client.post(PATH, json=payload, headers=headers).json()["data"]
         assert all(not item["seasonal_ingredients"] for item in result["items"])
+
+        other_payload = {
+            "meal_time": "snack",
+            "preferred_ingredients": ["두부"],
+            "simple_cooking": True,
+            "limit": 1,
+        }
+        first = client.post(PATH, json=other_payload, headers=other_headers).json()[
+            "data"
+        ]
+        first_choice = first["items"][0]
+        assert first_choice["item"]["recipe_id"] == "3"
+        assert "좋아하는 재료 두부가 들어 있어요." in first_choice["reasons"]
+        assert "재료 1가지, 조리 1단계예요." in first_choice["reasons"]
+        excluded = client.post(
+            PATH,
+            json={**other_payload, "exclude_allergens": ["대두"]},
+            headers=other_headers,
+        ).json()["data"]
+        assert excluded["items"]
+        assert excluded["items"][0]["item"]["recipe_id"] != "3"
+
+        neutral = {"meal_time": "breakfast", "limit": 1}
+        first_id = client.post(PATH, json=neutral, headers=other_headers).json()[
+            "data"
+        ]["items"][0]["item"]["recipe_id"]
+        next_id = client.post(PATH, json=neutral, headers=other_headers).json()["data"][
+            "items"
+        ][0]["item"]["recipe_id"]
+        third_id = client.post(PATH, json=neutral, headers=other_headers).json()[
+            "data"
+        ]["items"][0]["item"]["recipe_id"]
+        assert len({first_id, next_id, third_id}) == 3
 
 
 def _food_id(db):

@@ -44,6 +44,32 @@ class _ProfileFormState extends State<ProfileForm> {
   String? errorMessage;
   final conditions = <String>{};
   final allergies = <String>{};
+  static const ingredientChoices = ['두부', '달걀', '닭고기', '감자', '오이', '버섯'];
+  static const allergenChoices = [
+    '달걀',
+    '우유',
+    '메밀',
+    '땅콩',
+    '대두',
+    '밀',
+    '고등어',
+    '게',
+    '새우',
+    '돼지고기',
+    '복숭아',
+    '토마토',
+    '아황산류',
+    '호두',
+    '닭고기',
+    '쇠고기',
+    '오징어',
+    '조개류',
+    '잣',
+  ];
+  final preferredIngredients = <String>{};
+  bool simpleCooking = false;
+  bool remember = false;
+  bool get serverMeal => widget.mealApi != null && !widget.welfare;
   late MealTime time = widget.initialTime;
   static const regions = [
     '서울특별시',
@@ -64,6 +90,24 @@ class _ProfileFormState extends State<ProfileForm> {
     '경상남도',
     '제주특별자치도',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    if (!serverMeal) return;
+    step = 1;
+    final saved = widget.settings.mealPreferences;
+    if (saved == null) return;
+    remember = true;
+    softFood = saved.contains('soft');
+    simpleCooking = saved.contains('simple');
+    preferredIngredients.addAll(
+      ingredientChoices.where((name) => saved.contains('like:$name')),
+    );
+    allergies.addAll(
+      allergenChoices.where((name) => saved.contains('avoid:$name')),
+    );
+  }
 
   @override
   void dispose() {
@@ -100,7 +144,7 @@ class _ProfileFormState extends State<ProfileForm> {
       scroll.jumpTo(0);
       return;
     }
-    if (!consent) {
+    if (!serverMeal && !consent) {
       showMessage(context, '정보 이용 안내를 확인해 주세요.');
       return;
     }
@@ -111,7 +155,7 @@ class _ProfileFormState extends State<ProfileForm> {
     final requestedTime = time;
     final profile = UserProfile(
       name: name.text,
-      age: int.parse(age.text),
+      age: serverMeal ? 0 : int.parse(age.text),
       gender: gender,
       region: region,
       district: district.text.trim(),
@@ -120,13 +164,35 @@ class _ProfileFormState extends State<ProfileForm> {
       conditions: Set.of(conditions),
       allergies: Set.of(allergies),
       softFood: softFood,
+      simpleCooking: simpleCooking,
+      preferredIngredients: Set.of(preferredIngredients),
     );
     MealRecommendations? recommendations;
+    String? storageMessage;
     try {
       final api = widget.mealApi;
       if (api == null) {
         await Future<void>.delayed(const Duration(milliseconds: 500));
       } else {
+        if (remember || widget.settings.mealPreferences != null) {
+          try {
+            await widget.settings.rememberMealPreferences(
+              remember
+                  ? [
+                      if (profile.softFood) 'soft',
+                      if (profile.simpleCooking) 'simple',
+                      for (final name in profile.preferredIngredients)
+                        'like:$name',
+                      for (final name in profile.allergies) 'avoid:$name',
+                    ]
+                  : null,
+            );
+          } on Exception {
+            storageMessage = '기기에 조건을 저장하지 못했어요.';
+          } on StateError {
+            storageMessage = '기기에 조건을 저장하지 못했어요.';
+          }
+        }
         recommendations = await api.recommend(profile, requestedTime);
       }
     } on ApiException catch (error) {
@@ -136,6 +202,7 @@ class _ProfileFormState extends State<ProfileForm> {
       if (mounted) setState(() => loading = false);
     }
     if (!mounted) return;
+    if (storageMessage != null) showMessage(context, storageMessage);
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => RecommendationResults(
@@ -165,13 +232,15 @@ class _ProfileFormState extends State<ProfileForm> {
                   (value) => FilterChip(
                     label: Text(value),
                     selected: selected.contains(value),
-                    onSelected: (on) => setState(() {
-                      if (on) {
-                        selected.add(value);
-                      } else {
-                        selected.remove(value);
-                      }
-                    }),
+                    onSelected: loading
+                        ? null
+                        : (on) => setState(() {
+                            if (on) {
+                              selected.add(value);
+                            } else {
+                              selected.remove(value);
+                            }
+                          }),
                     selectedColor: const Color(0xFFDFEDDB),
                     padding: const EdgeInsets.all(8),
                     side: const BorderSide(color: line),
@@ -192,35 +261,38 @@ class _ProfileFormState extends State<ProfileForm> {
         controller: scroll,
         padding: const EdgeInsets.fromLTRB(22, 12, 22, 28),
         children: [
-          Row(
-            children: [
-              Tag('${step + 1} / 2단계'),
-              const Spacer(),
-              TextButton.icon(
-                key: const Key('sample-fill'),
-                onPressed: fillExample,
-                icon: const Icon(Icons.auto_fix_high_rounded, size: 18),
-                label: const Text('예시 정보 채우기'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: (step + 1) / 2,
-            minHeight: 5,
-            borderRadius: BorderRadius.circular(4),
-            backgroundColor: line,
-            color: blue,
-          ),
-          const SizedBox(height: 25),
-          Text(
-            step == 0
-                ? '기본 정보를 입력해 주세요'
-                : widget.welfare
-                ? '생활 조건을 선택해 주세요'
-                : '식사 조건을 선택해 주세요',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          if (!serverMeal) ...[
+            Row(
+              children: [
+                Tag('${step + 1} / 2단계'),
+                const Spacer(),
+                TextButton.icon(
+                  key: const Key('sample-fill'),
+                  onPressed: fillExample,
+                  icon: const Icon(Icons.auto_fix_high_rounded, size: 18),
+                  label: const Text('예시 정보 채우기'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            LinearProgressIndicator(
+              value: (step + 1) / 2,
+              minHeight: 5,
+              borderRadius: BorderRadius.circular(4),
+              backgroundColor: line,
+              color: blue,
+            ),
+            const SizedBox(height: 25),
+          ],
+          if (!serverMeal)
+            Text(
+              step == 0
+                  ? '기본 정보를 입력해 주세요'
+                  : widget.welfare
+                  ? '생활 조건을 선택해 주세요'
+                  : '식사 조건을 선택해 주세요',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
           const SizedBox(height: 10),
           Text(
             step == 0 ? '입력 정보에 맞춰 추천해 드려요.' : '선택한 조건을 추천 결과에 반영할게요.',
@@ -298,10 +370,11 @@ class _ProfileFormState extends State<ProfileForm> {
                   v == null || v.trim().isEmpty ? '거주하는 시·군·구를 입력해 주세요.' : null,
             ),
           ] else ...[
-            Notice(
-              '${name.text.trim().isEmpty ? '어르신' : name.text.trim()} · ${age.text}세 · $region ${district.text}',
-              icon: Icons.person_outline_rounded,
-            ),
+            if (!serverMeal)
+              Notice(
+                '${name.text.trim().isEmpty ? '어르신' : name.text.trim()} · ${age.text}세 · $region ${district.text}',
+                icon: Icons.person_outline_rounded,
+              ),
             if (widget.welfare) ...[
               const SectionTitle('가구 형태'),
               Wrap(
@@ -344,21 +417,50 @@ class _ProfileFormState extends State<ProfileForm> {
                       (v) => ChoiceChip(
                         label: Text(v.label),
                         selected: time == v,
-                        onSelected: (_) => setState(() => time = v),
+                        onSelected: loading
+                            ? null
+                            : (_) => setState(() => time = v),
                         padding: const EdgeInsets.all(10),
                       ),
                     )
                     .toList(),
               ),
-              selection('건강 상태 (선택)', ['고혈압', '당뇨'], conditions),
-              selection('피해야 할 알레르기 재료 (선택)', [
-                '달걀',
-                '우유',
-                '대두',
-                '새우',
-                '밀',
-                '땅콩',
-              ], allergies),
+              if (serverMeal) ...[
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('간단한 요리가 좋아요'),
+                  value: simpleCooking,
+                  onChanged: loading
+                      ? null
+                      : (value) => setState(() => simpleCooking = value),
+                ),
+                selection(
+                  '좋아하는 재료 (선택)',
+                  ingredientChoices,
+                  preferredIngredients,
+                ),
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  maintainState: true,
+                  title: Text(
+                    '피해야 할 재료·건강 조건${allergies.isEmpty && conditions.isEmpty ? '' : ' (${allergies.length + conditions.length}개)'}',
+                  ),
+                  children: [
+                    selection('알레르기 재료', allergenChoices, allergies),
+                    selection('건강 상태 (선택)', ['고혈압', '당뇨'], conditions),
+                  ],
+                ),
+              ] else ...[
+                selection('건강 상태 (선택)', ['고혈압', '당뇨'], conditions),
+                selection('피해야 할 알레르기 재료 (선택)', [
+                  '달걀',
+                  '우유',
+                  '대두',
+                  '새우',
+                  '밀',
+                  '땅콩',
+                ], allergies),
+              ],
               const SizedBox(height: 16),
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
@@ -367,27 +469,39 @@ class _ProfileFormState extends State<ProfileForm> {
                   style: TextStyle(fontSize: 17),
                 ),
                 value: softFood,
-                onChanged: (v) => setState(() => softFood = v),
+                onChanged: loading ? null : (v) => setState(() => softFood = v),
               ),
             ],
             const SizedBox(height: 20),
-            CheckboxListTile(
-              key: const Key('profile-consent'),
-              contentPadding: EdgeInsets.zero,
-              controlAffinity: ListTileControlAffinity.leading,
-              title: const Text(
-                '이번 추천에 입력 정보를 사용하는 것을 확인했어요.',
-                style: TextStyle(fontSize: 16),
+            if (serverMeal) ...[
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text('다음에도 이 조건 사용하기'),
+                subtitle: const Text(
+                  '추천받을 때 좋아하는 재료, 알레르기, 조리 선호를 이 기기에 기억해요.',
+                ),
+                value: remember,
+                onChanged: loading
+                    ? null
+                    : (value) => setState(() => remember = value ?? false),
               ),
-              subtitle: Text(
-                widget.mealApi == null
-                    ? '입력 정보는 기기에서 이번 추천에만 사용해요.'
-                    : '식사 시간, 건강·알레르기 조건과 식감 선호를 추천 서버에 보내요. 서버에는 추천 결과와 사용한 기준을 저장해요.',
-                style: const TextStyle(fontSize: 13),
+            ] else
+              CheckboxListTile(
+                key: const Key('profile-consent'),
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text(
+                  '이번 추천에 입력 정보를 사용하는 것을 확인했어요.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                subtitle: const Text(
+                  '입력 정보는 기기에서 이번 추천에만 사용해요.',
+                  style: TextStyle(fontSize: 13),
+                ),
+                value: consent,
+                onChanged: (v) => setState(() => consent = v ?? false),
               ),
-              value: consent,
-              onChanged: (v) => setState(() => consent = v ?? false),
-            ),
           ],
         ],
       ),
@@ -402,9 +516,17 @@ class _ProfileFormState extends State<ProfileForm> {
           children: [
             if (errorMessage case final message?)
               Semantics(liveRegion: true, child: Notice(message)),
+            if (serverMeal)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text(
+                  '버튼을 누르면 선택한 조건을 서버에 보내고 추천 결과를 저장해요.',
+                  style: TextStyle(fontSize: 13, color: muted),
+                ),
+              ),
             Row(
               children: [
-                if (step == 1) ...[
+                if (step == 1 && !serverMeal) ...[
                   IconButton(
                     tooltip: '기본 정보 수정',
                     onPressed: loading

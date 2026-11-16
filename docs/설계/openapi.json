@@ -1772,6 +1772,21 @@
             "title": "Soft Food",
             "default": false
           },
+          "simple_cooking": {
+            "type": "boolean",
+            "title": "Simple Cooking",
+            "default": false
+          },
+          "preferred_ingredients": {
+            "items": {
+              "type": "string",
+              "maxLength": 100,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Preferred Ingredients"
+          },
           "exclude_allergens": {
             "items": {
               "type": "string",

@@ -42,7 +42,10 @@ class _MealScreenState extends State<MealScreen> {
               '127.0.0.1',
               'localhost',
             }.contains(server.host))) {
-      return MealRecommendationApi(ApiClient());
+      return MealRecommendationApi(
+        ApiClient(),
+        guestStorageKey: settings.persist ? 'mealGuest:${server.origin}' : null,
+      );
     }
     return null;
   }
