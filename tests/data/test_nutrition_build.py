@@ -137,6 +137,17 @@ def test_ingredient_map_codes_exist_in_collected_db():
             assert foods[e["food_code"]].name == e["food_name"], e
 
 
+@pytest.mark.skipif(not paths.NUTRITION_RAW.is_file(), reason="수집 원본 없음 (client 실행 필요)")
+def test_volume_density_codes_exist_in_collected_db():
+    from agetech_data.nutrition.foods import clean_foods
+    from agetech_data.nutrition.units import load_food_densities
+
+    foods = {f.food_code: f for f in clean_foods(json.loads(paths.NUTRITION_RAW.read_text(encoding="utf-8"))["items"])}
+    for code, row in load_food_densities().items():
+        assert code in foods and foods[code].name == row["food_name"], row
+        assert foods[code].basis_unit == "g", row          # mL 기준 식품은 부피 그대로가 맞아 표에 두지 않음
+
+
 @pytest.mark.skipif(not paths.NUTRITION_RAW.is_file() or not paths.RECIPES_RAW.is_file(), reason="원본 없음")
 def test_real_recipes_regression():
     from agetech_data.nutrition.foods import clean_foods

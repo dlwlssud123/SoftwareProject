@@ -1,11 +1,12 @@
 {
- "description": "레시피 재료의 개수·계량 단위 → g·mL 환산표. 출처가 단위와 무게를 함께 적은 것만 둔다(지어내지 않음). count_units 는 (재료명, 단위) 하나당 1단위 무게(g), volume_units 는 1단위 부피(mL — 1mL≈1g 근사는 환산기에서). 재료명은 공백을 지우고 비교한다.",
+ "description": "레시피 재료의 개수·계량 단위 → g·mL 환산표. 출처가 단위와 무게를 함께 적은 것만 둔다(지어내지 않음). count_units 는 (재료명, 단위) 하나당 1단위 무게(g), volume_units 는 1단위 부피(mL), food_densities 는 매핑한 식품의 부피 1 mL 무게(g/mL — 큰술·작은술은 숟가락으로 떠서 잰 값, 컵·mL 는 컵 값; 없는 식품만 1mL≈1g 근사). 재료명은 공백을 지우고 비교한다.",
  "sources": {
   "mfds_nq_elderly": "식품의약품안전처, 「건강·식생활 향상을 위한 노인 영양지수 교육자료」(2023, 1회 분량 출처 표기: 한국인 영양소 섭취기준), https://various.foodsafetykorea.go.kr/nq/ebook/oldman/oldman_balance.pdf",
   "measure_spoon": "계량스푼 1큰술 15 mL·1작은술 5 mL — 미국 FDA 「Guidelines for Determining Metric Equivalents of Household Measures」(1 Tbsp = 15 mL, 1 tsp = 5 mL), 농촌진흥청 「한식 재료 정보」(data.go.kr 15137344)의 물 1큰술 14 g·3⅔큰술 54 g과 맞음",
   "measure_cup": "국내 계량컵 1컵 200 mL — 식약처 노인 영양지수 교육자료 '우유(200 mL)'·'과일주스 1/2컵(100 mL)'. 종이컵(약 180 mL)·미국 컵(240 mL)과 다르므로 근사로 표시",
   "khidi_2007_portion": "한국보건산업진흥원(보건복지부 과제), 「식품별 영양성분 DB 구축사업 — 눈대중량의 부피 및 중량 환산 DB 구축」 최종보고서(2007-12), 별첨 1 「식품의 눈대중량 DB」, KISTI ScienceON TRKO201100002804. 가식부 중량을 쓰고, 크기 미기재는 '중'(여러 행이면 평균), '중'이 없으면 대·소 평균 또는 있는 크기만. 보고서 값만 인용(원문은 재배포하지 않음)",
-  "product_label": "식자재 몰 제품 규격 표기(식봄 foodspring.co.kr), 제품명에 적힌 낱개 무게·개수 — 제품마다 다를 수 있어 흔한 규격 하나를 쓰고 URL·확인일을 evidence에 적음"
+  "product_label": "식자재 몰 제품 규격 표기(식봄 foodspring.co.kr), 제품명에 적힌 낱개 무게·개수 — 제품마다 다를 수 있어 흔한 규격 하나를 쓰고 URL·확인일을 evidence에 적음",
+  "usda_fdc_sr": "미국 농무부(USDA) FoodData Central 'SR Legacy'(2018-04) food_portion 표의 가정용 계량 무게 (1 cup = 236.6 mL, 1 tbsp = 14.79 mL, 1 tsp = 4.93 mL, 1 fl oz = 29.57 mL), https://fdc.nal.usda.gov/download-datasets — FDC 번호와 원문 설명을 evidence에 적음"
  },
  "count_units": [
   {
@@ -612,6 +613,752 @@
    "unit": "컵",
    "ml": 200,
    "source": "measure_cup"
+  }
+ ],
+ "food_densities": [
+  {
+   "food_code": "R114-017000000-0000",
+   "food_name": "올리브유",
+   "spoon_g_per_ml": 0.847,
+   "cup_g_per_ml": 0.956,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 14018 올리브유 1큰술(15 mL) 12.7 g·50 mL 47.8 g (PDF 145쪽)"
+  },
+  {
+   "food_code": "R114-022000000-0000",
+   "food_name": "콩기름",
+   "spoon_g_per_ml": 0.867,
+   "cup_g_per_ml": 0.9,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 14026 콩기름 1큰술(15 mL) 13 g·50 mL 45 g (PDF 147쪽)"
+  },
+  {
+   "food_code": "R114-020000000-0000",
+   "food_name": "참기름",
+   "spoon_g_per_ml": 0.827,
+   "cup_g_per_ml": 0.918,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 14021 참기름 1큰술(15 mL) 12.4 g·50 mL 45.9 g (PDF 146쪽)"
+  },
+  {
+   "food_code": "R121-027010000-0000",
+   "food_name": "고추기름",
+   "spoon_g_per_ml": 0.867,
+   "cup_g_per_ml": 0.9,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] 별첨 1 14026 콩기름 1큰술(15 mL) 13 g·50 mL 45 g (PDF 147쪽) — 고추기름은 식용유에 고추를 우린 기름"
+  },
+  {
+   "food_code": "R114-032000000-0000",
+   "food_name": "아보카도유",
+   "spoon_g_per_ml": 0.847,
+   "cup_g_per_ml": 0.956,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] 별첨 1 14018 올리브유 1큰술(15 mL) 12.7 g·50 mL 47.8 g (PDF 145쪽) — 같은 식물성 기름"
+  },
+  {
+   "food_code": "R121-027060100-0000",
+   "food_name": "버터, 가염",
+   "spoon_g_per_ml": 0.847,
+   "cup_g_per_ml": 0.959,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 큰술: 한국보건산업진흥원 별첨 1 14010 버터 1큰술 12.7 g(PDF 145쪽) / 컵: USDA FDC 173410 'Butter, salted' 1 cup = 227 g"
+  },
+  {
+   "food_code": "R121-027060200-0000",
+   "food_name": "버터, 무가염",
+   "spoon_g_per_ml": 0.847,
+   "cup_g_per_ml": 0.959,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 큰술: 한국보건산업진흥원 별첨 1 14010 버터 1큰술 12.7 g(PDF 145쪽) / 컵: USDA FDC 173430 'Butter, without salt' 1 cup = 227 g"
+  },
+  {
+   "food_code": "R113-009000000-0000",
+   "food_name": "우유",
+   "spoon_g_per_ml": 1.014,
+   "cup_g_per_ml": 1.031,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 171265 'Milk, whole, 3.25% milkfat, with added vitamin D' 1 tbsp = 15 g, 1 cup = 244 g"
+  },
+  {
+   "food_code": "R121-044020000-0000",
+   "food_name": "크림, 생크림",
+   "spoon_g_per_ml": 1.014,
+   "cup_g_per_ml": 1.006,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170859 'Cream, fluid, heavy whipping' 1 tbsp = 15 g, 1 cup = 238 g (fluid)"
+  },
+  {
+   "food_code": "R121-044030100-0000",
+   "food_name": "크림, 휘핑, 식물성",
+   "spoon_g_per_ml": 1.014,
+   "cup_g_per_ml": 1.006,
+   "source": "usda_fdc_sr",
+   "evidence": "[가까운 식품] FDC 170859 'Cream, fluid, heavy whipping' 1 tbsp = 15 g, 1 cup = 238 g — 휘핑 전 액상 크림"
+  },
+  {
+   "food_code": "R121-038110000-0000",
+   "food_name": "치즈, 파르메산(파마산)",
+   "spoon_g_per_ml": 0.338,
+   "cup_g_per_ml": 0.423,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 171247 'Cheese, parmesan, grated' 1 tbsp = 5 g, 1 cup = 100 g"
+  },
+  {
+   "food_code": "R121-038030100-0000",
+   "food_name": "치즈, 모차렐라, 슈레드타입",
+   "spoon_g_per_ml": 0.473,
+   "cup_g_per_ml": 0.473,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170845 'Cheese, mozzarella, whole milk' 1 cup = 112 g (shredded)"
+  },
+  {
+   "food_code": "R121-038070000-0000",
+   "food_name": "치즈, 체다",
+   "spoon_g_per_ml": 0.478,
+   "cup_g_per_ml": 0.478,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 173414 'Cheese, cheddar' 1 cup = 113 g (shredded)"
+  },
+  {
+   "food_code": "R121-026061100-0000",
+   "food_name": "요구르트, 호상, 플레인",
+   "spoon_g_per_ml": 1.036,
+   "cup_g_per_ml": 1.036,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 171284 'Yogurt, plain, whole milk' 1 cup = 245 g"
+  },
+  {
+   "food_code": "R101-008000301-0003",
+   "food_name": "멥쌀, 백미, 생것",
+   "spoon_g_per_ml": 0.867,
+   "cup_g_per_ml": 0.782,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 큰술: 한국보건산업진흥원 별첨 1 1169 백미 1큰술 13 g(PDF 74쪽) / 컵: USDA FDC 169756 'Rice, white, long-grain, regular, raw' 1 cup = 185 g"
+  },
+  {
+   "food_code": "R121-002030000-0000",
+   "food_name": "밀, 부침가루",
+   "spoon_g_per_ml": 0.513,
+   "cup_g_per_ml": 0.7,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 1024 부침가루 1큰술(15 mL) 7.7 g·1작은술(5 mL) 2.6 g·200 mL 139.9 g (PDF 66쪽)"
+  },
+  {
+   "food_code": "R121-002050000-0000",
+   "food_name": "밀, 튀김가루",
+   "spoon_g_per_ml": 0.513,
+   "cup_g_per_ml": 0.7,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] 별첨 1 1024 부침가루 1큰술(15 mL) 7.7 g·1작은술(5 mL) 2.6 g·200 mL 139.9 g (PDF 66쪽) — 같은 밀가루 믹스"
+  },
+  {
+   "food_code": "R102-014010006-0000",
+   "food_name": "전분, 감자, 가루",
+   "spoon_g_per_ml": 0.64,
+   "cup_g_per_ml": 0.64,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 2029 감자전분 1큰술(15 mL) 9.6 g·1작은술(5 mL) 3.2 g (PDF 80쪽)"
+  },
+  {
+   "food_code": "R101-008550501-0000",
+   "food_name": "멥쌀, 현미, 한가루, 생것",
+   "spoon_g_per_ml": 0.668,
+   "cup_g_per_ml": 0.668,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 168898 'Rice flour, brown' 1 cup = 158 g"
+  },
+  {
+   "food_code": "R101-038000306-0000",
+   "food_name": "찹쌀, 백미, 가루",
+   "spoon_g_per_ml": 0.668,
+   "cup_g_per_ml": 0.668,
+   "source": "usda_fdc_sr",
+   "evidence": "[가까운 식품] FDC 169714 'Rice flour, white, unenriched' 1 cup = 158 g — 찹쌀가루 항목 없음"
+  },
+  {
+   "food_code": "R101-016100000-0000",
+   "food_name": "밀, 통밀가루",
+   "spoon_g_per_ml": 0.507,
+   "cup_g_per_ml": 0.507,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 168893 'Wheat flour, whole-grain' 1 cup = 120 g"
+  },
+  {
+   "food_code": "R102-010000002-0000",
+   "food_name": "돼지감자, 말린것",
+   "spoon_g_per_ml": 0.507,
+   "cup_g_per_ml": 0.507,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] 별첨 1 1020 밀가루 1큰술(15 mL) 7.6 g·1작은술(5 mL) 2.5 g (PDF 66쪽) — 돼지감자가루의 부피 자료가 없어 같은 곡물·채소 가루로 봄"
+  },
+  {
+   "food_code": "P116-001030200-F003-003",
+   "food_name": "모둠견과",
+   "spoon_g_per_ml": 0.554,
+   "cup_g_per_ml": 0.554,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170585 'Nuts, mixed nuts, dry roasted, with peanuts, without salt added' 1 cup = 131 g"
+  },
+  {
+   "food_code": "R105-020000002-0000",
+   "food_name": "아몬드, 말린것",
+   "spoon_g_per_ml": 0.389,
+   "cup_g_per_ml": 0.389,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170567 'Nuts, almonds' 1 cup = 92 g (sliced — 원문 '아몬드 슬라이스·플레이크')"
+  },
+  {
+   "food_code": "R105-005000058-0000",
+   "food_name": "들깨, 볶은것",
+   "spoon_g_per_ml": 0.467,
+   "cup_g_per_ml": 0.48,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 5007 들깨 1큰술(15 mL) 7 g·1작은술(5 mL) 2.5 g·100 mL 48 g (PDF 84쪽)"
+  },
+  {
+   "food_code": "R105-026020058-0000",
+   "food_name": "참깨, 흰색, 볶은것",
+   "spoon_g_per_ml": 0.533,
+   "cup_g_per_ml": 0.54,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 5045 검정깨(흑임자) 1큰술(15 mL) 8 g·1작은술(5 mL) 2.6 g·100 mL 54 g (PDF 85쪽) — 같은 참깨(색만 다름), USDA 볶은 참깨 1 cup 128 g(0.54 g/mL)과 같음"
+  },
+  {
+   "food_code": "R105-023000001-0000",
+   "food_name": "잣, 생것",
+   "spoon_g_per_ml": 0.613,
+   "cup_g_per_ml": 0.648,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 5041 잣 1큰술(15 mL) 9.2 g·50 mL 32.4 g (PDF 85쪽)"
+  },
+  {
+   "food_code": "R121-033170200-0000",
+   "food_name": "간장, 개량, 양조",
+   "spoon_g_per_ml": 1.04,
+   "cup_g_per_ml": 1.1,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 16001 양조간장/진간장 1큰술(15 mL) 15.6 g·1작은술(5 mL) 5.5 g·50 mL 55 g (PDF 151쪽)"
+  },
+  {
+   "food_code": "R121-033170300-0000",
+   "food_name": "고추장, 개량",
+   "spoon_g_per_ml": 1.26,
+   "cup_g_per_ml": 1.354,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 16010 고추장 1큰술(15 mL) 18.9 g·1작은술(5 mL) 6.5 g·50 mL 67.7 g (PDF 153쪽)"
+  },
+  {
+   "food_code": "R121-033170500-0000",
+   "food_name": "된장, 개량",
+   "spoon_g_per_ml": 1.193,
+   "cup_g_per_ml": 1.206,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 16021 된장 1큰술(15 mL) 17.9 g·50 mL 60.3 g (PDF 154쪽)"
+  },
+  {
+   "food_code": "R121-033170800-0000",
+   "food_name": "쌈장",
+   "spoon_g_per_ml": 1.207,
+   "cup_g_per_ml": 1.338,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 16049 쌈장 1큰술(15 mL) 18.1 g·1작은술(5 mL) 6.6 g·50 mL 66.9 g (PDF 157쪽)"
+  },
+  {
+   "food_code": "R118-007000006-0000",
+   "food_name": "고춧가루",
+   "spoon_g_per_ml": 0.433,
+   "cup_g_per_ml": 0.433,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 16009 고춧가루 1큰술(15 mL) 6.5 g·1작은술(5 mL) 2.4 g (PDF 153쪽)"
+  },
+  {
+   "food_code": "R106-018008102-0000",
+   "food_name": "고추, 빨간색, 말린것",
+   "spoon_g_per_ml": 0.433,
+   "cup_g_per_ml": 0.433,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] 별첨 1 16009 고춧가루 1큰술(15 mL) 6.5 g·1작은술(5 mL) 2.4 g (PDF 153쪽) — 원문 '페페론치노'(빻은 말린 고추)"
+  },
+  {
+   "food_code": "R106-053002200-0000",
+   "food_name": "마늘, 다진것",
+   "spoon_g_per_ml": 0.633,
+   "cup_g_per_ml": 0.633,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 6108 마늘 다진것 1큰술(15 mL) 9.5 g·1작은술(5 mL) 3.4 g (PDF 94쪽)"
+  },
+  {
+   "food_code": "R121-033110600-0000",
+   "food_name": "마요네즈",
+   "spoon_g_per_ml": 0.933,
+   "cup_g_per_ml": 1.01,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 16025 마요네즈 1큰술(15 mL) 14 g·1작은술(5 mL) 4.8 g·50 mL 50.5 g (PDF 154쪽)"
+  },
+  {
+   "food_code": "R121-033030000-0000",
+   "food_name": "맛술",
+   "spoon_g_per_ml": 1.073,
+   "cup_g_per_ml": 1.076,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 16027 맛술(미림) 1큰술(15 mL) 16.1 g·1작은술(5 mL) 5.5 g·50 mL 53.8 g (PDF 155쪽)"
+  },
+  {
+   "food_code": "R103-011020000-0000",
+   "food_name": "설탕, 백설탕",
+   "spoon_g_per_ml": 0.827,
+   "cup_g_per_ml": 0.82,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 3025 백설탕 1큰술(15 mL) 12.4 g·1작은술(5 mL) 4.6 g·100 mL 82 g (PDF 82쪽)"
+  },
+  {
+   "food_code": "R103-003000000-0000",
+   "food_name": "꿀",
+   "spoon_g_per_ml": 1.52,
+   "cup_g_per_ml": 1.532,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 3004 벌꿀 1큰술(15 mL) 22.8 g·1작은술(5 mL) 8.1 g·50 mL 76.6 g (PDF 81쪽)"
+  },
+  {
+   "food_code": "R121-022030000-0000",
+   "food_name": "시럽, 올리고당",
+   "spoon_g_per_ml": 1.367,
+   "cup_g_per_ml": 1.37,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] 별첨 1 3012 당밀/시럽 1큰술(15 mL) 20.5 g·1작은술(5 mL) 6.7 g·50 mL 68.5 g (PDF 81쪽) — 같은 액상 당류 시럽"
+  },
+  {
+   "food_code": "R108-078007118-0000",
+   "food_name": "유자청",
+   "spoon_g_per_ml": 1.367,
+   "cup_g_per_ml": 1.37,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] 별첨 1 3012 당밀/시럽 1큰술(15 mL) 20.5 g·1작은술(5 mL) 6.7 g·50 mL 68.5 g (PDF 81쪽) — 설탕에 잰 과일청"
+  },
+  {
+   "food_code": "R108-029000018-0000",
+   "food_name": "매실청",
+   "spoon_g_per_ml": 1.367,
+   "cup_g_per_ml": 1.37,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] 별첨 1 3012 당밀/시럽 1큰술(15 mL) 20.5 g·1작은술(5 mL) 6.7 g·50 mL 68.5 g (PDF 81쪽) — 설탕에 잰 과일청"
+  },
+  {
+   "food_code": "R118-041010006-0000",
+   "food_name": "후추, 검은색, 가루",
+   "spoon_g_per_ml": 0.547,
+   "cup_g_per_ml": 0.594,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 16071 후추 1큰술(15 mL) 8.2 g·1작은술(5 mL) 2.6 g·200 mL 118.8 g (PDF 158쪽)"
+  },
+  {
+   "food_code": "P113-100020100-F010-007",
+   "food_name": "카레가루",
+   "spoon_g_per_ml": 0.467,
+   "cup_g_per_ml": 0.467,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 16062 카레(분말) 1큰술(15 mL) 7 g·1작은술(5 mL) 2.4 g (PDF 157쪽)"
+  },
+  {
+   "food_code": "R211-717250171-0002",
+   "food_name": "새우젓",
+   "spoon_g_per_ml": 1.0,
+   "cup_g_per_ml": 0.98,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 11627 새우젓 1큰술(15 mL) 15 g·1작은술(5 mL) 6 g·50 mL 49 g (PDF 139쪽)"
+  },
+  {
+   "food_code": "R118-020030000-0000",
+   "food_name": "소금, 천일염",
+   "spoon_g_per_ml": 0.86,
+   "cup_g_per_ml": 0.86,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 16037 굵은소금 1큰술(15 mL) 12.9 g·1작은술(5 mL) 4.1 g (PDF 156쪽)"
+  },
+  {
+   "food_code": "R121-033140800-0000",
+   "food_name": "식초, 현미식초",
+   "spoon_g_per_ml": 0.94,
+   "cup_g_per_ml": 1.1,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 16048 식초 1큰술(15 mL) 14.1 g·1작은술(5 mL) 5 g·50 mL 55 g (PDF 157쪽)"
+  },
+  {
+   "food_code": "R121-033140400-0000",
+   "food_name": "식초, 사과식초",
+   "spoon_g_per_ml": 0.94,
+   "cup_g_per_ml": 1.1,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 16048 식초 1큰술(15 mL) 14.1 g·1작은술(5 mL) 5 g·50 mL 55 g (PDF 157쪽)"
+  },
+  {
+   "food_code": "R121-033140600-0000",
+   "food_name": "식초, 양조",
+   "spoon_g_per_ml": 0.94,
+   "cup_g_per_ml": 1.1,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 16048 식초 1큰술(15 mL) 14.1 g·1작은술(5 mL) 5 g·50 mL 55 g (PDF 157쪽)"
+  },
+  {
+   "food_code": "R121-033090100-0000",
+   "food_name": "소금, 정제염",
+   "spoon_g_per_ml": 1.217,
+   "cup_g_per_ml": 1.234,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 173468 'Salt, table' 1 tbsp = 18 g, 1 tsp = 6 g, 1 cup = 292 g"
+  },
+  {
+   "food_code": "R121-033111200-0000",
+   "food_name": "굴 소스",
+   "spoon_g_per_ml": 1.217,
+   "cup_g_per_ml": 1.217,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 174529 'Sauce, oyster, ready-to-serve' 1 tbsp = 18 g"
+  },
+  {
+   "food_code": "R121-033110400-0000",
+   "food_name": "스리라차 소스",
+   "spoon_g_per_ml": 1.319,
+   "cup_g_per_ml": 1.319,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 171186 'Sauce, hot chile, sriracha' 1 tsp = 6.5 g"
+  },
+  {
+   "food_code": "R121-033111000-0001",
+   "food_name": "머스타드 소스, 씨겨자",
+   "spoon_g_per_ml": 1.014,
+   "cup_g_per_ml": 1.052,
+   "source": "usda_fdc_sr",
+   "evidence": "[가까운 식품] FDC 172234 'Mustard, prepared, yellow' 1 tsp = 5 g, 1 cup = 249 g — 씨겨자 항목 없음"
+  },
+  {
+   "food_code": "P113-004020400-F042-000",
+   "food_name": "살사소스",
+   "spoon_g_per_ml": 1.217,
+   "cup_g_per_ml": 1.095,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 174524 'Sauce, salsa, ready-to-serve' 1 tbsp = 18 g, 1 cup = 259 g (2 tbsp = 36 g)"
+  },
+  {
+   "food_code": "R118-025050506-0000",
+   "food_name": "올스파이스, 가루",
+   "spoon_g_per_ml": 0.406,
+   "cup_g_per_ml": 0.406,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 171315 'Spices, allspice, ground' 1 tbsp = 6 g, 1 tsp = 1.9 g"
+  },
+  {
+   "food_code": "R118-039100006-0000",
+   "food_name": "파프리카, 가루",
+   "spoon_g_per_ml": 0.46,
+   "cup_g_per_ml": 0.46,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 171329 'Spices, paprika' 1 tbsp = 6.8 g, 1 tsp = 2.3 g"
+  },
+  {
+   "food_code": "R121-033010100-0000",
+   "food_name": "강황, 가루",
+   "spoon_g_per_ml": 0.636,
+   "cup_g_per_ml": 0.636,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 172231 'Spices, turmeric, ground' 1 tbsp = 9.4 g, 1 tsp = 3 g"
+  },
+  {
+   "food_code": "R121-033160100-0000",
+   "food_name": "울금, 가루",
+   "spoon_g_per_ml": 0.636,
+   "cup_g_per_ml": 0.636,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 172231 'Spices, turmeric, ground' 1 tbsp = 9.4 g, 1 tsp = 3 g — 울금 = 강황 뿌리"
+  },
+  {
+   "food_code": "P113-101050100-F001-000",
+   "food_name": "바질가루",
+   "spoon_g_per_ml": 0.304,
+   "cup_g_per_ml": 0.304,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 171317 'Spices, basil, dried' 1 tbsp = 4.5 g, 1 tsp = 1.4 g (ground)"
+  },
+  {
+   "food_code": "R118-057000002-0000",
+   "food_name": "파슬리, 말린것",
+   "spoon_g_per_ml": 0.108,
+   "cup_g_per_ml": 0.108,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170930 'Spices, parsley, dried' 1 tbsp = 1.6 g, 1 tsp = 0.5 g"
+  },
+  {
+   "food_code": "R118-061000002-0000",
+   "food_name": "오레가노, 말린것",
+   "spoon_g_per_ml": 0.365,
+   "cup_g_per_ml": 0.365,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 171328 'Spices, oregano, dried' 1 tsp = 1.8 g (ground — 원문 '오레가노가루')"
+  },
+  {
+   "food_code": "R118-055030306-0000",
+   "food_name": "생강, 가루",
+   "spoon_g_per_ml": 0.352,
+   "cup_g_per_ml": 0.352,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170926 'Spices, ginger, ground' 1 tbsp = 5.2 g, 1 tsp = 1.8 g"
+  },
+  {
+   "food_code": "R118-041020006-0000",
+   "food_name": "후추, 흰색, 가루",
+   "spoon_g_per_ml": 0.48,
+   "cup_g_per_ml": 0.48,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170933 'Spices, pepper, white' 1 tbsp = 7.1 g, 1 tsp = 2.4 g"
+  },
+  {
+   "food_code": "R212-819013902-0000",
+   "food_name": "다시마, 말린것",
+   "spoon_g_per_ml": 0.467,
+   "cup_g_per_ml": 0.467,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] 별첨 1 16062 카레(분말) 1큰술(15 mL) 7 g·1작은술(5 mL) 2.4 g (PDF 157쪽) — 원문 '다시마가루', 같은 말린 식물성 가루로 봄"
+  },
+  {
+   "food_code": "R107-027000006-0000",
+   "food_name": "표고버섯, 가루",
+   "spoon_g_per_ml": 0.467,
+   "cup_g_per_ml": 0.467,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] 별첨 1 16062 카레(분말) 1큰술(15 mL) 7 g·1작은술(5 mL) 2.4 g (PDF 157쪽) — 원문 '버섯가루', 같은 말린 식물성 가루로 봄"
+  },
+  {
+   "food_code": "R108-082000002-0000",
+   "food_name": "자두, 말린것, 프룬",
+   "spoon_g_per_ml": 0.735,
+   "cup_g_per_ml": 0.735,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 168162 'Plums, dried (prunes), uncooked' 1 cup = 174 g (pitted)"
+  },
+  {
+   "food_code": "R114-021000000-0000",
+   "food_name": "코코넛, 코코넛밀크",
+   "spoon_g_per_ml": 1.014,
+   "cup_g_per_ml": 1.014,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170172 'Nuts, coconut milk, raw' 1 tbsp = 15 g, 1 cup = 240 g"
+  },
+  {
+   "food_code": "R121-005020000-0000",
+   "food_name": "코코넛수",
+   "spoon_g_per_ml": 1.014,
+   "cup_g_per_ml": 1.014,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170174 'Nuts, coconut water' 1 tbsp = 15 g, 1 cup = 240 g"
+  },
+  {
+   "food_code": "R104-012050046-0000",
+   "food_name": "대두, 검은색, 서리태, 삶은것",
+   "spoon_g_per_ml": 0.727,
+   "cup_g_per_ml": 0.727,
+   "source": "usda_fdc_sr",
+   "evidence": "[가까운 식품] FDC 173735 'Beans, black, mature seeds, cooked, boiled, without salt' 1 cup = 172 g — 삶은 검은콩"
+  },
+  {
+   "food_code": "R104-021000083-0000",
+   "food_name": "병아리콩, 말린것, 삶은것",
+   "spoon_g_per_ml": 0.693,
+   "cup_g_per_ml": 0.693,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 173757 'Chickpeas, mature seeds, cooked, boiled, without salt' 1 cup = 164 g"
+  },
+  {
+   "food_code": "R106-094003801-0000",
+   "food_name": "비타민채(다채), 어린잎, 생것",
+   "spoon_g_per_ml": 0.152,
+   "cup_g_per_ml": 0.152,
+   "source": "usda_fdc_sr",
+   "evidence": "[가까운 식품] FDC 169249 'Lettuce, green leaf, raw' 1 cup = 36 g (shredded) — 어린잎 채소"
+  },
+  {
+   "food_code": "R106-132000001-0000",
+   "food_name": "양파, 생것",
+   "spoon_g_per_ml": 0.676,
+   "cup_g_per_ml": 0.676,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170000 'Onions, raw' 1 tbsp = 10 g, 1 cup = 160 g (chopped — 원문 '다진 양파')"
+  },
+  {
+   "food_code": "R106-194008101-0000",
+   "food_name": "파프리카, 빨간색, 생것",
+   "spoon_g_per_ml": 0.63,
+   "cup_g_per_ml": 0.63,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170108 'Peppers, sweet, red, raw' 1 cup = 149 g (chopped)"
+  },
+  {
+   "food_code": "R106-186000001-0000",
+   "food_name": "토마토, 생것",
+   "spoon_g_per_ml": 0.761,
+   "cup_g_per_ml": 0.761,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170457 'Tomatoes, red, ripe, raw, year round average' 1 cup = 180 g (chopped)"
+  },
+  {
+   "food_code": "R106-018008101-0000",
+   "food_name": "고추, 빨간색, 생것",
+   "spoon_g_per_ml": 0.634,
+   "cup_g_per_ml": 0.634,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170106 'Peppers, hot chili, red, raw' 1 cup = 150 g (1/2 cup chopped = 75 g)"
+  },
+  {
+   "food_code": "R106-018080001-0000",
+   "food_name": "고추, 청양고추, 생것",
+   "spoon_g_per_ml": 0.634,
+   "cup_g_per_ml": 0.634,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170497 'Peppers, hot chili, green, raw' 1 cup = 150 g (1/2 cup chopped = 75 g)"
+  },
+  {
+   "food_code": "R106-018003101-0000",
+   "food_name": "고추, 풋고추, 생것",
+   "spoon_g_per_ml": 0.634,
+   "cup_g_per_ml": 0.634,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170497 'Peppers, hot chili, green, raw' 1 cup = 150 g (1/2 cup chopped = 75 g)"
+  },
+  {
+   "food_code": "R106-193000001-0000",
+   "food_name": "파슬리, 생것",
+   "spoon_g_per_ml": 0.257,
+   "cup_g_per_ml": 0.254,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 170416 'Parsley, fresh' 1 tbsp = 3.8 g, 1 cup = 60 g"
+  },
+  {
+   "food_code": "R106-191000001-0000",
+   "food_name": "파, 생것",
+   "spoon_g_per_ml": 0.42,
+   "cup_g_per_ml": 0.431,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 6329 대파 다진것 1큰술(15 mL) 6.3 g·350 mL 150.7 g (PDF 104쪽) (밥공기 350 mL) — 원문 '다진 파'"
+  },
+  {
+   "food_code": "R106-191030001-0000",
+   "food_name": "파, 쪽파, 생것",
+   "spoon_g_per_ml": 0.207,
+   "cup_g_per_ml": 0.234,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 별첨 1 6331 실파(깐쪽파) 송송 썬 것 1큰술(15 mL) 3.1 g·50 mL 11.7 g (PDF 105쪽) — 원문 '다진 쪽파', 다진 것 행이 없어 송송 썬 것"
+  },
+  {
+   "food_code": "R108-024000023-0000",
+   "food_name": "레몬 착즙",
+   "spoon_g_per_ml": 1.031,
+   "cup_g_per_ml": 1.031,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 167747 'Lemon juice, raw' 1 cup = 244 g"
+  },
+  {
+   "food_code": "R108-023004400-0000",
+   "food_name": "라임 주스, 천연과즙",
+   "spoon_g_per_ml": 1.023,
+   "cup_g_per_ml": 1.023,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 168156 'Lime juice, raw' 1 cup = 242 g"
+  },
+  {
+   "food_code": "R108-050000024-0000",
+   "food_name": "사과 착즙",
+   "spoon_g_per_ml": 1.048,
+   "cup_g_per_ml": 1.048,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 173933 'Apple juice, canned or bottled, unsweetened' 1 cup = 248 g"
+  },
+  {
+   "food_code": "R121-029040400-0000",
+   "food_name": "두유, 대두, 무가당",
+   "spoon_g_per_ml": 1.027,
+   "cup_g_per_ml": 1.027,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 172446 'Soymilk, original and vanilla, unfortified' 1 cup = 243 g"
+  },
+  {
+   "food_code": "R121-029040200-0000",
+   "food_name": "두유, 대두",
+   "spoon_g_per_ml": 1.027,
+   "cup_g_per_ml": 1.027,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 172446 'Soymilk, original and vanilla, unfortified' 1 cup = 243 g"
+  },
+  {
+   "food_code": "R121-029140000-0000",
+   "food_name": "아몬드 음료",
+   "spoon_g_per_ml": 1.014,
+   "cup_g_per_ml": 1.014,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] USDA 아몬드 음료 3종의 1 cup 무게 중앙값 240 g(FDC 168751 'Beverages, almond milk, sweetened, vanilla flavor, ready-to-drink' 240 g·174820 chocolate 240 g·174832 unsweetened, shelf stable 262 g) → 240 ÷ 236.6 mL"
+  },
+  {
+   "food_code": "R109-011000000-0000",
+   "food_name": "닭 육수",
+   "spoon_g_per_ml": 1.052,
+   "cup_g_per_ml": 1.052,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 174536 'Soup, chicken broth, ready-to-serve' 1 cup = 249 g"
+  },
+  {
+   "food_code": "R121-013010700-0000",
+   "food_name": "발효주, 과실주, 포도주, 적포도주, 알코올 13%",
+   "spoon_g_per_ml": 0.994,
+   "cup_g_per_ml": 0.994,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 173190 'Alcoholic beverage, wine, table, red' 1 fl oz = 29.4 g"
+  },
+  {
+   "food_code": "R121-013010500-0000",
+   "food_name": "발효주, 과실주, 포도주, 백포도주, 샤르도네",
+   "spoon_g_per_ml": 0.994,
+   "cup_g_per_ml": 0.994,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 174837 'Alcoholic beverage, wine, table, white' 1 fl oz = 29.4 g"
+  },
+  {
+   "food_code": "R121-013040100-0000",
+   "food_name": "발효주, 청주, 알코올 16%",
+   "spoon_g_per_ml": 0.984,
+   "cup_g_per_ml": 0.984,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 167723 'Alcoholic beverage, rice (sake)' 1 fl oz = 29.1 g"
+  },
+  {
+   "food_code": "R121-013020200-0000",
+   "food_name": "발효주, 맥주, 알코올 4.5%",
+   "spoon_g_per_ml": 1.004,
+   "cup_g_per_ml": 1.004,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 168746 'Alcoholic beverage, beer, regular, all' 1 fl oz = 29.7 g"
+  },
+  {
+   "food_code": "R211-715013901-0000",
+   "food_name": "게, 꽃게, 생것",
+   "spoon_g_per_ml": 0.499,
+   "cup_g_per_ml": 0.499,
+   "source": "usda_fdc_sr",
+   "evidence": "[가까운 식품] FDC 174205 'Crustaceans, crab, blue, cooked, moist heat' 1 cup = 118 g (flaked and pieces) — 원문 '게살 1/2컵'"
+  },
+  {
+   "food_code": "R211-717133901-0000",
+   "food_name": "새우, 대하, 생것",
+   "spoon_g_per_ml": 0.541,
+   "cup_g_per_ml": 0.541,
+   "source": "usda_fdc_sr",
+   "evidence": "[가까운 식품] FDC 171972 'Crustaceans, shrimp, mixed species, canned' 1 cup = 128 g — 원문 '새우 ¾컵'·'새우살 ½컵', 껍질 깐 새우살"
+  },
+  {
+   "food_code": "R211-717070100-0000",
+   "food_name": "건꽃새우",
+   "spoon_g_per_ml": 0.144,
+   "cup_g_per_ml": 0.144,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 한국보건산업진흥원 별첨 1 11603 건새우(자건품) 중 1컵(200 mL) 28.7 g (PDF 138쪽)"
   }
  ]
 }
