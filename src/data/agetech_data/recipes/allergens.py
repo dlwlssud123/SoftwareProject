@@ -32,9 +32,9 @@ def app_terms_found(parts_text: str | None, allergen: str) -> list[str]:
 
 def app_detect(parts_text: str | None) -> set[str]:
     return {a for a in APP_TERMS if app_terms_found(parts_text, a)}
-# 이 이상이 있으면 재료명이 잘렸을 수 있어 추정이 불완전하다
+# 이 이상이 있으면 재료명이 잘렸을 수 있어 추정이 불완전하다 (분량 글자에 붙은 재료는 이름으로 보지 못함)
 INCOMPLETE_CODES = {"ingredients_none", "ingredients_unparsed", "ingredient_unclosed_paren",
-                    "ingredient_unmatched_close_paren"}
+                    "ingredient_unmatched_close_paren", "ingredient_item_in_amount"}
 
 
 @dataclass(frozen=True)

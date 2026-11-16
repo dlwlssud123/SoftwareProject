@@ -199,6 +199,15 @@ def test_comma_missing_between_items_is_split_after_amount():
     # 붙은 쪽이 구획 낱말로 시작하면 구획 (RCP_SEQ 313·945)
     assert _sna(parse_ingredients("방울토마토(20g) 소스 통계피(20g), 생강(10g)")) == [
         ("", "방울토마토", "(20g)"), ("소스", "통계피", "(20g)"), ("소스", "생강", "(10g)")]
+    # 영문 계량 약자(단위 칸은 그대로 None)도 분량 끝으로 본다 (RCP_SEQ 3298), '+'로 이은 것 (RCP_SEQ 3265)
+    r = parse_ingredients("새우(4마리) 고추기름(1Ts), 후춧가루(0.3Ts)")
+    assert _sna(r) == [("", "새우", "(4마리)"), ("", "고추기름", "(1Ts)"), ("", "후춧가루", "(0.3Ts)")]
+    assert [i.unit for i in r.ingredients] == ["마리", None, None]
+    r = parse_ingredients("고운 고춧가루(0.3Ts), 플레인 요거트(2Ts) + 꿀(1Ts)")
+    assert _sna(r) == [("", "고운 고춧가루", "(0.3Ts)"), ("", "플레인 요거트", "(2Ts)"), ("", "꿀", "(1Ts)")]
+    assert _codes(r).count("ingredient_comma_missing") == 1
+    _assert_raw_preserved(r)
+    assert _sna(parse_ingredients("올리브유 1Ts 소금 1/2ts")) == [("", "올리브유", "1Ts"), ("", "소금", "1/2ts")]
 
 
 @pytest.mark.parametrize("item", [
@@ -207,11 +216,38 @@ def test_comma_missing_between_items_is_split_after_amount():
     "잣 1g 설탕시럼 설탕과 물을 동량으로 하여 녹인다",  # 뒤에 단위 있는 분량 없음 (RCP_SEQ 952)
     "달걀 1개 노른자",                   # 뒤에 분량 없음
     "콩비지 50 다진 마늘 2",             # 앞 분량에 단위 없음
+    "전분물 60g(전분 30g + 물 30ml)",    # 괄호 안 구성 설명의 '+' (RCP_SEQ 3771)
+    "가지(½개+20g)",                     # 분량 식의 '+' (RCP_SEQ 3233)
 ])
 def test_comma_missing_split_needs_both_amounts_with_units(item):
     r = parse_ingredients(item)
     assert [i.raw_item for i in r.ingredients] == [item]
     assert "ingredient_comma_missing" not in _codes(r)
+    assert "ingredient_item_in_amount" not in _codes(r)
+
+
+def test_colon_section_head_may_carry_its_total_amount():
+    # 구획 전체 분량이 머리말에 붙은 것 — 예전엔 '- 육수 100g'이 재료가 되고 '조개(30g)'가 그 분량 글자로 빠졌다 (RCP_SEQ 452)
+    r = parse_ingredients("생크림(20g), 우유(100g)\n- 육수(100g) : 조개(30g), 다시마(10g)")
+    assert _sna(r) == [("", "생크림", "(20g)"), ("", "우유", "(100g)"),
+                       ("육수(100g)", "조개", "(30g)"), ("육수(100g)", "다시마", "(10g)")]
+    assert [(s.title, s.style) for s in r.sections] == [("육수(100g)", "colon")]
+    assert _codes(r).count("ingredient_section_amount") == 1
+    # 콜론 뒤가 단위 있는 재료가 아니면 구획으로 보지 않는다
+    r = parse_ingredients("소금(1g) : 기호에 따라")
+    assert r.sections == [] and "ingredient_section_amount" not in _codes(r)
+
+
+def test_item_left_inside_an_amount_is_flagged():
+    # 쉼표 자리에 'm'을 친 것 — 파서 규칙으로 나누지 않고 경고만 (원문 확인 후 보완표, RCP_SEQ 485)
+    r = parse_ingredients("식용유(10g), 마늘(20g)m 적양배추(20g), 양파(20g)")
+    assert [i.raw_item for i in r.ingredients] == ["식용유(10g)", "마늘(20g)m 적양배추(20g)", "양파(20g)"]
+    [issue] = [i for i in r.issues if i.code == "ingredient_item_in_amount"]
+    assert issue.severity == "warning" and issue.detail["raw_item"] == "마늘(20g)m 적양배추(20g)"
+    # 보조 분량·설명·크기 표기는 재료가 아니다
+    for item in ("오징어 1마리(220g)", "갈치(70g(1토막))", "들기름 5g(1작은술) 장식", "양파 1cm 정사각형 14g",
+                 "미나리(⅓줌=50g)", "건조다시마 사방 10cm 1장"):
+        assert "ingredient_item_in_amount" not in _codes(parse_ingredients(item)), item
 
 
 def test_inline_section_word_followed_by_amount_is_an_item_name():

@@ -47,9 +47,18 @@ def test_detect_aggregates_kind_and_marks_incomplete():
     assert [(d["allergen"], d["kind"]) for d in r.detected] == [("대두", "direct"), ("밀", "direct")]
     assert [e["ingredient"] for e in r.detected[0]["evidence"]] == ["두부", "저염간장"]
     assert r.complete is False                       # 괄호 미닫힘 → 재료명이 잘렸을 수 있음
+    assert _detect("마늘(20g)m 적양배추(20g)").complete is False   # 분량 글자에 다른 재료가 붙음
+    assert _detect("마늘(20g), 적양배추(20g)").complete is True
     assert r.not_determinable == ["아황산류"]
     only_sauce = _detect("저염간장 5g")
     assert [(d["allergen"], d["kind"]) for d in only_sauce.detected] == [("대두", "usually"), ("밀", "usually")]
+
+
+def test_broth_section_with_amount_is_not_an_unknown_broth_ingredient():
+    # '- 육수(100g) : 조개(30g), …'(452)는 조개·다시마로 낸 육수 구획 — 예전엔 '- 육수'가 재료로 읽혀 고기 3종 확인 필요가 붙었다
+    r = _detect("우유(100g)\n- 육수(100g) : 조개(30g), 다시마(10g)")
+    assert r.needs_check == []
+    assert [d["allergen"] for d in r.detected] == ["우유", "조개류"] and r.complete is True
 
 
 def test_ambiguous_goes_to_needs_check_not_detected():
