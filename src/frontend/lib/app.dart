@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'data/demo_repository.dart';
+import 'data/recipe_api.dart';
 import 'services/settings.dart';
 import 'theme.dart';
 import 'screens/meal_screen.dart';
@@ -13,10 +14,14 @@ class ValueFlowApp extends StatelessWidget {
   const ValueFlowApp({
     required this.repository,
     required this.settings,
+    this.recipeApi,
     super.key,
   });
   final DemoRepository repository;
   final AppSettings settings;
+
+  /// null이면 서버 없이 데모 데이터만 쓴다.
+  final RecipeApi? recipeApi;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: settings,
@@ -36,36 +41,52 @@ class ValueFlowApp extends StatelessWidget {
               minScaleFactor: settings.textScale,
               child: child!,
             ),
-      home: AppShell(repository: repository, settings: settings),
+      home: AppShell(
+        repository: repository,
+        settings: settings,
+        recipeApi: recipeApi,
+      ),
     ),
   );
 }
 
 class AppShell extends StatefulWidget {
-  const AppShell({required this.repository, required this.settings, super.key});
+  const AppShell({
+    required this.repository,
+    required this.settings,
+    this.recipeApi,
+    super.key,
+  });
   final DemoRepository repository;
   final AppSettings settings;
+  final RecipeApi? recipeApi;
   @override
   State<AppShell> createState() => _AppShellState();
 }
 
 class _AppShellState extends State<AppShell> {
-  int selected = 0;
-  final visitedTabs = <int>{0};
-  final navigators = List.generate(5, (_) => GlobalKey<NavigatorState>());
+  static const initialTab = 0;
+  int selected = initialTab;
+  final visitedTabs = <int>{initialTab};
+  final navigators = List.generate(
+    labels.length,
+    (_) => GlobalKey<NavigatorState>(),
+  );
   late final List<Widget> pages = [
-    MealScreen(repository: widget.repository, settings: widget.settings),
+    MealScreen(
+      repository: widget.repository,
+      settings: widget.settings,
+      recipeApi: widget.recipeApi,
+    ),
     NutritionScreen(repository: widget.repository, settings: widget.settings),
     AssistantScreen(repository: widget.repository, settings: widget.settings),
     const ContentScreen(),
-    const ContentScreen(playground: true),
   ];
-  static const labels = ['식단추천', '영양분석', 'AI 도우미', '건강쇼츠', '놀이터'];
+  static const labels = ['식단추천', '영양분석', 'AI 도우미', '놀이터'];
   static const icons = [
     Icons.restaurant_rounded,
     Icons.document_scanner_outlined,
-    Icons.add_rounded,
-    Icons.smart_display_outlined,
+    Icons.chat_bubble_outline_rounded,
     Icons.sports_esports_rounded,
   ];
   @override
@@ -73,7 +94,7 @@ class _AppShellState extends State<AppShell> {
     body: IndexedStack(
       index: selected,
       children: List.generate(
-        5,
+        labels.length,
         (index) => !visitedTabs.contains(index)
             ? const SizedBox.shrink()
             : TickerMode(
@@ -121,7 +142,7 @@ class _AppShellState extends State<AppShell> {
           padding: const EdgeInsets.symmetric(vertical: 7),
           child: Row(
             children: List.generate(
-              5,
+              labels.length,
               (i) => Expanded(
                 child: Semantics(
                   selected: selected == i,
@@ -149,36 +170,16 @@ class _AppShellState extends State<AppShell> {
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            if (i == 2)
-                              Container(
-                                width: 32,
-                                height: 32,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Color(0xFFF58B3F),
-                                      Color(0xFFEC4276),
-                                    ],
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.add_rounded,
-                                  color: Colors.white,
-                                  size: 27,
-                                ),
-                              )
-                            else
-                              SizedBox(
-                                height: 32,
-                                child: Icon(
-                                  icons[i],
-                                  size: 26,
-                                  color: selected == i
-                                      ? blue
-                                      : const Color(0xFF80858D),
-                                ),
+                            SizedBox(
+                              height: 32,
+                              child: Icon(
+                                icons[i],
+                                size: 26,
+                                color: selected == i
+                                    ? blue
+                                    : const Color(0xFF80858D),
                               ),
+                            ),
                             const SizedBox(height: 4),
                             FittedBox(
                               fit: BoxFit.scaleDown,

@@ -5,14 +5,14 @@ import '../widgets/common.dart';
 import 'playground_games.dart';
 
 class ContentScreen extends StatefulWidget {
-  const ContentScreen({this.playground = false, super.key});
-  final bool playground;
+  const ContentScreen({super.key});
   @override
   State<ContentScreen> createState() => _ContentScreenState();
 }
 
 class _ContentScreenState extends State<ContentScreen> {
   final requested = <String>[];
+  bool showVideos = false;
   static const health = [
     (
       title: '의자 스트레칭',
@@ -123,135 +123,175 @@ class _ContentScreenState extends State<ContentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final items = widget.playground ? play : health;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+    return Column(
       children: [
-        if (widget.playground) ...[
-          const Notice(
-            '게임은 앱에서 바로 즐길 수 있어요.\n시간 제한 없이 천천히 해 보세요.',
-            icon: Icons.sports_esports_outlined,
-            color: blue,
-          ),
-          const SizedBox(height: 18),
-          const SectionTitle('가볍게 즐기는 게임'),
-          ServiceGrid(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              ServiceButton(
-                title: '두뇌체조',
-                subtitle: '같은 그림을 찾아보세요',
-                icon: Icons.grid_view_rounded,
-                background: const Color(0xFFE4EEDC),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const MemoryGame()),
-                ),
-              ),
-              ServiceButton(
-                key: const Key('number-game-start'),
-                title: '숫자 놀이',
-                subtitle: '1부터 9까지 순서대로 눌러요',
-                icon: Icons.touch_app_outlined,
-                background: const Color(0xFFE5EDF5),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const NumberOrderGame(),
-                  ),
-                ),
-              ),
-              ServiceButton(
-                key: const Key('proverb-game-start'),
-                title: '속담 퀴즈',
-                subtitle: '익숙한 속담을 이어 맞혀요',
-                icon: Icons.chat_bubble_outline_rounded,
-                background: const Color(0xFFFAEACF),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const ProverbGame()),
-                ),
-              ),
-            ],
-          ),
-          const SectionTitle('영상으로 즐기는 취미'),
-          ServiceGrid(
-            children: [
-              for (final item in items)
-                ServiceButton(
-                  title: item.category,
-                  subtitle: item.title,
-                  icon: item.icon,
-                  background: item.color,
-                  onTap: () => openLink(
-                    context,
-                    Uri.https('www.youtube.com', '/results', {
-                      'search_query': item.query,
-                    }),
-                  ),
-                ),
-            ],
-          ),
-        ] else ...[
-          const Notice(
-            '건강쇼츠 이용 안내\n• 보고 싶은 영상 주제를 눌러 주세요.\n• YouTube 검색 화면에서 영상을 볼 수 있어요.',
-            color: blue,
-          ),
-          const SizedBox(height: 14),
-          FeatureTile(
-            title: '바로 보기',
-            subtitle: '가벼운 운동 영상부터 찾아보세요',
-            icon: Icons.play_circle_fill_rounded,
-            color: const Color(0xFFE34135),
-            onTap: () => openLink(
-              context,
-              Uri.https('www.youtube.com', '/results', {
-                'search_query': health.first.query,
-              }),
-            ),
-          ),
-          for (final category
-              in items.map((item) => item.category).toSet()) ...[
-            SectionTitle(category),
-            ServiceGrid(
-              children: [
-                for (final item in items.where(
-                  (item) => item.category == category,
-                ))
-                  ServiceButton(
-                    title: item.title,
-                    icon: item.icon,
-                    background: item.color,
-                    onTap: () => openLink(
-                      context,
-                      Uri.https('www.youtube.com', '/results', {
-                        'search_query': item.query,
-                      }),
+              const Text('게임과 건강 영상을 즐겨요.'),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  for (final videos in [false, true])
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(right: videos ? 0 : 10),
+                        child: Semantics(
+                          selected: showVideos == videos,
+                          child: OutlinedButton(
+                            key: Key(
+                              videos ? 'playground-videos' : 'playground-games',
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(48, 60),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 14,
+                              ),
+                              foregroundColor: showVideos == videos
+                                  ? Colors.white
+                                  : blue,
+                              backgroundColor: showVideos == videos
+                                  ? blue
+                                  : Colors.white,
+                              side: BorderSide(
+                                color: showVideos == videos ? blue : line,
+                              ),
+                            ),
+                            onPressed: () =>
+                                setState(() => showVideos = videos),
+                            child: Text(videos ? '영상 보기' : '게임하기'),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-              ],
-            ),
-          ],
-        ],
-        const SizedBox(height: 22),
-        OutlinedButton.icon(
-          onPressed: requestTheme,
-          icon: const Icon(Icons.edit_note_rounded),
-          label: const Text('보고 싶은 주제 메모하기'),
-        ),
-        if (requested.isNotEmpty) ...[
-          const SectionTitle('메모한 주제'),
-          for (final request in requested)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.bookmark_border_rounded, color: blue),
-              title: Text(request),
-              subtitle: const Text(
-                '현재 화면에서만 보관해요',
-                style: TextStyle(fontSize: 14),
+                ],
               ),
-            ),
-        ],
-        const SizedBox(height: 12),
-        const Text(
-          '영상은 외부 YouTube 검색으로 연결돼요.',
-          style: TextStyle(fontSize: 14, color: muted),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView(
+            key: ValueKey(showVideos),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+            children: [
+              if (!showVideos) ...[
+                const Notice(
+                  '시간 제한 없이 천천히 해 보세요.',
+                  icon: Icons.sports_esports_outlined,
+                  color: blue,
+                ),
+                const SizedBox(height: 18),
+                ServiceGrid(
+                  children: [
+                    ServiceButton(
+                      title: '두뇌체조',
+                      subtitle: '같은 그림을 찾아보세요',
+                      icon: Icons.grid_view_rounded,
+                      background: const Color(0xFFE4EEDC),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const MemoryGame(),
+                        ),
+                      ),
+                    ),
+                    ServiceButton(
+                      key: const Key('number-game-start'),
+                      title: '숫자 놀이',
+                      subtitle: '1부터 9까지 순서대로 눌러요',
+                      icon: Icons.touch_app_outlined,
+                      background: const Color(0xFFE5EDF5),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const NumberOrderGame(),
+                        ),
+                      ),
+                    ),
+                    ServiceButton(
+                      key: const Key('proverb-game-start'),
+                      title: '속담 퀴즈',
+                      subtitle: '익숙한 속담을 이어 맞혀요',
+                      icon: Icons.chat_bubble_outline_rounded,
+                      background: const Color(0xFFFAEACF),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const ProverbGame(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                const SectionTitle('건강쇼츠'),
+                const Text('보고 싶은 주제를 누르면 YouTube에서 영상을 볼 수 있어요.'),
+                const SizedBox(height: 12),
+                ServiceGrid(
+                  children: [
+                    for (final item in health)
+                      ServiceButton(
+                        title: item.title,
+                        subtitle: item.category,
+                        icon: item.icon,
+                        background: item.color,
+                        onTap: () => openLink(
+                          context,
+                          Uri.https('www.youtube.com', '/results', {
+                            'search_query': item.query,
+                          }),
+                        ),
+                      ),
+                  ],
+                ),
+                const SectionTitle('영상으로 즐기는 취미'),
+                ServiceGrid(
+                  children: [
+                    for (final item in play)
+                      ServiceButton(
+                        title: item.category,
+                        subtitle: item.title,
+                        icon: item.icon,
+                        background: item.color,
+                        onTap: () => openLink(
+                          context,
+                          Uri.https('www.youtube.com', '/results', {
+                            'search_query': item.query,
+                          }),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                OutlinedButton.icon(
+                  onPressed: requestTheme,
+                  icon: const Icon(Icons.edit_note_rounded),
+                  label: const Text('보고 싶은 주제 메모하기'),
+                ),
+                if (requested.isNotEmpty) ...[
+                  const SectionTitle('메모한 주제'),
+                  for (final request in requested)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(
+                        Icons.bookmark_border_rounded,
+                        color: blue,
+                      ),
+                      title: Text(request),
+                      subtitle: const Text(
+                        '현재 화면에서만 보관해요',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ),
+                ],
+                const SizedBox(height: 12),
+                const Text(
+                  '영상은 외부 YouTube 검색으로 연결돼요.',
+                  style: TextStyle(fontSize: 14, color: muted),
+                ),
+              ],
+            ],
+          ),
         ),
       ],
     );

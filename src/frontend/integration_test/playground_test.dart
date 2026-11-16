@@ -29,7 +29,7 @@ void main() {
       expect(tester.takeException(), isNull);
     }
 
-    await tap(find.byKey(const Key('tab-4')));
+    await tap(find.byKey(const Key('tab-3')));
     await binding.takeScreenshot('playground-games');
     await tap(find.byKey(const Key('number-game-start')));
     expect(find.byType(NumberOrderGame), findsOneWidget);
@@ -51,8 +51,12 @@ void main() {
     await tap(find.text('다시 하기'));
     expect(find.text('1 / 5 문제'), findsOneWidget);
     await tap(find.byType(BackButton));
-    await tap(find.byKey(const Key('tab-0')));
-    await tap(find.byKey(const Key('tab-4')));
+    await tap(find.byKey(const Key('tab-1')));
+    await tap(find.byKey(const Key('tab-3')));
     expect(find.byKey(const Key('proverb-game-start')), findsOneWidget);
+    await tap(find.byKey(const Key('playground-videos')));
+    expect(find.text('건강쇼츠'), findsOneWidget);
+    expect(find.text('의자 스트레칭'), findsOneWidget);
+    await binding.takeScreenshot('playground-health-videos');
   });
 }

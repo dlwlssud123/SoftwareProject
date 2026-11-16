@@ -4,21 +4,27 @@ import '../core/network/api_client.dart';
 import '../core/network/api_config.dart';
 import '../data/demo_repository.dart';
 import '../data/meal_recommendation_api.dart';
+import '../data/recipe_api.dart';
 import '../models/recommendations.dart';
 import '../services/settings.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'profile_form.dart';
 import 'recommendation_results.dart';
+import 'server_recipe_screens.dart';
 
 class MealScreen extends StatefulWidget {
   const MealScreen({
     required this.repository,
     required this.settings,
+    this.recipeApi,
     super.key,
   });
   final DemoRepository repository;
   final AppSettings settings;
+
+  /// 있으면 '레시피 살펴보기'가 서버 레시피 목록을 연다.
+  final RecipeApi? recipeApi;
 
   @override
   State<MealScreen> createState() => _MealScreenState();
@@ -152,7 +158,20 @@ class _MealScreenState extends State<MealScreen> {
         onTap: () => start(context, welfare: true),
       ),
       const SectionTitle('레시피 살펴보기'),
-      if (repository.recipes.isNotEmpty)
+      if (widget.recipeApi case final api?)
+        FeatureTile(
+          key: const Key('server-recipes-start'),
+          title: '전체 레시피 보기',
+          subtitle: '서버의 레시피 목록에서 찾아봐요',
+          icon: Icons.menu_book_outlined,
+          color: const Color(0xFFB85A00),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => ServerRecipeList(api: api, settings: settings),
+            ),
+          ),
+        )
+      else if (repository.recipes.isNotEmpty)
         FeatureTile(
           title: repository.recipes.first.name,
           subtitle: '재료와 조리 방법 보기',

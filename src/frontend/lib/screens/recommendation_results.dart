@@ -601,8 +601,11 @@ class RecipeDetail extends StatelessWidget {
               ? null
               : () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) =>
-                        CookingScreen(recipe: recipe, settings: settings),
+                    builder: (_) => CookingScreen(
+                      recipeName: recipe.name,
+                      steps: recipe.steps,
+                      settings: settings,
+                    ),
                   ),
                 ),
           icon: const Icon(Icons.soup_kitchen_outlined),
@@ -729,11 +732,13 @@ class _Nutrient extends StatelessWidget {
 
 class CookingScreen extends StatefulWidget {
   const CookingScreen({
-    required this.recipe,
+    required this.recipeName,
+    required this.steps,
     required this.settings,
     super.key,
   });
-  final Recipe recipe;
+  final String recipeName;
+  final List<String> steps;
   final AppSettings settings;
   @override
   State<CookingScreen> createState() => _CookingScreenState();
@@ -774,15 +779,12 @@ class _CookingScreenState extends State<CookingScreen> {
     body: ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        Text(
-          widget.recipe.name,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text(widget.recipeName, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 24),
-        Tag('제공된 단계 ${step + 1} / ${widget.recipe.steps.length}'),
+        Tag('제공된 단계 ${step + 1} / ${widget.steps.length}'),
         const SizedBox(height: 25),
         Text(
-          widget.recipe.steps[step],
+          widget.steps[step],
           style: const TextStyle(
             fontSize: 26,
             height: 1.8,
@@ -792,7 +794,7 @@ class _CookingScreenState extends State<CookingScreen> {
         const SizedBox(height: 32),
         OutlinedButton.icon(
           onPressed: () =>
-              readAloud(context, widget.settings, widget.recipe.steps[step]),
+              readAloud(context, widget.settings, widget.steps[step]),
           icon: const Icon(Icons.volume_up_outlined),
           label: const Text('이 단계 읽어주기'),
         ),
@@ -825,7 +827,7 @@ class _CookingScreenState extends State<CookingScreen> {
             Expanded(
               child: FilledButton(
                 onPressed: () {
-                  if (step == widget.recipe.steps.length - 1) {
+                  if (step == widget.steps.length - 1) {
                     Navigator.of(context).pop();
                   } else {
                     widget.settings.stop();
@@ -833,7 +835,7 @@ class _CookingScreenState extends State<CookingScreen> {
                   }
                 },
                 child: Text(
-                  step == widget.recipe.steps.length - 1 ? '조리 마치기' : '다음 단계',
+                  step == widget.steps.length - 1 ? '조리 마치기' : '다음 단계',
                 ),
               ),
             ),
