@@ -18,6 +18,7 @@
   - `grams`·`gram_status`·`gram_basis` = g 환산과 근거 문장(정의서 3절, 추정은 `estimated` — Alembic `20261114_02`, 정의서 3.1). `contribution` = 성분별 기여량(g ÷ 기준량 × 함량), 계산에 들어간 재료만. `basis_ml_approx` = mL 기준 식품을 1mL≈1g으로 계산했는지.
 - **레시피 판본 하나 = `recipe_computed_nutrition` 한 행**: `computed`(11개 성분 합계), `computed_missing`(성분별 값 없는 재료 수), `coverage`(정성 분량 `qualitative_items`·`complete_except_qualitative` 포함 — 정의서 3절), `complete`(물을 뺀 모든 재료가 계산에 들어갔는지), `items`·`items_used`·`grams_used_pct`, 계산기 판본·매핑표 해시·`mapping_sha256`.
   - 원천 레시피가 적어 둔 영양(`recipe_revisions.source_*`)과는 **다른 값**이다. 섞어 쓰지 않는다. 화면은 `complete = false`면 "일부 재료 기준"으로 보여 준다(정의서 3절).
+  - **분량과 상관없는 비교 값** 칸 4개(Alembic `20261117_01`, 계산기 v6): `sodium_mg_per_1000kcal`·`carbohydrate_energy_pct`·`protein_energy_pct`·`fat_energy_pct`(numeric, 0 이상 CHECK). 재료 목록이 몇 인분인지 몰라 합계끼리는 비교할 수 없어서 — 레시피끼리 '나트륨이 낮은 편' 같은 비교·정렬은 이 칸으로 한다. 정의·비우는 경우(null)는 정의서 3.2.
 - **옛 판본 행은 지우지 않는다.** 레시피가 새 판본이 되면 새 판본 행을 만들고, 옛 판본 행은 남긴다 — 식단표(#18 `meal_plan_entries`)가 고른 당시 판본을 가리킬 수 있어서.
 
 ## 2. 다시 계산하는 규칙
@@ -44,6 +45,14 @@ FROM recipe_ingredient_foods f
 JOIN recipe_ingredients i ON i.id = f.recipe_ingredient_id
 LEFT JOIN food_revisions fr ON fr.id = f.food_revision_id
 WHERE f.recipe_revision_id = :revision_id ORDER BY i.order_no;
+
+-- 레시피끼리 비교: 활성 레시피를 나트륨 밀도가 낮은 순으로 (null = 부분 합계라 비교 안 함)
+SELECT r.source_id, v.name, n.sodium_mg_per_1000kcal, n.carbohydrate_energy_pct
+FROM recipes r
+JOIN recipe_revisions v ON v.id = r.active_revision_id
+JOIN recipe_computed_nutrition n ON n.recipe_revision_id = r.active_revision_id
+WHERE r.provider = 'foodsafetykorea:COOKRCP01' AND n.sodium_mg_per_1000kcal IS NOT NULL
+ORDER BY n.sodium_mg_per_1000kcal;
 
 -- 식단표에서 고른 판본의 계산 영양(옛 판본이어도 남아 있음)
 SELECT n.computed FROM meal_plan_entries m
