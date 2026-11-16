@@ -48,6 +48,33 @@ def test_complete_recipe_and_ml_basis_flag(sample_foods):
     assert _by_name(r)["저염간장"]["basis_ml_approx"] is True  # 100mL 기준 식품을 g 분량으로 계산
 
 
+def test_density_compares_recipes_without_knowing_the_portion():
+    computed = {"energy_kcal": 400.0, "sodium_mg": 600.0, "carbohydrate_g": 60.0, "protein_g": 15.0, "fat_g": 10.0}
+    assert build.nutrient_density(computed, {}, True) == {
+        "sodium_mg_per_1000kcal": 1500.0, "carbohydrate_energy_pct": 60.0,
+        "protein_energy_pct": 15.0, "fat_energy_pct": 22.5}
+    # 두 배 분량(2인분 재료 목록)이어도 같은 값
+    double = {k: v * 2 for k, v in computed.items()}
+    assert build.nutrient_density(double, {}, True) == build.nutrient_density(computed, {}, True)
+    # 그 성분 값이 DB에 없는 재료가 있으면(부분 합계) 그 값만 None
+    partial = build.nutrient_density(computed, {"sodium_mg": 1}, True)
+    assert partial["sodium_mg_per_1000kcal"] is None and partial["carbohydrate_energy_pct"] == 60.0
+    # 재료가 다 계산되지 않았거나 열량이 없으면 전부 None
+    assert set(build.nutrient_density(computed, {}, False).values()) == {None}
+    assert set(build.nutrient_density({**computed, "energy_kcal": 0.0}, {}, True).values()) == {None}
+    assert set(build.nutrient_density(computed, {"energy_kcal": 1}, True).values()) == {None}
+
+
+def test_recipe_rows_carry_density(sample_foods):
+    entries = ({"ingredient": "저염간장", "food_code": "P112-005000400-F002-001", "rationale": "저염 간장"},)
+    [r] = build_recipe_nutrition([_recipe("2", "양파 50g, 저염간장 10g, 물 100ml")], sample_foods, entries)
+    c = r["computed"]
+    assert r["density"]["sodium_mg_per_1000kcal"] == round(c["sodium_mg"] * 1000 / c["energy_kcal"], 1)
+    assert r["density"] == build.nutrient_density(c, r["computed_missing"], r["coverage"]["complete"])
+    [incomplete] = build_recipe_nutrition([_recipe("1", "양파 50g, 감자 100g")], sample_foods, entries=())
+    assert set(incomplete["density"].values()) == {None}
+
+
 def test_build_main_end_to_end(tmp_path, nutrition_sample):
     raw = tmp_path / "raw.json"
     raw.write_text(json.dumps(nutrition_sample, ensure_ascii=False), encoding="utf-8")
