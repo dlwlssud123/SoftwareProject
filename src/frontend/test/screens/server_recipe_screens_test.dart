@@ -3,11 +3,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:valueflow/app.dart';
 import 'package:valueflow/core/network/api_exception.dart';
 import 'package:valueflow/data/demo_repository.dart';
 import 'package:valueflow/data/recipe_api.dart';
 import 'package:valueflow/models/recipe_record.dart';
-import 'package:valueflow/screens/meal_screen.dart';
 import 'package:valueflow/screens/server_recipe_screens.dart';
 import 'package:valueflow/services/settings.dart';
 
@@ -216,16 +216,14 @@ void main() {
 
   testWidgets('서버가 연결되면 식단 화면에서 서버 레시피 목록을 연다', (tester) async {
     final api = _FakeRecipeApi([recipe('108', '오렌지와 당근 만남주스')]);
-    await pump(
-      tester,
-      Scaffold(
-        body: MealScreen(
-          repository: const DemoRepository([], []),
-          settings: AppSettings(),
-          recipeApi: api,
-        ),
+    await tester.pumpWidget(
+      ValueFlowApp(
+        repository: const DemoRepository([], []),
+        settings: AppSettings(),
+        recipeApi: api,
       ),
     );
+    await tester.pumpAndSettle();
 
     final start = find.byKey(const Key('server-recipes-start'));
     await tester.scrollUntilVisible(start, 300);

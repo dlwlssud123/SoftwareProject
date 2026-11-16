@@ -55,14 +55,25 @@ class RecipeListQuery(PageQuery):
     exclude_allergens: list[Allergen] = Field(default_factory=list, max_length=19)
 
 
+IngredientPreference = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+]
+
+
 class RecipeRecommendationRequest(ContractModel):
     meal_time: Literal["breakfast", "lunch", "dinner", "snack"]
+    health_conditions: list[Literal["hypertension", "diabetes"]] = Field(
+        default_factory=list, max_length=2
+    )
+    soft_food: bool = False
+    simple_cooking: bool = False
+    preferred_ingredients: list[IngredientPreference] = Field(
+        default_factory=list, max_length=30
+    )
     exclude_allergens: list[Allergen] = Field(default_factory=list, max_length=19)
-    exclude_ingredients: list[
-        Annotated[
-            str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
-        ]
-    ] = Field(default_factory=list, max_length=30)
+    exclude_ingredients: list[IngredientPreference] = Field(
+        default_factory=list, max_length=30
+    )
     limit: int = Field(default=5, ge=1, le=20)
 
 
@@ -259,9 +270,27 @@ class RecommendationResult[T](ContractModel):
     warnings: list[str]
 
 
+class SeasonalMatch(ContractModel):
+    name: str
+    source_url: str
+    shopping_search_url: str
+
+
+class RecipeRecommendation(Recommendation[RecipeRecord]):
+    seasonal_ingredients: list[SeasonalMatch] = Field(default_factory=list)
+    matched_preferences: list[Literal["soft_food", "simple_cooking"]] = Field(
+        default_factory=list
+    )
+
+
+class RecipeRecommendationResult(RecommendationResult[RecipeRecord]):
+    recommendation_id: UUID | None = None
+    items: list[RecipeRecommendation]
+
+
 RecipeListResponse = SuccessResponse[Page[RecipeRecord]]
 RecipeDetailResponse = SuccessResponse[RecipeRecord]
-RecipeRecommendationResponse = SuccessResponse[RecommendationResult[RecipeRecord]]
+RecipeRecommendationResponse = SuccessResponse[RecipeRecommendationResult]
 WelfareListResponse = SuccessResponse[Page[WelfareRecord]]
 WelfareDetailResponse = SuccessResponse[WelfareRecord]
 WelfareRecommendationResponse = SuccessResponse[RecommendationResult[WelfareRecord]]

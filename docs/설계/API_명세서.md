@@ -9,7 +9,7 @@
 - 실행 안내: [백엔드 README](../../src/backend/README.md)
 - 기계 판독용 명세: [openapi.json](./openapi.json)
 
-상태 확인, 게스트 세션 발급·조회·갱신·폐기, 관리자 권한 확인, 레시피 DB 목록·상세와 동의 기반 프로필 CRUD를 구현했다. 복지 목록·상세와 추천은 [예정 계약](./catalog.openapi.json) 및 [요청·응답 표본](./api_examples.json)을 제공한다. 기업 서버 주소와 HTTPS 경로는 배포 시 확정한다.
+상태 확인, 게스트 세션 발급·조회·갱신·폐기, 관리자 권한 확인, 레시피 DB 목록·상세, 식단 추천과 동의 기반 프로필 CRUD를 구현했다. 복지 목록·상세와 복지 추천은 [예정 계약](./catalog.openapi.json) 및 [요청·응답 표본](./api_examples.json)을 제공한다. 기업 서버 주소와 HTTPS 경로는 배포 시 확정한다.
 
 ## 1. 공통 규칙
 
@@ -157,6 +157,16 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 `openapi.json`은 실행 코드의 `app.openapi()`에서 생성한 스냅샷이다. `catalog.openapi.json`은 모든 경로에 `x-implementation-status: planned`를 붙인 별도 인계 문서다. 실행 서버에 예정 경로를 추가하지 않는다. `src/backend`에서 `python -m app.jobs.export_api_contract`로 둘을 재생성한다. 표본 갱신은 `PYTHONPATH=../data` 설정 후 같은 명령에 `--welfare-snapshot <실제 수집 JSON 경로>`를 전달한다. 실제/예정 스냅샷과 DTO 표본은 테스트에서 대조한다.
 
+### 식단 추천
+
+`POST /api/v1/meal/recommendations`에는 게스트 또는 사용자 Bearer 세션이 필요하다. 현재 공개된 레시피에 요청과 계정의 제외 조건을 먼저 적용하고, 부드러운 음식·간단한 조리를 선택하면 일치한 조리 조건 수가 많은 메뉴를 우선한다. 그 안에서 선호 재료, 시간대, 최근 섭취·추천 이력, 메뉴 유형 다양성 등을 반영한다. `items[].matched_preferences`는 해당 메뉴가 충족한 `soft_food`·`simple_cooking`을 알려 준다. 죽·미음, 일부 찜, 갈거나 으깨서 거른 수프를 부드러운 조리로 분류한다. 간단한 조리는 재료 1~6개와 누락 없는 조리 단계 1~4개를 기준으로 한다. 건강 조건은 1인분 분량이 확인되지 않은 공개 나트륨·탄수화물 수치의 후보 간 비교에만 사용한다.
+
+요청의 `preferred_ingredients`는 저장 프로필의 선호 재료와 함께 반영한다. `simple_cooking=true`이면 재료 6개 이하이고 누락된 중간 단계 없이 조리 1~4단계로 구성된 메뉴에 가점을 준다. 최근 섭취 기록은 식품 ID와 재료명으로 비교하고, 같은 시간대의 최근 2일 내 결과가 있었던 직전 2회에서 상위 3개로 제시한 메뉴는 순위를 낮춘다. 제외 조건은 항상 순위 계산 전에 적용한다.
+
+고혈압은 나트륨, 당뇨는 탄수화물 공개 표기량을 비교한다. 수치가 양수이고 원천 품질 검사에서 의심으로 판정되지 않은 후보 중 중간값보다 낮은 메뉴에 가점을 준다. 한국 시간 기준 해당 월에 게시 중이고 현재 레시피 판본과 연결된 제철 재료에 가점을 주며, 원문과 쿠팡 검색 링크를 반환한다.
+
+응답의 `recommendation_id`로 추천 실행을 식별한다. DB에는 계정 ID, 식사 시간, 평가 시각, 규칙 버전, 추천 레시피 판본과 이유·제철 근거를 저장한다. 요청의 건강 상태·알레르기 원문은 추천 이력에 저장하지 않는다. 후보가 없으면 빈 `items`를 반환한다.
+
 ## 7. 미구현 예정 API
 
 다음은 후속 경로다. 현재 서버에서 호출하면 404가 반환된다. 카탈로그 DTO와 표본은 9절에 정의했다. 나머지 기능의 세부 계약은 착수 시 관련 담당자와 맞춘다.
@@ -164,7 +174,6 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 | 영역 | 예정 경로 | 상태 |
 | --- | --- | --- |
 | 카카오 식별 | `POST /api/v1/auth/kakao` | 제공자 연동 후속. 게스트 세션은 8절 구현 |
-| 추천 | `POST /api/v1/meal/recommendations` | 미구현 |
 | 섭취 기록 | `POST/GET /api/v1/meals`, `PATCH/DELETE /api/v1/meals/{id}` | 미구현 |
 | 사진 영양 분석 | `POST /api/v1/nutrition/analyses`, `GET /api/v1/nutrition/analyses/{id}`, `POST /api/v1/nutrition/analyses/{id}/confirm` | 미구현 |
 | 복지 | `GET /api/v1/welfare`, `GET /api/v1/welfare/{service_id}`, `POST /api/v1/welfare/recommendations` | DTO 계약 제공·실제 조회 후속 |
@@ -202,13 +211,13 @@ python -m app.jobs.set_user_role <사용자-UUID> --role user
 
 ## 9. 앱·관리자 카탈로그 DTO 인계
 
-DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세는 DB에 연결되었으며 [openapi.json](./openapi.json)에 포함한다. 나머지 예정 경로의 기계 판독 계약은 [catalog.openapi.json](./catalog.openapi.json), JSON 예제는 [api_examples.json](./api_examples.json)이다. 공개 원천 조회는 개인 프로필을 읽지 않는다. 개인 기록은 `CurrentAuth`의 사용자로 제한한다.
+DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세와 식단 추천은 DB에 연결되었으며 [openapi.json](./openapi.json)에 포함한다. 나머지 예정 경로의 기계 판독 계약은 [catalog.openapi.json](./catalog.openapi.json), JSON 예제는 [api_examples.json](./api_examples.json)이다. 공개 원천 조회는 개인 프로필을 읽지 않는다. 개인 기록은 `CurrentAuth`의 사용자로 제한한다.
 
 | 경로 | 요청 필드 | 성공 `data` |
 | --- | --- | --- |
 | `GET /recipes` | `limit=20`(1~100), `offset=0`(0~10000), 선택 `q`·`category`·`cooking_method`·반복 `exclude_allergens` | `items[]`, `limit`, `offset`, `total` |
 | `GET /recipes/{recipe_id}` | COOKRCP01 원천 ID 문자열, 예 `108` | `RecipeRecord` |
-| `POST /meal/recommendations` | 필수 `meal_time`(`breakfast/lunch/dinner/snack`), 선택 `exclude_allergens=[]`·`exclude_ingredients=[]`·`limit=5`(1~20) | `items[].item`·`reasons[]`, `evaluated_at`, `rules_version`, `warnings[]` |
+| `POST /meal/recommendations` | 필수 `meal_time`(`breakfast/lunch/dinner/snack`), 선택 `exclude_allergens=[]`·`exclude_ingredients=[]`·`preferred_ingredients=[]`·`health_conditions=[]`·`soft_food=false`·`simple_cooking=false`·`limit=5`(1~20) | `recommendation_id`, `items[].item`·`reasons[]`·`seasonal_ingredients[]`·`matched_preferences[]`, `evaluated_at`, `rules_version`, `warnings[]` |
 | `GET /welfare` | `limit`·`offset`·선택 `q`, 선택 `scope`(`central_nationwide`/`local`, 없으면 둘 다), 선택 `region`·`district`(`district`는 `region`과 함께) | 같은 페이지 구조의 `WelfareRecord` |
 | `GET /welfare/{service_id}` | 원천 ID 문자열, 예 `WLF00000060` | `WelfareRecord` |
 | `POST /welfare/recommendations` | 필수 `age`(0~120)·`region`(1~50자), 선택 `district`·`lives_alone`·`limit=5`(1~20) | 같은 추천 구조의 `WelfareRecord` |
@@ -221,7 +230,7 @@ DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세는 DB
 
 레시피 출처는 `provider/service/source_id/fetched_at/raw_sha256`, 복지는 `provider/source_id/source_url/checked_at/detail_checked_at/raw_sha256`를 제공한다. 두 출처의 `revision_id`는 DB 판본 UUID이며 수집 원문 표본에서는 `null`이다. DB 조회 구현에서는 활성 판본을 채운다. 기존 공통 `meta.revision`은 정수 계약을 유지하며 원천 ID나 DB UUID를 대신 넣지 않는다. 시간은 시간대 포함 ISO 8601이며 미수집 시각은 추정하지 않는다.
 
-빈 목록·추천은 200과 `items=[]`, 없는 ID 또는 노출 불가 자료는 404, 잘못된 입력은 422, 저장소 일시 장애는 503을 사용한다. 추천 이유·규칙 버전은 실제 추천 구현에서 생성한다. 현재 표본은 공개 원천을 DTO로 검증한 예시이며 추천 기능 실행 결과가 아니다. 건강 상태·소득 기준 추가는 근거·규칙과 함께 후속 계약으로 확장한다.
+빈 목록·추천은 200과 `items=[]`, 없는 ID 또는 노출 불가 자료는 404, 잘못된 입력은 422, 저장소 일시 장애는 503을 사용한다. 추천 이유·규칙 버전은 실제 추천 구현에서 생성한다. 현재 표본은 공개 원천을 DTO로 검증한 예시이며 추천 기능 실행 결과가 아니다.
 
 ## 10. 레시피 DB 조회와 프로필
 
@@ -268,4 +277,4 @@ DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세는 DB
 - HTTP 오류는 `error.code`로 분기하고 `error.message`를 표시한다. 입력 오류는 `error.fields`, 서버가 재시도 가능하다고 표시한 오류는 `error.retryable`을 읽는다. JSON 본문이 없는 네트워크·프록시 오류는 앱의 기본 안내로 처리한다.
 - React는 관리자 요청에 `Authorization: Bearer <access_token>`을 보내고 `data.role`을 확인한다. 401은 세션 재확인, 403은 권한 부족 상태로 표시한다. Flutter와 React 모두 토큰·프로필을 요청 및 응답 로그에서 제외한다.
 
-현재 Flutter 화면은 `DemoRepository`의 번들 JSON과 기기 내 규칙으로 식단·복지를 추천한다. 서버 전환은 연결된 레시피 목록·상세와 세션·프로필부터 진행한다. 식단 추천과 복지 목록·상세·추천은 [예정 OpenAPI](./catalog.openapi.json)와 [JSON 표본](./api_examples.json)으로 화면을 먼저 맞추고, 실제 서버 연결은 해당 기능이 구현된 뒤 검증한다. [Flutter 통신 PR #6](https://github.com/dlwlssud123/SoftwareProject/pull/6)의 오류 파서는 화면 연동 시 `error.message`를 읽도록 맞춘다.
+현재 Flutter 화면은 `DemoRepository`의 번들 JSON과 기기 내 규칙으로 식단·복지를 추천한다. 서버 전환은 연결된 레시피 목록·상세와 세션·프로필부터 진행한다. 식단 추천은 실행 API에서 확인할 수 있다. 복지 목록·상세·추천은 [예정 OpenAPI](./catalog.openapi.json)와 [JSON 표본](./api_examples.json)으로 화면을 먼저 맞추고, 실제 서버 연결은 해당 기능이 구현된 뒤 검증한다. [Flutter 통신 PR #6](https://github.com/dlwlssud123/SoftwareProject/pull/6)의 오류 파서는 화면 연동 시 `error.message`를 읽도록 맞춘다.

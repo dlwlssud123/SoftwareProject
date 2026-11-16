@@ -3,10 +3,16 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppSettings extends ChangeNotifier {
-  AppSettings({this.textScale = 1, this.voice = true, this.persist = false});
+  AppSettings({
+    this.textScale = 1,
+    this.voice = true,
+    this.persist = false,
+    this.mealPreferences,
+  });
   double textScale;
   bool voice;
   final bool persist;
+  List<String>? mealPreferences;
   FlutterTts? _tts;
   static Future<AppSettings> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -15,7 +21,19 @@ class AppSettings extends ChangeNotifier {
       textScale: saved.clamp(1, 1.4),
       voice: prefs.getBool('voice') ?? true,
       persist: true,
+      mealPreferences: prefs.getStringList('mealPreferences'),
     );
+  }
+
+  Future<void> rememberMealPreferences(List<String>? value) async {
+    if (persist) {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = value == null
+          ? await prefs.remove('mealPreferences')
+          : await prefs.setStringList('mealPreferences', value);
+      if (!saved) throw StateError('Could not save meal preferences');
+    }
+    mealPreferences = value;
   }
 
   Future<void> setScale(double value) async {

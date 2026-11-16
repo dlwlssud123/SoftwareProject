@@ -10,6 +10,7 @@ from sqlalchemy import (
     Numeric,
     String,
     UniqueConstraint,
+    Uuid,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -51,6 +52,35 @@ class MealLogItem(Base):
     amount_unit: Mapped[str] = mapped_column(String(2))
     nutrients: Mapped[dict] = mapped_column(JSONB)
     calculation_version: Mapped[str] = mapped_column(String(64))
+
+
+class RecommendationRun(Base):
+    __tablename__ = "recommendation_runs"
+    __table_args__ = (
+        Index("ix_recommendation_runs_user_evaluated", "user_id", "evaluated_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE")
+    )
+    meal_time: Mapped[str] = mapped_column(String(16))
+    rules_version: Mapped[str] = mapped_column(String(64))
+    evaluated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class RecommendationItem(Base):
+    __tablename__ = "recommendation_items"
+
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("recommendation_runs.id", ondelete="CASCADE"), primary_key=True
+    )
+    rank: Mapped[int] = mapped_column(primary_key=True)
+    recipe_revision_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("recipe_revisions.id")
+    )
+    reasons: Mapped[list] = mapped_column(JSONB)
+    seasonal_ingredients: Mapped[list] = mapped_column(JSONB)
 
 
 class SavedRecipe(Base):

@@ -35,8 +35,20 @@ class ApiClient {
   Future<T> post<T>(
     String path, {
     Object? body,
+    String? token,
+    bool followRedirects = true,
     required T Function(Object? json) parse,
-  }) => _send(() => _dio.post<Object?>(path, data: body), parse);
+  }) => _send(
+    () => _dio.post<Object?>(
+      path,
+      data: body,
+      options: Options(
+        followRedirects: followRedirects && token == null,
+        headers: {if (token != null) 'Authorization': 'Bearer $token'},
+      ),
+    ),
+    parse,
+  );
 
   Future<T> _send<T>(
     Future<Response<Object?>> Function() request,

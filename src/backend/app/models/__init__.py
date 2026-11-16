@@ -27,6 +27,8 @@ from app.models.user_data import (  # noqa: F401
     MealLog,
     MealLogItem,
     MealPlanEntry,
+    RecommendationItem,
+    RecommendationRun,
     SavedRecipe,
     SavedWelfareService,
 )

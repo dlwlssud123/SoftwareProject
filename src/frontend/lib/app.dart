@@ -35,12 +35,12 @@ class ValueFlowApp extends StatelessWidget {
       locale: const Locale('ko'),
       supportedLocales: const [Locale('ko')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(settings.textScale)),
-        child: child!,
-      ),
+      builder: (context, child) => settings.textScale == 1
+          ? child!
+          : MediaQuery.withClampedTextScaling(
+              minScaleFactor: settings.textScale,
+              child: child!,
+            ),
       home: AppShell(
         repository: repository,
         settings: settings,

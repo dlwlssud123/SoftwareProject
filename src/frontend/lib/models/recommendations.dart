@@ -20,10 +20,14 @@ class UserProfile {
     this.conditions = const {},
     this.allergies = const {},
     this.softFood = false,
+    this.simpleCooking = false,
+    this.preferredIngredients = const {},
   });
   final String name, gender, region, district, income;
   final int age;
   final bool livesAlone, softFood;
+  final bool simpleCooking;
+  final Set<String> preferredIngredients;
   final Set<String> conditions, allergies;
   String get displayName => name.trim().isEmpty ? '어르신' : name.trim();
   String get location => '$region $district';
@@ -43,12 +47,15 @@ class Recipe {
     required this.method,
     required this.allergens,
     required this.soft,
+    this.fromServer = false,
+    this.imageUrl,
   });
   final String id, name, ingredients, method;
   final List<String> steps;
-  final double calories, sodium, protein, carbs, fat;
+  final double? calories, sodium, protein, carbs, fat;
   final Set<String> allergens;
-  final bool soft;
+  final bool soft, fromServer;
+  final String? imageUrl;
   String get image => 'assets/images/$id.png';
 
   List<int> get missingStepNumbers {
@@ -106,10 +113,35 @@ class Recipe {
 }
 
 class RecipeMatch {
-  const RecipeMatch(this.recipe, this.reasons);
+  const RecipeMatch(
+    this.recipe,
+    this.reasons, {
+    this.seasonal = const [],
+    this.softMatch,
+    this.simpleMatch,
+    this.ingredientCount,
+  });
   final Recipe recipe;
   final List<String> reasons;
+  final List<SeasonalIngredient> seasonal;
+  final bool? softMatch, simpleMatch;
+  final int? ingredientCount;
 }
+
+class SeasonalIngredient {
+  const SeasonalIngredient(this.name, this.shoppingUrl);
+  final String name;
+  final Uri? shoppingUrl;
+}
+
+class MealRecommendations {
+  const MealRecommendations(this.items, this.warnings);
+  final List<RecipeMatch> items;
+  final List<String> warnings;
+}
+
+String nutrientLabel(double? value, String unit) =>
+    value == null ? '정보 없음' : '${value.toStringAsFixed(0)} $unit';
 
 class WelfareService {
   const WelfareService({

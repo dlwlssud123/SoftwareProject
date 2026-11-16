@@ -54,6 +54,21 @@ void main() {
   late DemoRepository repository;
   setUpAll(() async => repository = await DemoRepository.load());
 
+  testWidgets('system font size remains effective above the app setting', (
+    tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 1.8;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final settings = AppSettings();
+    await launchApp(tester, repository, settings: settings);
+    final context = tester.element(find.byKey(const Key('meal-start')));
+    expect(MediaQuery.textScalerOf(context).scale(20), 36);
+    await settings.setScale(1.4);
+    await tester.pumpAndSettle();
+    expect(MediaQuery.textScalerOf(context).scale(20), 36);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('tabs mount on demand and retain their navigation stack', (
     tester,
   ) async {
