@@ -149,6 +149,15 @@ def test_postgres_mapping_stores_matches_grams_and_computed_nutrition(
             summary.computed["energy_kcal"] == 60.0 + 44.0 + 132.0
             and summary.items_used == 3
         )
+        # 분량과 상관없는 비교 값: 나트륨 100.2 mg / 236 kcal, 단백질 4.4 g × 4 / 236 kcal.
+        # 시험 식품에 지방·탄수화물 값이 없어(부분 합계) 그 둘은 NULL
+        assert (summary.sodium_mg_per_1000kcal, summary.protein_energy_pct) == (
+            Decimal("424.6"),
+            Decimal("7.5"),
+        )
+        assert (
+            summary.carbohydrate_energy_pct is None and summary.fat_energy_pct is None
+        )
         onion = mapping(db, "2")[1][0]
         # 양파 1개 → 한국보건산업진흥원 눈대중량 DB의 중 1개 가식부 181 g
         assert onion.match_status == "exact" and onion.gram_status == "unit_weight"

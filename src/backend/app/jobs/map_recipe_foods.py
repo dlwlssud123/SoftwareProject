@@ -43,6 +43,7 @@ from app.models import (
     RecipeIngredientFood,
     RecipeRevision,
 )
+from app.models.recipe_nutrition import DENSITY_COLUMNS
 
 # Shared with the public-data imports, so a mapping never sees a half-imported recipe or food set.
 IMPORT_LOCK = 6711061156
@@ -229,6 +230,7 @@ def summary_values(row: dict, plan: MappingPlan) -> dict:
         "items": coverage["items"],
         "items_used": coverage["items_used"],
         "grams_used_pct": number(coverage["grams_used_pct"]),
+        **{column: number(row["density"][column]) for column in DENSITY_COLUMNS},
         "mapper_version": MAPPER_VERSION,
         "ingredient_map_sha256": plan.inputs["ingredient_map_sha256"],
         "mapping_sha256": row["mapping_sha256"],
