@@ -2,12 +2,14 @@
  "description": "출처 있는 무게(unit_weights.json)가 없을 때 쓰는 g 추정. g 환산 상태 'estimated'로 남고 근거 문장에 출처를 적는다 — agetech_data.nutrition.estimates 참고.",
  "sources": {
   "recipe_usage": "식약처 조리식품 레시피 DB(COOKRCP01) 2026-11-13 수집본 1,156건에서 같은 재료를 g으로 적은 줄의 분포 — 약간·조금·소량·한꼬집 = 25% 지점과 중앙값의 절반 중 작은 값, 적당량·적당히·넉넉히·기호에 따라·취향껏 = 중앙값(줄 5개 이상). `python -m agetech_data.nutrition.estimates --write`로 만든 값을 고정",
-  "recipe_pairs": "같은 레시피 DB 원문에 개수와 g이 함께 적힌 줄(예: '청양고추 1개(10g)')의 1단위 무게 중앙값",
-  "usda_fdc_sr": "USDA FoodData Central(SR Legacy) 분량 무게 — 국내에서 주로 수입하는 과일·채소(레몬·라임·아보카도·자몽·망고·아스파라거스·셀러리)와 서양식 재료에만 씀",
+  "recipe_pairs": "같은 레시피 DB 원문에 개수(줌·장·cm 포함)와 g이 함께 적힌 줄(예: '청양고추 1개(10g)', '미나리(⅓줌=50g)')의 1단위 무게 중앙값",
+  "usda_fdc_sr": "USDA FoodData Central(SR Legacy) 분량 무게 — 눈대중량 DB에 없는 수입 과일·채소·서양식 재료와 낱알·잎 무게에 씀",
   "khidi_2007_portion": "한국보건산업진흥원 2007 「눈대중량의 부피 및 중량 환산 DB」 별첨 1(KISTI ScienceON TRKO201100002804) — unit_weights.json 과 같은 자료, 크기를 골라 쓴 값",
   "mfds_nq_elderly": "식약처 「노인 영양지수 교육자료」(2023)의 달걀 1개 60 g — 노른자·흰자는 달걀 가식부 비율(노른자 약 30%, 흰자 약 58%)로 나눔",
   "frying_oil_db_pairs": "식약처 식품영양성분DB(03) 원재료성에서 같은 식품의 '생것'과 '튀긴것' 10쌍(닭고기 가슴·날개·다리·살코기, 민어·가리비·꽃새우 빵가루 튀김, 오징어 등): 튀긴 것 100 g당 지방이 생것보다 중앙값 8.95 g 많음",
-  "estimate": "출처 있는 무게가 없어 흔한 크기로 어림한 값 — 근거 문장에 어림 근거를 적음"
+  "estimate": "측정·표기 자료를 찾지 못해 흔한 크기로 어림한 값 — 근거 문장에 어림 근거와 찾아본 자료를 적음",
+  "product_label": "식자재·식품 몰 제품 규격 표기(식봄 foodspring.co.kr·컬리·해외 몰) — 제품명·규격에 적힌 낱개 무게·개수, URL과 확인일을 evidence에 적음",
+  "literature": "학술지 논문의 측정값 — 논문명·학술지·연도·URL을 evidence에 적음"
  },
  "frying_oil": {
   "ratio": 0.09,
@@ -395,168 +397,168 @@
    "ingredient": "통후추",
    "unit": "알",
    "grams": 0.05,
-   "source": "estimate",
-   "evidence": "말린 후추 열매 1알(지름 4~5 mm) 약 0.05 g"
+   "source": "literature",
+   "evidence": "[같은 식품] 후추 11품종 건조 열매 100알 무게 평균 5.44 g(4.02~6.43 g) → 1알 0.054 g — Pannaga TS 등, Journal of Pharmacognosy and Phytochemistry 2021;10(1):1497-1500 표 2, https://www.phytojournal.com/archives/2021/vol10issue1/PartU/10-1-209-756.pdf"
   },
   {
    "ingredient": "판젤라틴",
    "unit": "장",
-   "grams": 2,
-   "source": "estimate",
-   "evidence": "시판 판젤라틴 1장 약 2 g"
+   "grams": 2.0,
+   "source": "product_label",
+   "evidence": "[같은 식품] 식봄 '[Haodong]판젤라틴 골드 1kg(500장)' → 1장 2.0 g(https://www.foodspring.co.kr/goods/detail/1168938, 2026-11-17 확인). 같은 몰 '루프 판젤라틴(12장) 20g'은 1장 1.7 g(goods/detail/1157455)"
   },
   {
    "ingredient": "배춧잎",
    "unit": "장",
-   "grams": 40,
-   "source": "estimate",
-   "evidence": "배추 겉잎 1장 약 40 g"
+   "grams": 74.0,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] 알배추(6158) 낱장 '중' 1장 74.0 g(별첨 96쪽) — 통배추 낱장 행이 없어 속이 찬 작은 배추 값"
   },
   {
    "ingredient": "배추잎",
    "unit": "장",
-   "grams": 40,
-   "source": "estimate",
-   "evidence": "배추 겉잎 1장 약 40 g"
+   "grams": 74.0,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] 알배추(6158) 낱장 '중' 1장 74.0 g(별첨 96쪽, '배춧잎'과 같음)"
   },
   {
    "ingredient": "배추",
    "unit": "장",
-   "grams": 40,
-   "source": "estimate",
-   "evidence": "배추 겉잎 1장 약 40 g"
+   "grams": 74.0,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] 알배추(6158) 낱장 '중' 1장 74.0 g(별첨 96쪽, '배춧잎'과 같음)"
   },
   {
    "ingredient": "케일",
    "unit": "장",
-   "grams": 10,
-   "source": "estimate",
-   "evidence": "쌈 케일 잎 1장 약 10 g"
+   "grams": 5.0,
+   "source": "recipe_pairs",
+   "evidence": "원문 '케일 15g(3장)'·'보라로즈케일 15g(3장)'·'흰로즈케일 15g(3장)'(85) → 1장 5 g"
   },
   {
    "ingredient": "건포도",
    "unit": "알",
-   "grams": 0.5,
-   "source": "estimate",
-   "evidence": "건포도 1알 약 0.5 g"
+   "grams": 0.52,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 168165 'Raisins, dark, seedless': 50 raisins = 26 g → 1알 0.52 g"
   },
   {
    "ingredient": "바질",
    "unit": "장",
-   "grams": 0.5,
-   "source": "estimate",
-   "evidence": "바질 잎 1장 약 0.5 g"
+   "grams": 0.4,
+   "source": "recipe_pairs",
+   "evidence": "원문 '바질 5장(2g)'(3770) → 1장 0.4 g(USDA FDC 172232 'Basil, fresh' 5 leaves = 2.5 g 와 비슷)"
   },
   {
    "ingredient": "바질",
    "unit": "잎",
-   "grams": 0.5,
-   "source": "estimate",
-   "evidence": "바질 잎 1장 약 0.5 g"
+   "grams": 0.4,
+   "source": "recipe_pairs",
+   "evidence": "원문 '바질 5장(2g)'(3770) → 1잎 0.4 g"
   },
   {
    "ingredient": "바질잎",
    "unit": "장",
-   "grams": 0.5,
-   "source": "estimate",
-   "evidence": "바질 잎 1장 약 0.5 g"
+   "grams": 0.4,
+   "source": "recipe_pairs",
+   "evidence": "원문 '바질 5장(2g)'(3770) → 1장 0.4 g"
   },
   {
    "ingredient": "라이스페이퍼",
    "unit": "장",
-   "grams": 10,
-   "source": "estimate",
-   "evidence": "지름 22 cm 라이스페이퍼 1장 약 10 g — 해외 판매 22 cm 제품 표기가 '400 g, 48장'(8.3 g)과 '약 30장'(13.3 g)으로 갈려 출처로 쓰지 않고 그 사이 값을 둠",
+   "grams": 10.7,
+   "source": "product_label",
+   "evidence": "[같은 식품] 22 cm 제품 표기 둘의 평균: Kim Phat 'Rice Paper 22 cm 400 g' 영양표시 'per 1 sheet (13 g)'(https://voila.ca/products/986987EA/details), 'Rice paper, medium, Ø 22cm, 400g, 48 sheets' → 8.3 g(https://gourmet-versand.com/en/article3068/rice-paper-medium-22cm-400g-48-sheets.html), 2026-11-17 확인",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "다시마",
    "unit": "장",
-   "grams": 1,
-   "source": "estimate",
-   "evidence": "5×5 cm 말린 다시마 1장 약 1 g"
+   "grams": 1.3,
+   "source": "khidi_2007_portion",
+   "evidence": "[같은 식품] 다시마(말린것, 12018) 절단 4×4 cm 6조각 5.0 g → 1조각 0.83 g(별첨 141쪽), 레시피에 적힌 5×5 cm 로 넓이 비례 0.83 × 25/16 = 1.3 g"
   },
   {
    "ingredient": "건고추",
    "unit": "개",
-   "grams": 1.5,
-   "source": "estimate",
-   "evidence": "말린 홍고추 1개 약 1~2 g(생 홍고추 11.9 g, 수분 약 85%→12%)"
+   "grams": 3.1,
+   "source": "khidi_2007_portion",
+   "evidence": "[계산] 홍고추(6028) 1개 가식부 11.9 g(별첨 88쪽) × 고형분 비 (100−77.4)/(100−13.6) — 식품DB '고추, 빨간색, 생것' 수분 77.4%, '말린것' 13.6%"
   },
   {
    "ingredient": "건두부",
    "unit": "장",
    "grams": 10,
    "source": "estimate",
-   "evidence": "얇은 건두부(포두부) 1장 약 10 g"
+   "evidence": "얇은 건두부(포두부) 1장 약 10 g — 제품마다 장수 표기가 없어(식봄·컬리 포두부는 무게만) 출처 값을 찾지 못함"
   },
   {
    "ingredient": "김치",
    "unit": "포기",
-   "grams": 1600,
-   "source": "estimate",
-   "evidence": "배추 1포기 2~2.5 kg을 절여 담그면 약 1.6 kg",
+   "grams": 3000,
+   "source": "product_label",
+   "evidence": "[같은 식품] 컬리 '[Kurly's] 시원한 배추김치 1.5kg' 중량 '1박스, 1/2포기(1.5 Kg)' → 1포기 3.0 kg(https://www.kurly.com/goods/5063827, 2026-11-17 확인)",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "묵은지",
    "unit": "포기",
-   "grams": 1600,
-   "source": "estimate",
-   "evidence": "배추김치 1포기 약 1.6 kg('김치'와 같음)",
+   "grams": 3000,
+   "source": "product_label",
+   "evidence": "[같은 식품] 배추김치 1/2포기 1.5 kg(컬리 https://www.kurly.com/goods/5063827, '김치'와 같음)",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "녹차",
    "unit": "개",
-   "grams": 2,
-   "source": "estimate",
-   "evidence": "녹차 티백 1개 찻잎 약 2 g(우린 차로 계산되어 영양은 거의 0)"
+   "grams": 1.2,
+   "source": "product_label",
+   "evidence": "[같은 식품] 코스트코 '녹차원 유기농 순수녹차 1.2g x 50티백 x 4' → 티백 1개 1.2 g(https://www.costco.co.kr/Food/CoffeeTeaDrink/Tea/Nokchawon-Organic-Green-Tea-12g-x-50T-x-4/p/614319, 2026-11-17 확인)"
   },
   {
    "ingredient": "느타리버섯",
    "unit": "줌",
-   "grams": 50,
-   "source": "estimate",
-   "evidence": "버섯·나물 1줌 약 50 g"
+   "grams": 60,
+   "source": "recipe_pairs",
+   "evidence": "[가까운 식품] 같은 레시피 DB 채소 1줌 짝 5개(미나리 ⅓줌=50g·방아잎 ⅓줌=30g·꽈리고추 2줌=100g·시금치 1줌=60g·콩나물 1줌=20g → 150·90·50·60·20 g)의 중앙값 60 g — 느타리 짝 없음"
   },
   {
    "ingredient": "미나리",
    "unit": "줌",
-   "grams": 50,
-   "source": "estimate",
-   "evidence": "나물 1줌 약 50 g"
+   "grams": 150,
+   "source": "recipe_pairs",
+   "evidence": "[같은 식품] 원문 '미나리(⅓줌=50g)'(3265) → 1줌 150 g"
   },
   {
    "ingredient": "숙주",
    "unit": "줌",
-   "grams": 50,
-   "source": "estimate",
-   "evidence": "나물 1줌 약 50 g"
+   "grams": 20,
+   "source": "recipe_pairs",
+   "evidence": "[가까운 식품] 원문 '콩나물(1줌=20g)'(3288) — 같은 콩나물·숙주 싹채소"
   },
   {
    "ingredient": "쑥갓",
    "unit": "줌",
-   "grams": 30,
-   "source": "estimate",
-   "evidence": "잎채소 1줌 약 30 g"
+   "grams": 60,
+   "source": "recipe_pairs",
+   "evidence": "[가까운 식품] 원문 '시금치(1줌=60g)'(3285) — 같은 잎채소"
   },
   {
    "ingredient": "무순",
    "unit": "줌",
    "grams": 20,
-   "source": "estimate",
-   "evidence": "새싹 채소 1줌 약 20 g"
+   "source": "recipe_pairs",
+   "evidence": "[가까운 식품] 원문 '콩나물(1줌=20g)'(3288) — 같은 싹채소"
   },
   {
    "ingredient": "무순",
    "unit": "개",
-   "grams": 0.1,
-   "source": "estimate",
-   "evidence": "무순 1가닥 약 0.1 g"
+   "grams": 0.27,
+   "source": "literature",
+   "evidence": "[같은 식품] 무 새싹 4품종 파종 10일째 1개 생체중 242~284 mg(뿌리 포함) → 평균 0.27 g — Thach 등, Journal of Aridland Agriculture 2025;11:29-33 표 1, doi:10.25081/jaa.2025.v11.9552"
   },
   {
    "ingredient": "달걀물",
@@ -575,32 +577,32 @@
   {
    "ingredient": "달걀지단",
    "unit": "장",
-   "grams": 50,
-   "source": "estimate",
-   "evidence": "지단 1장 ≈ 달걀 1개에서 껍질·부친 수분 뺀 약 50 g"
+   "grams": 41.9,
+   "source": "mfds_nq_elderly",
+   "evidence": "[계산] 지단 1장 = 달걀 1개 60 g(식약처 노인 영양지수 교육자료)을 부친 것 → 고형분 비 (100−76.7)/(100−66.6)로 수분 감소 반영 — 식품DB '달걀, 생것' 수분 76.7%, '달걀지단' 66.6%"
   },
   {
    "ingredient": "닭봉",
    "unit": "개",
-   "grams": 25,
-   "source": "estimate",
-   "evidence": "닭봉 1개 뼈 포함 약 40 g, 먹는 살 약 25 g",
+   "grams": 30.2,
+   "source": "product_label",
+   "evidence": "[같은 식품] 식봄 '닭봉(45±5g/개_윗날개_껍질있음 1Kg/EA)' 1개 45 g(https://www.foodspring.co.kr/goods/detail/905982, 2026-11-17 확인) × 먹는 살 비율 49.0/73.1 — 눈대중량 DB 닭날개(9032) 1개 73.1 g·가식부 49.0 g(별첨 116쪽)",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "대파",
    "unit": "cm",
-   "grams": 2,
-   "source": "estimate",
-   "evidence": "대파 흰 부분 1 cm 약 2 g('대파' 1대 55.7 g, 약 30 cm)"
+   "grams": 3.5,
+   "source": "recipe_pairs",
+   "evidence": "원문 '대파 10g(2cm)'(137)·'대파 10g(5cm)'(37) → 1 cm 5 g·2 g 의 중앙값 3.5 g"
   },
   {
    "ingredient": "땅콩호박",
    "unit": "개",
-   "grams": 900,
-   "source": "estimate",
-   "evidence": "땅콩호박(버터넛) 1개 약 0.9~1 kg",
+   "grams": 679,
+   "source": "product_label",
+   "evidence": "[같은 식품] 'Butternut Avg 900 g'(Woolworths, https://www.woolworths.co.za/prod/_/A-2906818000004, 2026-11-17 확인) × 먹는 부분 비율 794.8/1053.4 — 눈대중량 DB 단호박(6345) 1개 1,053.4 g·가식부 794.8 g(별첨 105쪽)",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-14"
   },
@@ -635,16 +637,16 @@
   {
    "ingredient": "로즈메리",
    "unit": "줄기",
-   "grams": 1,
-   "source": "estimate",
-   "evidence": "생로즈메리 1줄기 약 1 g"
+   "grams": 5.0,
+   "source": "recipe_pairs",
+   "evidence": "원문 '로즈메리(2잎=10g)'(3470) → 1잎(가지) 5 g"
   },
   {
    "ingredient": "타임",
    "unit": "줄기",
    "grams": 0.5,
    "source": "estimate",
-   "evidence": "생타임 1줄기 약 0.5 g"
+   "evidence": "생타임 1줄기 약 0.5 g — 줄기 무게를 적은 측정·제품 자료를 찾지 못함(USDA 'Thyme, fresh'는 1작은술 0.8 g만, 레시피 DB 짝 없음)"
   },
   {
    "ingredient": "말린 토마토",
@@ -656,39 +658,46 @@
   {
    "ingredient": "말린 방울토마토",
    "unit": "개",
-   "grams": 1.5,
-   "source": "estimate",
-   "evidence": "말린 방울토마토 1개 약 1~2 g(생 9.7 g, 수분 91.5%→약 15%)"
+   "grams": 1.0,
+   "source": "khidi_2007_portion",
+   "evidence": "[계산] 방울토마토(6328) 1개 9.7 g(별첨 102쪽) × 고형분 비 (100−91.5)/(100−14.6) = 0.97 g — 매핑표 '말린 방울토마토' 수분 환산(생방울토마토 × 10)과 같은 비율"
   },
   {
    "ingredient": "모시조개",
    "unit": "개",
-   "grams": 4,
-   "source": "estimate",
-   "evidence": "모시조개 1개 껍데기 포함 약 15 g, 살 약 4 g"
+   "grams": 2.1,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] 바지락(11490) 1개 8.0 g·가식부 2.1 g(별첨 135쪽) — 원문 '바지락(모시조개) 200g(30개)'(781)의 껍데기 포함 1개 6.7 g 과 크기가 비슷"
   },
   {
    "ingredient": "미니 단호박",
    "unit": "개",
-   "grams": 350,
-   "source": "estimate",
-   "evidence": "미니 단호박 1개 약 400 g, 씨·껍질 빼고 약 350 g",
+   "grams": 343,
+   "source": "product_label",
+   "evidence": "[같은 식품] 식봄 '국내산 미니단호박 5kg (10-12입)' → 1개 약 455 g(https://www.foodspring.co.kr/goods/detail/1007469, 2026-11-17 확인) × 먹는 부분 비율 794.8/1053.4(눈대중량 DB 단호박 6345, 별첨 105쪽)",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-14"
   },
   {
+   "ingredient": "흰살생선",
+   "unit": "마리",
+   "grams": 251.8,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] 가자미(11018) 생것 '중' 1마리 403.2 g·가식부 251.8 g(별첨 126쪽) — 손질한 흰살생선 1마리의 먹는 살"
+  },
+  {
    "ingredient": "바게트",
    "unit": "조각",
-   "grams": 25,
-   "source": "estimate",
-   "evidence": "바게트 1조각(2~3 cm) 약 25 g"
+   "grams": 29,
+   "source": "usda_fdc_sr",
+   "evidence": "[가까운 식품] FDC 174911 'Bread, french or vienna, toasted': 1 slice, small = 29 g"
   },
   {
    "ingredient": "바게트",
    "unit": "개",
    "grams": 250,
-   "source": "estimate",
-   "evidence": "바게트 1개 약 250 g"
+   "source": "product_label",
+   "evidence": "[같은 식품] 식봄 '선인 바게트빵 250gX12입 냉동' → 1개 250 g(https://www.foodspring.co.kr/goods/detail/959351, 2026-11-17 확인)"
   },
   {
    "ingredient": "블랙올리브",
@@ -712,13 +721,6 @@
    "evidence": "'표고버섯' 1개 16.4 g과 같게(장 = 개)"
   },
   {
-   "ingredient": "흰살생선",
-   "unit": "마리",
-   "grams": 300,
-   "source": "estimate",
-   "evidence": "손질한 중간 크기 흰살생선 1마리 살 약 300 g"
-  },
-  {
    "ingredient": "수란",
    "unit": "개",
    "grams": 50,
@@ -728,9 +730,9 @@
   {
    "ingredient": "식용 꽃",
    "unit": "개",
-   "grams": 0.5,
-   "source": "estimate",
-   "evidence": "식용 꽃 1송이 약 0.5 g"
+   "grams": 0.11,
+   "source": "product_label",
+   "evidence": "[같은 식품] 식용 비올라 제품 규격 'EF Viola 50 ct'·순중량 0.0125 lb(5.7 g) → 1송이 0.11 g(https://www.webstaurantstore.com/documents/specsheets/877san132973_spec_sheet_-_ef_viola_50ct.pdf, 검색 색인 원문)"
   },
   {
    "ingredient": "아몬드",
@@ -749,16 +751,16 @@
   {
    "ingredient": "양배추",
    "unit": "장",
-   "grams": 30,
-   "source": "estimate",
-   "evidence": "양배추 잎 1장 약 30 g"
+   "grams": 23,
+   "source": "usda_fdc_sr",
+   "evidence": "[같은 식품] FDC 169975 'Cabbage, raw': 1 leaf, medium = 23 g"
   },
   {
    "ingredient": "정향",
    "unit": "개",
    "grams": 0.1,
    "source": "estimate",
-   "evidence": "정향 1개 약 0.1 g"
+   "evidence": "정향 1개 약 0.1 g — 낱개 무게를 적은 측정·제품 자료를 찾지 못함(USDA는 1작은술 2.1 g만, 레시피 DB 짝 없음)"
   },
   {
    "ingredient": "주키니호박",
@@ -777,16 +779,16 @@
   {
    "ingredient": "청경채",
    "unit": "개",
-   "grams": 35,
-   "source": "estimate",
-   "evidence": "청경채 1포기 약 30~40 g"
+   "grams": 16.3,
+   "source": "recipe_pairs",
+   "evidence": "원문 '청경채 25g(2개)'(210)·'청경채 20g(1개)'(38) → 12.5 g·20 g 의 중앙값"
   },
   {
    "ingredient": "청경채",
    "unit": "단",
    "grams": 300,
-   "source": "estimate",
-   "evidence": "청경채 1단 약 300 g"
+   "source": "product_label",
+   "evidence": "[같은 식품] 컬리 청경채 1봉 중량 300 g(https://www.kurly.com/goods/5063699, 검색 결과 표기) — '단' 무게 표기가 없어 시판 1봉 값"
   },
   {
    "ingredient": "청고추",
@@ -798,27 +800,27 @@
   {
    "ingredient": "치아바타",
    "unit": "개",
-   "grams": 100,
-   "source": "estimate",
-   "evidence": "치아바타 1개 약 100 g — 국내 몰 제품 표기가 1개 45~155 g으로 제품마다 달라 가운데 값을 둠",
+   "grams": 70,
+   "source": "product_label",
+   "evidence": "[같은 식품] 식봄 치아바타 5종 1개 무게(삼립 화이트 70g×6·사각 60g×8·일반 50g×8, 디보트 80g×5, 구스 80g×5; goods/detail/676669·970451·970381·772628·648610, 2026-11-17 확인)의 중앙값 70 g",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "포카치아빵",
    "unit": "개",
-   "grams": 150,
-   "source": "estimate",
-   "evidence": "포카치아 1개 약 150 g",
+   "grams": 160,
+   "source": "product_label",
+   "evidence": "[같은 식품] 컬리 포카치아 4종(히피스 마르게리따 150 g·버섯 크림 170 g·감자 치즈 200 g, 불라트 허브 145 g; goods/1002069313·1002069321·1002069327·1001454214, 2026-11-17 확인)의 중앙값 160 g",
    "reviewed_by": "최재영",
    "reviewed_at": "2026-11-14"
   },
   {
    "ingredient": "콜라비",
    "unit": "개",
-   "grams": 300,
-   "source": "estimate",
-   "evidence": "콜라비 1개 약 300 g"
+   "grams": 492,
+   "source": "literature",
+   "evidence": "[같은 식품] 콜라비 3품종 비대줄기 1개 생체중 587.5·483.8·405.7 g → 평균 492 g(껍질 포함) — Protected Horticulture and Plant Factory 26(4):297-300(2017), doi:10.12791/KSBEC.2017.26.4.297 (완전제어형 식물공장 적색 콜라비 품종 선발)"
   },
   {
    "ingredient": "토르티야",
@@ -837,9 +839,9 @@
   {
    "ingredient": "할라피뇨 피클",
    "unit": "개",
-   "grams": 3,
-   "source": "estimate",
-   "evidence": "할라페뇨 절임 1조각 약 3 g"
+   "grams": 2.3,
+   "source": "product_label",
+   "evidence": "[같은 식품] Vlasic 'Hot Jalapeño Pepper Slices' 영양표시 1회 'about 12 slices (28g)' → 1조각 2.3 g(https://www.kroger.com/p/vlasic-deli-style-hot-jalapeno-pepper-slices/0005410000676, 검색 결과 표기)"
   },
   {
    "ingredient": "호박",
@@ -851,23 +853,23 @@
   {
    "ingredient": "흰다리새우",
    "unit": "마리",
-   "grams": 20,
-   "source": "estimate",
-   "evidence": "흰다리새우 1마리 껍질 벗긴 살 약 20 g('새우' 마리 22 g과 비슷)"
+   "grams": 22,
+   "source": "khidi_2007_portion",
+   "evidence": "[가까운 식품] '새우' 마리와 같게 — 중하 '중' 1마리 가식부 22.0 g(별첨 138쪽)"
   },
   {
    "ingredient": "크래미",
    "unit": "줄",
-   "grams": 17,
-   "source": "estimate",
-   "evidence": "게맛살 1줄 약 17 g"
+   "grams": 18,
+   "source": "product_label",
+   "evidence": "[같은 식품] 식봄 '한성 크래미(18g*10개입 180g/EA)' → 1개 18 g(https://www.foodspring.co.kr/goods/detail/400809, 2026-11-17 확인)"
   },
   {
    "ingredient": "멸치",
    "unit": "마리",
-   "grams": 2,
-   "source": "estimate",
-   "evidence": "국물용 멸치 1마리 약 2 g"
+   "grams": 1.7,
+   "source": "recipe_pairs",
+   "evidence": "원문 '국물용 멸치 5g(3마리)'(38) → 1마리 1.7 g"
   },
   {
    "ingredient": "미니양배추",
