@@ -144,6 +144,10 @@ void main() {
   testWidgets('both new games open from playground and return to it', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       ValueFlowApp(
         repository: repository,
@@ -151,7 +155,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tapVisible(tester, find.byKey(const Key('tab-4')));
+    await tapVisible(tester, find.byKey(const Key('tab-3')));
     await tapVisible(tester, find.byKey(const Key('number-game-start')));
     expect(find.byType(NumberOrderGame), findsOneWidget);
     await tapVisible(tester, find.byType(BackButton));
@@ -161,5 +165,18 @@ void main() {
     expect(find.byType(NumberOrderGame), findsNothing);
     expect(find.byType(ProverbGame), findsNothing);
     expect(find.byKey(const Key('proverb-game-start')), findsOneWidget);
+    await tapVisible(tester, find.byKey(const Key('playground-videos')));
+    expect(find.byKey(const Key('number-game-start')), findsNothing);
+    expect(find.text('건강쇼츠'), findsOneWidget);
+    expect(find.text('의자 스트레칭'), findsOneWidget);
+    expect(find.text('부드러운 한 끼'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('영상으로 즐기는 취미'), 200);
+    expect(find.text('그때 그 시절'), findsOneWidget);
+    await tapVisible(tester, find.byKey(const Key('tab-1')));
+    await tapVisible(tester, find.byKey(const Key('tab-3')));
+    expect(find.byKey(const Key('number-game-start')), findsNothing);
+    await tapVisible(tester, find.byKey(const Key('playground-games')));
+    expect(find.byKey(const Key('number-game-start')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
