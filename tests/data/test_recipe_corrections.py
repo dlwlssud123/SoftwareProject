@@ -257,6 +257,34 @@ def test_format_correction_rejects_more_than_one_mark(manifest, source_id, mutat
         apply_corrections([_row_for(entry)], manifest)
 
 
+def test_format_correction_adds_colons_after_section_names(manifest):
+    entry = _entry(manifest, "774")
+    corrected, audit = apply_corrections([_row_for(entry)], manifest)
+    assert [(item["source_id"], item["state"]) for item in audit] == [("774", "applied")]
+    by_name = {item["name"]: item["section"] for item in check_recipe(corrected[0]).to_dict()["ingredients"]}
+    # before: '주먹밥 데친꼬막살'·'두부강된장 참기름' were read as item names
+    assert (by_name["데친꼬막살"], by_name["밥"], by_name["다진양파"]) == ("주먹밥", "주먹밥", "두부강된장")
+    assert not any(" " in name for name in by_name)
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        # a colon in front of an amount would turn a name into a section
+        lambda e: e["value"].replace("참기름 3g 두릎 8g", "참기름 3g 두릎: 8g"),
+        # a colon after an item that does not follow an amount
+        lambda e: e["value"].replace("봄동 10g, 깻잎 6g", "봄동 10g, 깻잎: 6g"),
+        # anything besides colons changes
+        lambda e: e["value"].replace("주먹밥: 데친꼬막살", "주먹밥: 꼬막살"),
+    ],
+)
+def test_section_colon_correction_rejects_other_edits(manifest, mutate):
+    entry = _entry(manifest, "774")
+    entry["value"] = mutate(entry)
+    with pytest.raises(ValueError, match="parenthesis"):
+        apply_corrections([_row_for(entry)], manifest)
+
+
 def test_collected_source_hides_no_item_in_an_amount_after_corrections(manifest):
     if not paths.RECIPES_ALL_RAW.is_file():
         pytest.skip("전체 레시피 수집본 없음(gitignore)")

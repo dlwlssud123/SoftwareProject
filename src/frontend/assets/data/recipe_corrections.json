@@ -124,6 +124,19 @@
       "source_document_sha256": "b064ac5e3a146272f85608efbe96064360635050e140d335fa8428af76e4e3b0",
       "verified_at": "2026-11-17",
       "verified_by": "최재영"
+    },
+    {
+      "source_id": "774",
+      "recipe_name": "봄주먹밥",
+      "field": "RCP_PARTS_DTLS",
+      "expected_value": "재료 1인분 봄동 10g, 깻잎 6g, 낙지다리 6g, 참기름 3g 두릎 8g, 올리브유 4g, 미나리 3g 주먹밥 데친꼬막살 12g, 올리브유 4g, 밥 100g, 참깨 3g 두부강된장 참기름 10g, 다진양파 14g, 다진당근 14g, 다진애호박 14g, 물 150g, 된장 14g, 고춧가루 4g, 다진마늘 4g, 붉은고추 4g",
+      "value": "재료 1인분 봄동 10g, 깻잎 6g, 낙지다리 6g, 참기름 3g 두릎 8g, 올리브유 4g, 미나리 3g 주먹밥: 데친꼬막살 12g, 올리브유 4g, 밥 100g, 참깨 3g 두부강된장: 참기름 10g, 다진양파 14g, 다진당근 14g, 다진애호박 14g, 물 150g, 된장 14g, 고춧가루 4g, 다진마늘 4g, 붉은고추 4g",
+      "kind": "format_only",
+      "source_url": "https://www.foodsafetykorea.go.kr/portal/cookrcp/cookrcpInfoDtl.do?menu_grp=MENU_NEW03&menu_no=3608&rcp_seq=774",
+      "reason": "구획 이름 '주먹밥'·'두부강된장'이 쌍점 없이 재료 사이에 적혀('미나리 3g 주먹밥 데친꼬막살 12g', '참깨 3g 두부강된장 참기름 10g') 재료 이름이 '주먹밥 데친꼬막살'·'두부강된장 참기름'으로 읽히던 것 — 두 구획 이름 뒤에 쌍점만 넣음. 공식 상세에도 같은 표기. 조리 2단계(데친 꼬막살을 올리브유로 양념한 밥에 참깨와 버무려 주먹밥)와 5단계(참기름을 두르고 양파·당근·애호박을 볶아 두부강된장)로 두 구획임을 확인했고, 재료 이름·분량은 그대로다.",
+      "source_document_sha256": "ddb9138faf0d46ce5a6f1d381063a7d17fa37263266ff9f6c054499c0b0d86b3",
+      "verified_at": "2026-11-17",
+      "verified_by": "최재영"
     }
   ]
 }
