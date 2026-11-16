@@ -278,6 +278,9 @@ class SeasonalMatch(ContractModel):
 
 class RecipeRecommendation(Recommendation[RecipeRecord]):
     seasonal_ingredients: list[SeasonalMatch] = Field(default_factory=list)
+    matched_preferences: list[Literal["soft_food", "simple_cooking"]] = Field(
+        default_factory=list
+    )
 
 
 class RecipeRecommendationResult(RecommendationResult[RecipeRecord]):

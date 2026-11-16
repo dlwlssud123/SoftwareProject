@@ -157,11 +157,15 @@ def recommend_meal(
         )
         items = [
             RecipeRecommendation(
-                item=record,
-                reasons=reasons,
-                seasonal_ingredients=seasonal.get(record.source.revision_id, []),
+                item=match.record,
+                reasons=match.reasons or ["현재 공개된 레시피예요."],
+                seasonal_ingredients=seasonal.get(match.record.source.revision_id, []),
+                matched_preferences=[
+                    *(["soft_food"] if match.soft_match else []),
+                    *(["simple_cooking"] if match.simple_match else []),
+                ],
             )
-            for record, reasons in ranked
+            for match in ranked
         ]
         run = RecommendationRun(
             user_id=auth.user.id,
@@ -200,12 +204,18 @@ def recommend_meal(
             evaluated_at=now,
             rules_version=RULES_VERSION,
             warnings=[
-                "식단 추천은 의료적 식이 판단을 대신할 수 없습니다.",
                 *(
                     [
-                        "건강 조건은 공개 영양 표기량으로 비교해요. 실제 한 끼 섭취량과 다를 수 있어요."
+                        "식단 추천은 공개된 영양 표기량을 참고해요. 표기량의 기준 분량이 확인되지 않아 실제 한 끼 섭취량은 알 수 없어요."
                     ]
                     if payload.health_conditions
+                    else []
+                ),
+                *(
+                    [
+                        "부드러운 메뉴는 이름과 조리법으로 골라요. 씹기 편한지는 재료와 조리 방법을 확인해 주세요."
+                    ]
+                    if payload.soft_food or preferences.soft_food
                     else []
                 ),
             ],

@@ -217,39 +217,85 @@ class _ProfileFormState extends State<ProfileForm> {
     );
   }
 
-  Widget selection(String title, List<String> values, Set<String> selected) =>
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 22),
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: values
-                .map(
-                  (value) => FilterChip(
-                    label: Text(value),
-                    selected: selected.contains(value),
-                    onSelected: loading
-                        ? null
-                        : (on) => setState(() {
-                            if (on) {
-                              selected.add(value);
-                            } else {
-                              selected.remove(value);
-                            }
-                          }),
-                    selectedColor: const Color(0xFFDFEDDB),
-                    padding: const EdgeInsets.all(8),
-                    side: const BorderSide(color: line),
-                  ),
-                )
-                .toList(),
+  Future<void> editAllergies() async {
+    final draft = Set<String>.of(allergies);
+    final selected = await showDialog<Set<String>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, rebuild) => AlertDialog(
+          title: const Text('알레르기 설정'),
+          scrollable: true,
+          content: selection(
+            '피해야 할 재료',
+            allergenChoices,
+            draft,
+            rebuild: rebuild,
           ),
-        ],
-      );
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(draft),
+              child: const Text('선택 적용'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      allergies
+        ..clear()
+        ..addAll(selected);
+    });
+  }
+
+  String get allergySummary {
+    if (allergies.isEmpty) return '알레르기 설정 안 함';
+    final names = allergies.take(2).join('·');
+    final extra = allergies.length > 2 ? ' 외 ${allergies.length - 2}개' : '';
+    return '$names$extra 제외';
+  }
+
+  Widget selection(
+    String title,
+    List<String> values,
+    Set<String> selected, {
+    StateSetter? rebuild,
+  }) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const SizedBox(height: 22),
+      Text(title, style: Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: values
+            .map(
+              (value) => FilterChip(
+                label: Text(value),
+                selected: selected.contains(value),
+                onSelected: loading
+                    ? null
+                    : (on) => (rebuild ?? setState)(() {
+                        if (on) {
+                          selected.add(value);
+                        } else {
+                          selected.remove(value);
+                        }
+                      }),
+                selectedColor: const Color(0xFFDFEDDB),
+                padding: const EdgeInsets.all(8),
+                side: const BorderSide(color: line),
+              ),
+            )
+            .toList(),
+      ),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -443,11 +489,16 @@ class _ProfileFormState extends State<ProfileForm> {
                   tilePadding: EdgeInsets.zero,
                   maintainState: true,
                   title: Text(
-                    '피해야 할 재료·건강 조건${allergies.isEmpty && conditions.isEmpty ? '' : ' (${allergies.length + conditions.length}개)'}',
+                    conditions.isEmpty
+                        ? '건강 정보 참고 (선택)'
+                        : '건강 정보 참고 (${conditions.length}개)',
                   ),
                   children: [
-                    selection('알레르기 재료', allergenChoices, allergies),
                     selection('건강 상태 (선택)', ['고혈압', '당뇨'], conditions),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text('고혈압은 나트륨, 당뇨는 탄수화물 표기량을 참고해요.'),
+                    ),
                   ],
                 ),
               ] else ...[
@@ -516,14 +567,24 @@ class _ProfileFormState extends State<ProfileForm> {
           children: [
             if (errorMessage case final message?)
               Semantics(liveRegion: true, child: Notice(message)),
-            if (serverMeal)
+            if (serverMeal) ...[
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  key: const Key('meal-allergy-settings'),
+                  onPressed: loading ? null : editAllergies,
+                  icon: const Icon(Icons.edit_outlined),
+                  label: Text(allergySummary),
+                ),
+              ),
               const Padding(
-                padding: EdgeInsets.only(bottom: 8),
+                padding: EdgeInsets.symmetric(vertical: 8),
                 child: Text(
                   '버튼을 누르면 선택한 조건을 서버에 보내고 추천 결과를 저장해요.',
                   style: TextStyle(fontSize: 13, color: muted),
                 ),
               ),
+            ],
             Row(
               children: [
                 if (step == 1 && !serverMeal) ...[

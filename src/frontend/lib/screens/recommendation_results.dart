@@ -7,6 +7,9 @@ import '../services/settings.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
+const _allergyNotice =
+    '알레르기 제외는 레시피에 적힌 재료를 기준으로 해요. 조리 전에 실제 재료와 제품 표시를 확인해 주세요.';
+
 class RecommendationResults extends StatelessWidget {
   const RecommendationResults({
     required this.repository,
@@ -33,6 +36,24 @@ class RecommendationResults extends StatelessWidget {
         ? repository.recommendWelfare(profile)
         : <WelfareMatch>[];
     final count = welfare ? services.length : meals.length;
+    final hasAllergyFilter = !welfare && profile.allergies.isNotEmpty;
+    final hasCookingPreference =
+        (profile.softFood || profile.simpleCooking) &&
+        meals.any(
+          (match) => match.softMatch != null || match.simpleMatch != null,
+        );
+    final preferredMeals = hasCookingPreference
+        ? meals
+              .where(
+                (match) => match.softMatch == true || match.simpleMatch == true,
+              )
+              .toList()
+        : const <RecipeMatch>[];
+    final otherMeals = hasCookingPreference
+        ? meals.where(
+            (match) => match.softMatch != true && match.simpleMatch != true,
+          )
+        : meals;
     return Scaffold(
       key: Key(welfare ? 'welfare-results' : 'recipe-results'),
       appBar: AppBar(title: Text(welfare ? '복지 추천 결과' : '식단 추천 결과')),
@@ -74,9 +95,15 @@ class RecommendationResults extends StatelessWidget {
                 Tag(profile.location, color: muted),
                 Tag(profile.livesAlone ? '1인 가구' : '동거 가구', color: muted),
               ] else ...[
-                for (final c in profile.conditions) Tag(c, color: muted),
-                if (profile.softFood) const Tag('부드러운 음식', color: muted),
-                if (profile.simpleCooking) const Tag('간단한 조리', color: muted),
+                if (serverMeals != null) ...[
+                  if (profile.conditions.contains('고혈압'))
+                    const Tag('나트륨 표기량 참고', color: muted),
+                  if (profile.conditions.contains('당뇨'))
+                    const Tag('탄수화물 표기량 참고', color: muted),
+                ] else
+                  for (final c in profile.conditions) Tag(c, color: muted),
+                if (profile.softFood) const Tag('부드러운 음식 우선', color: muted),
+                if (profile.simpleCooking) const Tag('간단한 조리 우선', color: muted),
                 if (profile.allergies.isNotEmpty)
                   Tag('${profile.allergies.join('·')} 제외', color: muted),
               ],
@@ -96,6 +123,13 @@ class RecommendationResults extends StatelessWidget {
               ),
             ],
           ),
+          if (hasAllergyFilter) const Notice(_allergyNotice),
+          if (serverMeals case final recommendations?)
+            for (final warning in recommendations.warnings)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Notice(warning),
+              ),
           if (count == 0) ...[
             const SizedBox(height: 25),
             const Icon(Icons.search_off_rounded, size: 56, color: muted),
@@ -118,13 +152,26 @@ class RecommendationResults extends StatelessWidget {
               child: const Text('추천 조건 다시 확인하기'),
             ),
           ],
-          for (final match in meals)
-            _RecipeCard(match: match, settings: settings),
+          if (hasCookingPreference && preferredMeals.isEmpty)
+            const Notice('선택한 조리 조건에 맞는 메뉴를 찾지 못했어요.'),
+          if (preferredMeals.isNotEmpty) const SectionTitle('조리 조건을 반영한 메뉴'),
+          for (final match in preferredMeals)
+            _RecipeCard(
+              match: match,
+              settings: settings,
+              showAllergyNotice: hasAllergyFilter,
+            ),
+          if (hasCookingPreference && otherMeals.isNotEmpty)
+            const SectionTitle('다른 추천 메뉴'),
+          for (final match in otherMeals)
+            _RecipeCard(
+              match: match,
+              settings: settings,
+              showAllergyNotice: hasAllergyFilter,
+            ),
           for (final match in services) _WelfareCard(match: match),
           const SizedBox(height: 12),
-          if (serverMeals case final recommendations?)
-            for (final warning in recommendations.warnings) Notice(warning)
-          else
+          if (serverMeals == null)
             Notice(
               welfare
                   ? '입력 정보로 관련 제도를 정리했어요. 신청 자격은 각 서비스의 지원대상·선정기준과 담당 기관에서 확인해 주세요.'
@@ -181,9 +228,14 @@ class _RecipeImage extends StatelessWidget {
 }
 
 class _RecipeCard extends StatelessWidget {
-  const _RecipeCard({required this.match, required this.settings});
+  const _RecipeCard({
+    required this.match,
+    required this.settings,
+    required this.showAllergyNotice,
+  });
   final RecipeMatch match;
   final AppSettings settings;
+  final bool showAllergyNotice;
   @override
   Widget build(BuildContext context) {
     final r = match.recipe;
@@ -203,6 +255,7 @@ class _RecipeCard extends StatelessWidget {
                 recipe: r,
                 settings: settings,
                 seasonal: match.seasonal,
+                showAllergyNotice: showAllergyNotice,
               ),
             ),
           ),
@@ -255,6 +308,25 @@ class _RecipeCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 14),
+                    if (match.softMatch == true || match.simpleMatch == true)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (match.softMatch == true) const Tag('부드러운 조리'),
+                          if (match.simpleMatch == true) const Tag('간단한 조리'),
+                        ],
+                      ),
+                    if (match.simpleMatch != true &&
+                        (match.ingredientCount ?? 0) > 0 &&
+                        r.steps.isNotEmpty &&
+                        r.missingStepNumbers.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          '재료 ${match.ingredientCount}가지 · 조리 ${r.steps.length}단계',
+                        ),
+                      ),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -279,15 +351,17 @@ class _RecipeCard extends StatelessWidget {
                     const SizedBox(height: 14),
                     const Row(
                       children: [
-                        Text(
-                          '레시피 자세히 보기',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: green,
+                        Expanded(
+                          child: Text(
+                            '레시피 자세히 보기',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: green,
+                            ),
                           ),
                         ),
-                        Spacer(),
+                        SizedBox(width: 8),
                         Icon(
                           Icons.arrow_forward_rounded,
                           size: 19,
@@ -419,11 +493,13 @@ class RecipeDetail extends StatelessWidget {
     required this.recipe,
     required this.settings,
     this.seasonal = const [],
+    this.showAllergyNotice = false,
     super.key,
   });
   final Recipe recipe;
   final AppSettings settings;
   final List<SeasonalIngredient> seasonal;
+  final bool showAllergyNotice;
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('레시피 살펴보기')),
@@ -451,6 +527,7 @@ class RecipeDetail extends StatelessWidget {
               Tag('$allergen 포함', color: const Color(0xFFAE652F)),
           ],
         ),
+        if (showAllergyNotice) const Notice(_allergyNotice),
         const SectionTitle('영양 정보'),
         Wrap(
           spacing: 10,

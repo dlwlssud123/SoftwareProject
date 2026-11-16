@@ -7,6 +7,7 @@ import 'package:valueflow/data/meal_recommendation_api.dart';
 import 'package:valueflow/data/demo_repository.dart';
 import 'package:valueflow/models/recommendations.dart';
 import 'package:valueflow/screens/profile_form.dart';
+import 'package:valueflow/screens/recommendation_results.dart';
 import 'package:valueflow/services/settings.dart';
 
 void main() {
@@ -57,6 +58,9 @@ void main() {
                           'recipe_id': '1',
                           'name': '쌀죽',
                           'ingredients_text': '쌀 100g',
+                          'ingredients': [
+                            {'name': '쌀'},
+                          ],
                           'steps': [
                             {'no': 1, 'text': '끓인다'},
                           ],
@@ -65,6 +69,7 @@ void main() {
                           'images': {'small': null},
                         },
                         'reasons': ['이달의 식재료가 들어 있어요.'],
+                        'matched_preferences': ['soft_food', 'simple_cooking'],
                         'seasonal_ingredients': [
                           {
                             'name': '쌀',
@@ -109,6 +114,9 @@ void main() {
       expect(item.recipe.calories, isNull);
       expect(item.recipe.protein, 3);
       expect(item.recipe.steps, ['1. 끓인다']);
+      expect(item.softMatch, isTrue);
+      expect(item.simpleMatch, isTrue);
+      expect(item.ingredientCount, 1);
       expect(item.seasonal.single.shoppingUrl!.host, 'www.coupang.com');
       expect(result.warnings.single, '공개 표기량을 확인해 주세요.');
     },
@@ -157,10 +165,92 @@ void main() {
     );
     expect(find.byType(TextFormField), findsNothing);
     expect(find.byKey(const Key('profile-next')), findsNothing);
+    final allergyButton = find.byKey(const Key('meal-allergy-settings'));
+    expect(allergyButton.hitTestable(), findsOneWidget);
+    expect(find.text('달걀 제외'), findsOneWidget);
+    await tester.tap(allergyButton);
+    await tester.pumpAndSettle();
+    expect(find.text('알레르기 설정'), findsOneWidget);
+    await tester.tap(find.text('우유'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('취소'));
+    await tester.pumpAndSettle();
+    expect(find.text('달걀 제외'), findsOneWidget);
     await tester.tap(find.byKey(const Key('recommend-submit')));
     await tester.pumpAndSettle();
     expect(find.text('추천 점심 레시피'), findsOneWidget);
     expect(find.text('0세'), findsNothing);
+    expect(find.textContaining('제품 표시를 확인'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'results show warnings first and group matching cooking options',
+    (tester) async {
+      const recipe = Recipe(
+        id: '1',
+        name: '두부찜',
+        ingredients: '두부 100g',
+        steps: ['1. 찐다'],
+        calories: null,
+        sodium: null,
+        protein: null,
+        carbs: null,
+        fat: null,
+        method: '찌기',
+        allergens: {},
+        soft: false,
+        fromServer: true,
+      );
+      const chosenMatch = RecipeMatch(
+        recipe,
+        ['재료 1가지, 조리 1단계예요.'],
+        simpleMatch: true,
+        softMatch: true,
+        ingredientCount: 1,
+      );
+      const otherMatch = RecipeMatch(
+        recipe,
+        ['다른 추천 이유'],
+        simpleMatch: false,
+        softMatch: false,
+        ingredientCount: 1,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RecommendationResults(
+            repository: const DemoRepository([], []),
+            settings: AppSettings(),
+            time: MealTime.lunch,
+            profile: const UserProfile(
+              name: '',
+              age: 0,
+              gender: '',
+              region: '',
+              district: '',
+              conditions: {'고혈압'},
+              simpleCooking: true,
+              softFood: true,
+            ),
+            serverMeals: const MealRecommendations(
+              [otherMatch, chosenMatch],
+              ['기준 분량 확인 필요'],
+            ),
+          ),
+        ),
+      );
+      final warning = find.text('기준 분량 확인 필요');
+      final preferred = find.text('조리 조건을 반영한 메뉴');
+      expect(
+        tester.getTopLeft(warning).dy,
+        lessThan(tester.getTopLeft(preferred).dy),
+      );
+      expect(find.text('나트륨 표기량 참고'), findsOneWidget);
+      expect(find.text('부드러운 조리'), findsOneWidget);
+      final other = find.text('다른 추천 메뉴');
+      await tester.scrollUntilVisible(other, 250);
+      expect(other.hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

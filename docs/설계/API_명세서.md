@@ -159,7 +159,7 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 ### 식단 추천
 
-`POST /api/v1/meal/recommendations`에는 게스트 또는 사용자 Bearer 세션이 필요하다. 요청은 `meal_time`과 선택 항목인 `exclude_allergens`, `exclude_ingredients`, `health_conditions`(`hypertension`, `diabetes`), `soft_food`, `limit`를 받는다. 계정에 저장된 제외 조건은 요청 조건과 합친다. 현재 공개된 레시피를 대상으로 제외 조건을 먼저 적용하고, 선호 재료, 시간대, 본인의 최근 7일 섭취 기록과 메뉴 유형 다양성을 반영한다.
+`POST /api/v1/meal/recommendations`에는 게스트 또는 사용자 Bearer 세션이 필요하다. 현재 공개된 레시피에 요청과 계정의 제외 조건을 먼저 적용하고, 부드러운 음식·간단한 조리를 선택하면 일치한 조리 조건 수가 많은 메뉴를 우선한다. 그 안에서 선호 재료, 시간대, 최근 섭취·추천 이력, 메뉴 유형 다양성 등을 반영한다. `items[].matched_preferences`는 해당 메뉴가 충족한 `soft_food`·`simple_cooking`을 알려 준다. 죽·미음, 일부 찜, 갈거나 으깨서 거른 수프를 부드러운 조리로 분류한다. 간단한 조리는 재료 1~6개와 누락 없는 조리 단계 1~4개를 기준으로 한다. 건강 조건은 1인분 분량이 확인되지 않은 공개 나트륨·탄수화물 수치의 후보 간 비교에만 사용한다.
 
 요청의 `preferred_ingredients`는 저장 프로필의 선호 재료와 함께 반영한다. `simple_cooking=true`이면 재료 6개 이하이고 누락된 중간 단계 없이 조리 1~4단계로 구성된 메뉴에 가점을 준다. 최근 섭취 기록은 식품 ID와 재료명으로 비교하고, 같은 시간대의 최근 2일 내 결과가 있었던 직전 2회에서 상위 3개로 제시한 메뉴는 순위를 낮춘다. 제외 조건은 항상 순위 계산 전에 적용한다.
 
@@ -217,7 +217,7 @@ DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세와 �
 | --- | --- | --- |
 | `GET /recipes` | `limit=20`(1~100), `offset=0`(0~10000), 선택 `q`·`category`·`cooking_method`·반복 `exclude_allergens` | `items[]`, `limit`, `offset`, `total` |
 | `GET /recipes/{recipe_id}` | COOKRCP01 원천 ID 문자열, 예 `108` | `RecipeRecord` |
-| `POST /meal/recommendations` | 필수 `meal_time`(`breakfast/lunch/dinner/snack`), 선택 `exclude_allergens=[]`·`exclude_ingredients=[]`·`health_conditions=[]`·`soft_food=false`·`limit=5`(1~20) | `recommendation_id`, `items[].item`·`reasons[]`·`seasonal_ingredients[]`, `evaluated_at`, `rules_version`, `warnings[]` |
+| `POST /meal/recommendations` | 필수 `meal_time`(`breakfast/lunch/dinner/snack`), 선택 `exclude_allergens=[]`·`exclude_ingredients=[]`·`preferred_ingredients=[]`·`health_conditions=[]`·`soft_food=false`·`simple_cooking=false`·`limit=5`(1~20) | `recommendation_id`, `items[].item`·`reasons[]`·`seasonal_ingredients[]`·`matched_preferences[]`, `evaluated_at`, `rules_version`, `warnings[]` |
 | `GET /welfare` | `limit`·`offset`·선택 `q`, 선택 `scope`(`central_nationwide`/`local`, 없으면 둘 다), 선택 `region`·`district`(`district`는 `region`과 함께) | 같은 페이지 구조의 `WelfareRecord` |
 | `GET /welfare/{service_id}` | 원천 ID 문자열, 예 `WLF00000060` | `WelfareRecord` |
 | `POST /welfare/recommendations` | 필수 `age`(0~120)·`region`(1~50자), 선택 `district`·`lives_alone`·`limit=5`(1~20) | 같은 추천 구조의 `WelfareRecord` |

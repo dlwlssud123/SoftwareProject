@@ -111,6 +111,9 @@ class MealRecommendationApi {
     final nutrition = _object(item['nutrition']);
     final allergens = _object(item['allergens']);
     final image = _object(item['images'])['small'];
+    final preferences = json['matched_preferences'] == null
+        ? null
+        : _strings(json['matched_preferences']);
     return RecipeMatch(
       Recipe(
         id: _string(item['recipe_id']),
@@ -134,6 +137,9 @@ class MealRecommendationApi {
         imageUrl: _httpsUrl(image)?.toString(),
       ),
       _strings(json['reasons']),
+      softMatch: preferences?.contains('soft_food'),
+      simpleMatch: preferences?.contains('simple_cooking'),
+      ingredientCount: _list(item['ingredients'] ?? const []).length,
       seasonal: [
         for (final entry in _list(json['seasonal_ingredients'] ?? const []))
           _seasonal(_object(entry)),

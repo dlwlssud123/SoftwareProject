@@ -2,6 +2,8 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
 
+from agetech_data.recipes.contract import to_api_record
+from agetech_data.recipes.validate import check_recipe
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from test_auth import guest
@@ -21,6 +23,9 @@ from app.models import (
     SeasonalFood,
     SeasonalRecipeLink,
 )
+from app.schemas.catalog import RecipeRecommendationRequest, RecipeRecord
+from app.schemas.profile import Preferences
+from app.services.meal_recommendations import recommend
 
 PATH = "/api/v1/meal/recommendations"
 
@@ -28,6 +33,49 @@ PATH = "/api/v1/meal/recommendations"
 def test_recommendations_require_a_session(client):
     response = client.post(PATH, json={"meal_time": "lunch"})
     assert response.status_code == 401
+
+
+def test_cooking_preferences_get_priority_and_only_label_matching_recipes():
+    def record(recipe_id, name, method, ingredients, steps):
+        row = {
+            "RCP_SEQ": recipe_id,
+            "RCP_NM": name,
+            "RCP_PAT2": "일품",
+            "RCP_WAY2": method,
+            "RCP_PARTS_DTLS": ingredients,
+            **{f"MANUAL{no:02}": f"{no}. 재료를 익힌다." for no in steps},
+        }
+        return RecipeRecord.model_validate(to_api_record(check_recipe(row), row, None))
+
+    recipes = [
+        record("1", "오이 양념 볶음", "볶기", "오이 100g", [1, 3]),
+        record("2", "달걀찜", "찌기", "달걀 100g", [1, 2]),
+        record("3", "오이전", "굽기", "오이 100g", [1, 2]),
+        record("4", "새우죽", "끓이기", "새우 50g, 쌀 100g", [1, 2, 3, 4, 5]),
+        record("5", "오이 반죽", "기타", "오이 100g", [1, 2, 3, 4, 5]),
+    ]
+    soup = record("6", "호박 수프", "끓이기", "호박 100g", [1, 2])
+    soup.steps[1].text = "삶은 호박을 믹서에 넣어 곱게 간다."
+    recipes.append(soup)
+    payload = RecipeRecommendationRequest(
+        meal_time="lunch",
+        soft_food=True,
+        simple_cooking=True,
+        preferred_ingredients=["오이"],
+        limit=6,
+    )
+    ranked = recommend(recipes, payload, Preferences(), [], {}, [], set())
+    assert [
+        (match.record.recipe_id, match.soft_match, match.simple_match)
+        for match in ranked
+    ] == [
+        ("2", True, True),
+        ("6", True, True),
+        ("3", False, True),
+        ("4", True, False),
+        ("1", False, False),
+        ("5", False, False),
+    ]
 
 
 def test_recommendations_use_own_profile_and_confirmed_history(
@@ -100,7 +148,7 @@ def test_recommendations_use_own_profile_and_confirmed_history(
         assert response.status_code == 200
         assert response.headers["Cache-Control"] == "no-store"
         data = response.json()["data"]
-        assert data["rules_version"] == "meal-rules-3"
+        assert data["rules_version"] == "meal-rules-4"
         run_id = UUID(data["recommendation_id"])
         run = db.get(RecommendationRun, run_id)
         assert run.user_id == UUID(user["user_id"])
@@ -204,6 +252,7 @@ def test_recommendations_use_own_profile_and_confirmed_history(
         assert first_choice["item"]["recipe_id"] == "3"
         assert "좋아하는 재료 두부가 들어 있어요." in first_choice["reasons"]
         assert "재료 1가지, 조리 1단계예요." in first_choice["reasons"]
+        assert first_choice["matched_preferences"] == ["simple_cooking"]
         excluded = client.post(
             PATH,
             json={**other_payload, "exclude_allergens": ["대두"]},

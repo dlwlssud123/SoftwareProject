@@ -1733,6 +1733,17 @@
             },
             "type": "array",
             "title": "Seasonal Ingredients"
+          },
+          "matched_preferences": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "soft_food",
+                "simple_cooking"
+              ]
+            },
+            "type": "array",
+            "title": "Matched Preferences"
           }
         },
         "additionalProperties": false,

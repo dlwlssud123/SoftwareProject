@@ -113,10 +113,19 @@ class Recipe {
 }
 
 class RecipeMatch {
-  const RecipeMatch(this.recipe, this.reasons, {this.seasonal = const []});
+  const RecipeMatch(
+    this.recipe,
+    this.reasons, {
+    this.seasonal = const [],
+    this.softMatch,
+    this.simpleMatch,
+    this.ingredientCount,
+  });
   final Recipe recipe;
   final List<String> reasons;
   final List<SeasonalIngredient> seasonal;
+  final bool? softMatch, simpleMatch;
+  final int? ingredientCount;
 }
 
 class SeasonalIngredient {
