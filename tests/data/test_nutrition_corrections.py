@@ -78,6 +78,38 @@ def test_corrections_file_shape():
     keys = Counter((c["food_code"], c["field"]) for c in entries)
     assert max(keys.values()) == 1                     # 같은 식품·필드에 보정이 둘이면 안 됨
     assert all(c["from"] != c["to"] for c in entries)
+    assert all(c.get("kind") in (None, "fill_missing") for c in entries)
+
+
+def _fill(rec, to=50.0, **kw):
+    return {**_c(rec, "nutrients.sodium_mg", None, to), "kind": "fill_missing", **kw}
+
+
+def test_fill_missing_only_where_the_source_is_blank(foods):
+    r = foods[G_ROW]
+    r.nutrients["sodium_mg"] = None                    # 원천에 측정값이 없는 성분
+    assert apply_corrections([r], [_fill(r)])[0]["status"] == "applied"
+    assert r.nutrients["sodium_mg"] == 50.0
+    assert "filled" in r.quality_flags and "corrected" not in r.quality_flags
+    assert r.corrections[0]["kind"] == "fill_missing" and r.corrections[0]["from"] is None
+
+
+def test_fill_goes_stale_once_the_source_has_a_value(foods):
+    r = foods[G_ROW]
+    measured = r.nutrients["sodium_mg"]
+    assert measured is not None                        # 원천이 나중에 값을 내면 원천 값이 우선
+    assert apply_corrections([r], [_fill(r)])[0]["status"] == "stale"
+    assert r.nutrients["sodium_mg"] == measured and "correction_stale" in r.quality_flags
+
+
+@pytest.mark.parametrize("change", [{"from": 12.0}, {"field": "basis_text", "to": "100g"}, {"to": -1.0},
+                                   {"to": "많음"}, {"kind": "guess"}])
+def test_fill_entries_are_checked_on_load(tmp_path, foods, change):
+    path = tmp_path / "food_corrections.json"
+    path.write_text(json.dumps({"corrections": [{**_fill(foods[G_ROW]), **change}]}, ensure_ascii=False),
+                    encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_corrections(path)
 
 
 def test_source_identity_ignores_only_response_sequence(nutrition_sample):
@@ -112,7 +144,12 @@ def test_real_corrections_all_apply():
     by = {r.food_code: r for r in recs}
     for c in load_corrections():
         r = by[c["food_code"]]
-        assert r.name == c["food_name"] and "corrected" in r.quality_flags
+        flag = "filled" if c.get("kind") == "fill_missing" else "corrected"
+        assert r.name == c["food_name"] and flag in r.quality_flags
+        if c.get("kind") == "fill_missing":
+            # 빈 값 채우기: 원천은 비어 있고, 같은 DB의 같은 식품 행에서 근거를 댄 값
+            assert c["from"] is None and r.nutrients[c["field"].split(".", 1)[1]] == c["to"]
+            assert "같은 식품의약품안전처 식품영양성분DB" in c["evidence"]
         if c["field"] == "basis_text":
             # 분말 기준량 보정: 고친 뒤 성분 합이 기준량(100g)과 맞아야 한다
             n = r.nutrients

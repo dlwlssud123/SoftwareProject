@@ -29,6 +29,7 @@ FOOD_FLAGS: dict[str, str] = {
     "energy_macro_mismatch": "4·4·9 환산 열량과 표기 에너지 차이 35% 초과(참고)",
     "same_name_multiple_rows": "같은 식품명이 여러 행(식품코드 계열·기준량 단위가 다름)",
     "corrected": "근거가 있는 원천 오류를 보정표로 고침(원래 값은 corrections)",
+    "filled": "원천에 측정값이 없는 성분을 같은 DB의 같은 식품 행에서 채움(추정 — 근거는 corrections)",
     "correction_stale": "보정표 항목이 지금 원천과 맞지 않아 적용하지 않음(원천 변경 — 다시 확인 필요)",
 }
 
