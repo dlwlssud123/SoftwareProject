@@ -48,9 +48,8 @@ def downgrade() -> None:
             f"ck_recipe_computed_{column}", "recipe_computed_nutrition", type_="check"
         )
         op.drop_column("recipe_computed_nutrition", column)
-    # Rows written by mapper v6 hash the dropped values; mark them stale so an older
-    # map_recipe_foods --apply rewrites them instead of trusting the stored hash.
+    # Rows written by mapper v6 or later hash the dropped values; mark every row stale so an
+    # older map_recipe_foods --apply rewrites them instead of trusting the stored hash.
     op.execute(
-        "UPDATE recipe_computed_nutrition SET mapping_sha256 = 'stale:20261117_01' "
-        "WHERE mapper_version = 'recipe-food-map-v6'"
+        "UPDATE recipe_computed_nutrition SET mapping_sha256 = 'stale:20261117_01'"
     )
