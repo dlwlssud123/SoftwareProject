@@ -159,7 +159,7 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 ### 식단 추천
 
-`POST /api/v1/meal/recommendations`에는 게스트 또는 사용자 Bearer 세션이 필요하다. 현재 공개된 레시피에 요청과 계정의 제외 조건을 먼저 적용하고, 부드러운 음식·간단한 조리를 선택하면 일치한 조리 조건 수가 많은 메뉴를 우선한다. 그 안에서 선호 재료, 시간대, 최근 섭취·추천 이력, 메뉴 유형 다양성 등을 반영한다. `items[].matched_preferences`는 해당 메뉴가 충족한 `soft_food`·`simple_cooking`을 알려 준다. 죽·미음, 일부 찜, 갈거나 으깨서 거른 수프를 부드러운 조리로 분류한다. 간단한 조리는 재료 1~6개와 누락 없는 조리 단계 1~4개를 기준으로 한다. 건강 조건은 1인분 분량이 확인되지 않은 공개 나트륨·탄수화물 수치의 후보 간 비교에만 사용한다.
+`POST /api/v1/meal/recommendations`에는 게스트 또는 사용자 Bearer 세션이 필요하다. 현재 공개된 레시피에 요청과 계정의 제외 조건을 먼저 적용하고, 부드러운 음식·간단한 조리를 선택하면 일치한 조리 조건 수가 많은 메뉴를 우선한다. 그 안에서 선호 재료, 시간대, 최근 섭취·추천 이력, 메뉴 유형 다양성 등을 반영한다. `items[].matched_preferences`는 해당 메뉴가 충족한 `soft_food`·`simple_cooking`을 알려 준다. 죽·미음, 일부 찜, 갈거나 으깨서 거른 수프를 부드러운 조리로 분류한다. 간단한 조리는 재료 1~6개와 누락 없는 조리 단계 1~4개를 기준으로 한다. 건강 조건은 재료로 계산한 영양의 분량과 상관없는 값(`computed_nutrition.density` — 고혈압은 1,000 kcal당 나트륨 `sodium_mg_per_1000kcal`, 당뇨는 열량 중 탄수화물 비율 `carbohydrate_energy_pct`, [영양 정의서](../data/food_nutrition_contract.md) 3.2)으로 후보끼리 비교해, 후보 중앙값보다 낮은 메뉴에 가산하고 이유를 붙인다(`meal-rules-5`). 값이 없는 레시피(매핑 전·일부 재료만 계산)는 비교에서 뺀다. 원천 1인분 표기값(`nutrition`)은 몇 인분 기준인지 근거가 없어 쓰지 않는다.
 
 요청의 `preferred_ingredients`는 저장 프로필의 선호 재료와 함께 반영한다. `simple_cooking=true`이면 재료 6개 이하이고 누락된 중간 단계 없이 조리 1~4단계로 구성된 메뉴에 가점을 준다. 최근 섭취 기록은 식품 ID와 재료명으로 비교하고, 같은 시간대의 최근 2일 내 결과가 있었던 직전 2회에서 상위 3개로 제시한 메뉴는 순위를 낮춘다. 제외 조건은 항상 순위 계산 전에 적용한다.
 
@@ -224,7 +224,7 @@ DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세와 �
 
 모든 경로에는 `/api/v1` 접두사를 붙인다. `q`는 1~100자다. 알레르기는 데이터 계약의 19종 이름을 사용하고 앱의 `달걀`을 `알류`로 매핑한다. 배열 쿼리는 `?exclude_allergens=알류&exclude_allergens=우유`처럼 같은 키를 반복한다. JSON은 snake_case, 알 수 없는 요청 필드는 422다. 제외 재료는 항목당 1~100자·최대 30개다. 정렬은 원천 ID 오름차순을 기본으로 하고, 조회 구현 시 같은 필터의 `total`·페이지 일관성을 시험한다.
 
-레시피 응답은 [데이터 담당 계약](../data/recipe_contract.md)의 재료·단계·알레르기 근거·품질 필드를 그대로 보존한다. 누락 영양값은 `null`이며 0으로 채우지 않는다. `_g`는 g, `_mg`는 mg, `_kcal`는 kcal지만 `basis=per_serving_unverified`여서 g당/1인분 확정 계산으로 쓰지 않는다. `hold`는 목록/추천에서 제외하고 알레르기의 `detected`와 `needs_check.candidates` 모두 필터 대상으로 삼는다. `complete=false`를 안전 확인 완료로 표시하지 않는다. `quality.issues[].detail`은 구조화된 JSON 객체다.
+레시피 응답은 [데이터 담당 계약](../data/recipe_contract.md)의 재료·단계·알레르기 근거·품질 필드를 그대로 보존한다. 누락 영양값은 `null`이며 0으로 채우지 않는다. `_g`는 g, `_mg`는 mg, `_kcal`는 kcal지만 `basis=per_serving_unverified`여서 g당/1인분 확정 계산으로 쓰지 않는다. 재료로 계산한 영양은 `computed_nutrition`에 따로 싣는다([영양 정의서](../data/food_nutrition_contract.md) 3.4): 재료 목록 전체 합계 `total`(`basis=whole_recipe`), 재료 원문에 'N인분'이 있을 때만 `per_serving`, 비교 값 `density`, 화면 안내 `notices[]`(`label`을 그대로 표시). 지금 판본이 아직 식품 매핑 전이면 `null`이다. 화면은 `per_serving`이 있으면 1인분, 없으면 "레시피 전체(재료 기준)"로 `total`을 보여 주고, `nutrition`을 함께 보여 줄 때는 "원문 표기"로 구분한다. `hold`는 목록/추천에서 제외하고 알레르기의 `detected`와 `needs_check.candidates` 모두 필터 대상으로 삼는다. `complete=false`를 안전 확인 완료로 표시하지 않는다. `quality.issues[].detail`은 구조화된 JSON 객체다.
 
 복지는 지원 대상·선정 기준·지원 내용·신청 안내·문의처를 구분한다. `application[].method/description`과 `contacts[].name/contact`는 XML의 `servSeDetailNm/servSeDetailLink`를 옮긴 표시 필드이며, `description/contact`가 반드시 URL이라는 뜻은 아니다. 사업은 중앙(`scope=central_nationwide`, `region_scope=national`)과 지자체(`scope=local`)로 나뉘고, 지자체는 `region_scope`가 `province`(시도 전체, `sgg=null`) 또는 `district`이며 `ctpv`·`sgg`는 정규화한 시도·시군구 이름이다([복지 데이터 계약](../data/welfare_contract.md) 2·3절, DB는 `welfare_revisions.normalized`). `region`·`district`를 주면 내 시군구 사업 → 내 시도 전체 사업 → 전국 사업 순이며, 지역 입력은 줄임말·옛 이름을 데이터 계약의 `services_for`와 같은 규칙으로 해석한다. 신청 기간이 확인되지 않은 중앙 사업은 `application_status=unknown`을 유지한다. 수집 대기·게시 보류 자료를 정상 추천으로 노출하지 않는다. 신청 가능 여부·수급 자격 확정 결과를 만들어 넣지 않는다.
 

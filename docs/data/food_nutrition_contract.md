@@ -139,6 +139,7 @@ g 대신 0으로 치는 구획 규칙(`excluded`): 구획 이름에 '선택'이 
 - **비우는 경우(null)**: `coverage.complete`가 아니거나, 열량이 없거나 0이거나, 그 성분 값이 DB에 없는 재료가 있을 때(`computed_missing`에 그 성분 — 합계가 부분값). 부분값으로 순위를 매기지 않으려는 것이다. 11/17 파일 기준 1,156건 중 완전 계산 1,152건 모두 네 값이 다 있다(나트륨이 빈 식품 25종을 채운 뒤 — 2.1 빈 값 채우기, 채운 값이 들어간 레시피는 `coverage.filled_items`로 '추정 포함').
 - 열량 기준이라 국처럼 물이 많은 음식도 묽어지지 않는다(100 g당이면 국은 오히려 싱겁게 나옴). 분류별 나트륨 밀도 중앙값: 국·찌개 약 3,000 · 반찬 약 1,150 · 밥·일품 약 990 · 후식 약 280 mg/1,000 kcal. 열량이 아주 적은 음식(나물·김치·국 — 60 kcal 미만 71건)은 값이 크게 나온다(최대 약 75,000). 실제로 열량에 비해 나트륨이 많은 음식이라 순위로는 맞다.
 - **기준값은 데이터가 정하지 않는다.** 몇 이하를 '낮다'로 볼지는 쓰는 쪽(추천·화면)이 최신 한국인 영양소 섭취기준으로 정한다. 예: 탄수화물 에너지적정비율 55~65%(2020 기준), 나트륨은 하루 목표량 ÷ 하루 에너지 필요량으로 1,000 kcal당 값을 만들어 비교.
+- **식단 추천에서 쓰는 곳(2026-11-18, `meal-rules-5`)**: 고혈압은 `sodium_mg_per_1000kcal`, 당뇨는 `carbohydrate_energy_pct`가 후보 중앙값보다 낮은 메뉴에 가산한다(값이 null인 레시피는 비교에서 뺌). 그전(`meal-rules-4`)에는 원천 1인분 표기값(`INFO_NA`·`INFO_CAR`)을 비교했다.
 - 레시피 하나의 영양을 보여 줄 때는 여전히 `computed`(재료 목록 전체 합)와 `complete`를 쓴다. `density`는 **비교·정렬용**이다.
 
 ### 3.3 부피로 적은 재료의 무게 (`unit_weight`, 계산기 `recipe-food-map-v8`)
@@ -196,17 +197,7 @@ g 대신 0으로 치는 구획 규칙(`excluded`): 구획 이름에 '선택'이 
 }
 ```
 
-서버에 붙이는 법(API 코드는 백엔드 담당이 정함 — 데이터 쪽 제안):
-
-```python
-# 응답 스키마: RecipeRecord 에 computed_nutrition: RecipeComputedNutrition | None = None
-# 조회: 레시피 목록·상세 쿼리에 뷰를 붙이고(LEFT JOIN, 지금 판본 기준) 행을 블록으로 바꿈
-from agetech_data.nutrition.api import computed_nutrition_block
-row = db.execute(text("SELECT * FROM recipe_nutrition_active WHERE recipe_revision_id = :rid"),
-                 {"rid": revision.id}).mappings().first()
-record["computed_nutrition"] = (computed_nutrition_block(row, record["nutrition"]["ingredient_servings"])
-                                if row else None)
-```
+**서버 연결(2026-11-18)**: 레시피 목록·상세·식단 추천 응답의 `RecipeRecord.computed_nutrition`(응답 모델 `ComputedNutrition`, `app/schemas/catalog.py`). `app/api/recipes.py`의 `active_recipes()`가 지금 판본의 `recipe_computed_nutrition` 행을 LEFT JOIN하고(뷰와 같은 행 — 시험에서 뷰 행으로 만든 블록과 같음을 확인), `recipe_record()`가 `computed_nutrition_block(행, nutrition.ingredient_servings)`로 바꾼다. 새 판본이 들어와 아직 매핑 전이면 옛 판본 값을 보여 주지 않고 `null`이다. 키·안내 코드가 이 표와 어긋나면 백엔드 시험(`test_computed_nutrition_schema_matches_the_data_block`)이 실패한다. 식단 추천의 건강 조건 비교는 이 블록의 `density`를 쓴다(3.2, API 명세서 '식단 추천').
 
 ## 4. 코드에서 쓰는 함수 (서버 연동용)
 
