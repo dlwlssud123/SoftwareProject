@@ -19,8 +19,12 @@
   HTML 태그: 원문에 그대로 온 <br>·<br />·<strong> 은 줄바꿈, </strong> 은 지움 (2026-11 수집본 27건)
   줄 중간 구획: 쉼표·줄바꿈 없이 이어진 "… 9g [소스소개] 소스:양파 6g", "… 소금 0.5g - 양념장 : 고추 10g",
         "… 설탕 5g 된장소스:된장 1g" 은 그 자리에서 새 구획으로 나눈다 (ingredient_section_mid_line)
-  쉼표 빠짐: 단위 있는 분량 바로 뒤에 다음 재료가 이어진 "떡볶이떡 40g 고추장 8g", "레드와인 200cc. 망고 50g" 은
-        분량 뒤에서 나눈다 (ingredient_comma_missing). 크기 표기 "양파 1cm 정사각형 14g" 은 나누지 않는다
+  쉼표 빠짐: 단위 있는 분량 바로 뒤에 다음 재료가 이어진 "떡볶이떡 40g 고추장 8g", "레드와인 200cc. 망고 50g",
+        "새우(4마리) 고추기름(1Ts)", '+'로 이은 "플레인 요거트(2Ts) + 꿀(1Ts)" 은 분량 뒤에서 나눈다
+        (ingredient_comma_missing). 크기 표기 "양파 1cm 정사각형 14g" 은 나누지 않는다
+  분량 붙은 구획 머리말: "- 육수(100g) : 조개(30g), 다시마(10g)" 은 '육수(100g)' 구획 (ingredient_section_amount)
+  분량 글자 안에 남은 재료: 위 규칙으로도 못 나눈 "마늘(20g)m 적양배추(20g)" 은 그대로 두고 경고
+        (ingredient_item_in_amount — 붙은 재료가 계산에서 빠지므로 원문 확인·보완표 대상)
 """
 
 from __future__ import annotations
@@ -50,6 +54,10 @@ _FRAC = "½⅓⅔¼¾⅕⅛"
 _NUM = rf"(?:\d+(?:\.\d+)?(?:\s*/\s*\d+)?[{_FRAC}]?|[{_FRAC}])"
 _UNIT = "|".join(sorted(map(re.escape, UNITS), key=len, reverse=True))
 _AMOUNT_RE = re.compile(rf"(?P<num>{_NUM})\s*(?P<unit>{_UNIT})?")
+# 단위 목록에 없는 영문 계량 약자 '(1Ts)'·'1/2ts'·'1T' (2026-11 새 형식). 재료 경계를 찾을 때만 단위로 보고
+# 분량 칸(unit)은 그대로 둔다 — g 환산은 영양 쪽(nutrition.units)이 따로 읽는다
+_SPOON_ABBR = r"(?:Tbsp|tsp|Ts|ts|T|t)(?![A-Za-z])"
+_SPOON_AMOUNT_RE = re.compile(rf"{_NUM}\s*{_SPOON_ABBR}")
 _QUAL_RE = re.compile("|".join(map(re.escape, QUALITATIVE)))
 _BULLET_RE = re.compile(r"^[●•·▶■◆□○◎※★☆▣►]\s*")
 _SERVING_RE = re.compile(r"^\[[^\]]*인분[^\]]*\]\s*")
@@ -63,6 +71,12 @@ _SEC_NAME = r"[^\s\d,()\[\]:：*\-.·>][^\d,()\[\]:：]{0,19}?(?:\(\d+\s*인분\
 _SEC_HEAD_RE = re.compile(rf"^[-*·\s]*(?P<sec>{_SEC_NAME})\s*$")                     # ", - 멸치견과류쌈장 :"
 _ITEM_SEC_HEAD_RE = re.compile(rf"^(?P<item>.*?\S)(?P<sep>\s+[-*]?\s*)(?P<sec>{_SEC_NAME})\s*$")  # "소금 0.5g - 양념장 :"
 _NO_SPLIT_UNITS = {"cm"}                   # "양파 1cm 정사각형 14g": 크기 표기 뒤는 다음 재료가 아님
+# 콜론 앞 구획 이름에 그 구획 전체 분량이 붙은 "- 육수(100g) : 조개(30g), …" (RCP_SEQ 452)
+_AMOUNT_HEAD_RE = re.compile(rf"[^\d()\[\]:：,]{{1,19}}?\s*\(\s*{_NUM}\s*(?:{_UNIT})?\s*\)")
+# 분량 글자 안에 붙어 남은 다른 재료 "…(20g)m 적양배추(20g)": 괄호 밖에서 시작하는 이름 + 단위 있는 분량
+_HIDDEN_ITEM_RE = re.compile(
+    rf"(?<![가-힣A-Za-z\d])(?P<name>[가-힣][가-힣A-Za-z ]{{0,15}}?)\s*\(?\s*{_NUM}\s*(?:{_UNIT}|{_SPOON_ABBR})"
+)
 # 구획 머리말 뒤 구분자: 콜론, 또는 양옆이 공백인 '>' (2026-11 새 형식 "주재료 > 달걀흰자 180g", 10건)
 _HEAD_SPLIT_RE = re.compile(r"\s*[:：]\s*|\s+>\s+")
 _MARKUP_CLOSE_RE = re.compile(r"<\s*/\s*strong\s*>", re.I)
@@ -303,34 +317,57 @@ def _mid_line_cuts(line: str) -> list[int]:
     return sorted(cuts)
 
 
-def _split_glued(item: str) -> list[str]:
-    """쉼표가 빠져 붙은 재료를 나눈다: '떡볶이떡 40g 고추장 8g' → ['떡볶이떡 40g', '고추장 8g'].
+def _has_unit(p: dict) -> bool:
+    """분량에 단위가 있는가. 단위 목록에 없는 영문 계량 약자('(1Ts)')도 단위로 본다."""
+    return bool(p["unit"]) or bool(_SPOON_AMOUNT_RE.match(p["amount_text"].lstrip("( ")))
 
-    앞 재료가 단위 있는 숫자 분량이고(크기 'cm' 제외), 그 분량(과 바로 뒤 괄호) 다음에 공백·마침표를 두고
-    숫자 없는 이름 + 단위 있는 숫자 분량이 올 때만 나눈다. 원문 조각은 고치지 않고 자르기만 한다.
-    """
-    p = parse_item(item)
-    if p["amount_kind"] != "measured" or not p["unit"] or p["unit"] in _NO_SPLIT_UNITS:
-        return [item]
+
+def _amount_end(p: dict) -> int:
+    """분량 글자(amount_text)에서 첫 분량(과 바로 뒤 괄호)이 끝나는 위치."""
     amount_text = p["amount_text"]
     if p["amount_format"] == "name_amount":
-        m = _AMOUNT_RE.match(amount_text)
+        m = _SPOON_AMOUNT_RE.match(amount_text) or _AMOUNT_RE.match(amount_text)
         end = m.end() if m else len(amount_text)
         if amount_text[end:end + 1] == "(":
             groups, _, _ = _paren_scan(amount_text[end:])
             end += groups[0][1] if groups else len(amount_text) - end
-    else:
-        groups, _, _ = _paren_scan(amount_text)
-        end = groups[0][1] if groups else len(amount_text)
-    m = re.match(r"(?:\.\s*|\s+|(?=[가-힣]))(?P<next>[가-힣].*)$", amount_text[end:])
+        return end
+    groups, _, _ = _paren_scan(amount_text)
+    return groups[0][1] if groups else len(amount_text)
+
+
+def _split_glued(item: str) -> list[str]:
+    """쉼표가 빠져 붙은 재료를 나눈다: '떡볶이떡 40g 고추장 8g' → ['떡볶이떡 40g', '고추장 8g'].
+
+    앞 재료가 단위 있는 숫자 분량이고(크기 'cm' 제외), 그 분량(과 바로 뒤 괄호) 다음에 공백·마침표·'+'를 두고
+    숫자 없는 이름 + 단위 있는 숫자 분량이 올 때만 나눈다. 원문 조각은 고치지 않고 자르기만 한다
+    ('+'는 앞 조각에 붙지 않고 떨어져 나간다 — 재료가 아니다).
+    """
+    p = parse_item(item)
+    if p["amount_kind"] != "measured" or not _has_unit(p) or p["unit"] in _NO_SPLIT_UNITS:
+        return [item]
+    amount_text = p["amount_text"]
+    end = _amount_end(p)
+    m = re.match(r"(?:\.\s*|\s*\+\s*|\s+|(?=[가-힣]))(?P<next>[가-힣].*)$", amount_text[end:])
     if not m:
         return [item]
     nxt = m.group("next")
     q = parse_item(nxt)
-    if q["amount_kind"] != "measured" or not q["unit"] or not q["name_raw"] or re.search(r"\d", q["name_raw"]):
+    if q["amount_kind"] != "measured" or not _has_unit(q) or not q["name_raw"] or re.search(r"\d", q["name_raw"]):
         return [item]
     head = item[:len(item) - len(amount_text) + end]
     return [head, *_split_glued(nxt)]
+
+
+def _item_in_amount(p: dict) -> bool:
+    """나누지 못하고 분량 글자 안에 남은 다른 재료가 있는가 ('마늘(20g)m 적양배추(20g)').
+    첫 분량(과 바로 뒤 괄호) 뒤, 괄호 밖에서 시작하는 이름 + 단위 있는 분량만 본다 — 괄호 안 구성 설명
+    '전분물 60g(전분 30g + 물 30ml)'·크기 표기 '양파 1cm 정사각형 14g'은 재료가 아니다."""
+    if p["amount_kind"] != "measured" or p["unit"] in _NO_SPLIT_UNITS:
+        return False
+    rest = p["amount_text"][_amount_end(p):]
+    mask = _depth0_mask(rest)
+    return any(mask[m.start("name")] for m in _HIDDEN_ITEM_RE.finditer(rest))
 
 
 def parse_ingredients(text: str | None) -> IngredientResult:
@@ -386,9 +423,15 @@ def _parse_segment(line: str, seg_no: int, line_no: int, raw_line: str, section:
     # "양념장 : 간장 …" / "●방울토마토 소박이 :" / "- 소스 : …" / "주재료 > 달걀흰자 …" (머리말에 숫자 없음)
     if _HEAD_SPLIT_RE.search(line):
         head, rest = _HEAD_SPLIT_RE.split(line, maxsplit=1)
-        if _is_colon_head(head.lstrip("-*· ")):
-            section = head.strip().lstrip("-*· ").strip()
+        title = head.strip().lstrip("-*· ").strip()
+        is_head = _is_colon_head(head.lstrip("-*· "))
+        # "- 육수(100g) : 조개(30g), …" — 머리말에 구획 전체 분량(뒤에 단위 있는 재료가 올 때만)
+        with_amount = not is_head and bool(_AMOUNT_HEAD_RE.fullmatch(title) and _HIDDEN_ITEM_RE.search(rest))
+        if is_head or with_amount:
+            section = title
             sections.append(Section(line_no, raw_line, section, "colon"))
+            if with_amount:
+                issues.append(Issue("ingredient_section_amount", {"line_no": line_no, "section": section}))
             line = rest.strip()
             if not line:
                 return section
@@ -437,6 +480,8 @@ def _add_item(item: str, line_no: int, section: str, ingredients: list[Ingredien
         issues.append(Issue("ingredient_unclosed_paren", ref))
     if p["unmatched"]:
         issues.append(Issue("ingredient_unmatched_close_paren", ref))
+    if _item_in_amount(p):
+        issues.append(Issue("ingredient_item_in_amount", ref))
     if ing.amount_kind == "none":
         issues.append(Issue("ingredient_amount_missing", ref))
     elif ing.amount_kind == "qualitative":

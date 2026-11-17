@@ -53,7 +53,9 @@
 | `ingredient_no_space_after_comma` | 참고 | 쉼표 뒤 공백 없음 | 집계만 (원문 보존) |
 | `ingredient_trailing_period` | 참고 | 재료 원문 끝 마침표 | 집계만 (원문 보존) |
 | `ingredient_section_mid_line` | 참고 | 쉼표·줄바꿈 없이 줄 중간에서 구획 시작(`… 9g [소스소개] 소스:…`) — 그 자리에서 나눔 | 집계만 (원문 보존) |
-| `ingredient_comma_missing` | 참고 | 재료 사이 쉼표 빠짐(`떡볶이떡 40g 고추장 8g`) — 분량 뒤에서 나눔 | 집계만 (원문 보존) |
+| `ingredient_comma_missing` | 참고 | 재료 사이 쉼표 빠짐(`떡볶이떡 40g 고추장 8g`·`새우(4마리) 고추기름(1Ts)`) 또는 '+'로 이음(`요거트(2Ts) + 꿀(1Ts)`) — 분량 뒤에서 나눔 | 집계만 (원문 보존) |
+| `ingredient_section_amount` | 참고 | 구획 머리말에 분량(`- 육수(100g) : 조개(30g)`) — 구획으로 보고 분량은 머리말에 남김 | 집계만 (원문 보존) |
+| `ingredient_item_in_amount` | 경고(flagged) | 분량 글자 안에 다른 재료가 붙어 있음(`마늘(20g)m 적양배추(20g)`) — 붙은 재료가 계산에서 빠짐, 원문 확인 필요 | 노출하되 이상 표시, 보완 요청 목록 |
 | `ingredient_mixed_format` | 참고 | 한 레시피 안에 분량 표기 형식이 섞여 있음 | 집계만 (원문 보존) |
 
 ## 3. 조리 단계 누락

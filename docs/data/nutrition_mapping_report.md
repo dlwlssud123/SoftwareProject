@@ -12,13 +12,13 @@
 | 레시피 입력 | `src/frontend/assets/data/recipes.json` sha256 `d5db8e9435fe6679…` |
 | 가공 결과 | `data/processed/foods_v03.json`, `data/processed/recipe_ingredient_nutrition.json` (gitignore) |
 
-레시피 보완: `src/frontend/assets/data/recipe_corrections.json` sha256 `6cb801120f6b4ab4…`, 적용 항목 6건. 원본 해시와 보완 목록 해시를 함께 보존합니다.
+레시피 보완: `src/frontend/assets/data/recipe_corrections.json` sha256 `3cc0fadb47dff7c6…`, 적용 항목 6건. 원본 해시와 보완 목록 해시를 함께 보존합니다.
 
 ## 1. 요약
 
 - 레시피 50건, 재료 534개. 식품코드가 정해진 재료 **500개(93.6%)**, g 환산된 재료 무게(물·먹지 않는 재료 제외) 기준 **100.0%**
 - 모든 재료(물·먹지 않는 재료 제외)가 영양 계산에 들어간 레시피 **50건**. 나머지는 개수 단위·정성 분량·미매핑 재료가 있어 합계가 부분값입니다(레시피마다 `coverage.missing_items`에 이유).
-- 수동 매핑표 1196건 중 사람 확인 1196건
+- 수동 매핑표 1199건 중 사람 확인 1199건
 
 | 매핑 상태 | 의미 | 영양 계산 | 항목 수 | 비율 | g (환산분) | 무게 비율(물 제외) |
 |---|---|---|---|---|---|---|
@@ -50,7 +50,7 @@
 
 ## 3. 검토 대기: 수동 매핑(`curated`) 0종
 
-근거만 적고 사람이 확인하지 않은 매핑입니다. 확인 후 매핑표의 `reviewed_by`·`reviewed_at`을 채우면 `reviewed`가 됩니다. (매핑표 1196건 중 확인 완료 1196건)
+근거만 적고 사람이 확인하지 않은 매핑입니다. 확인 후 매핑표의 `reviewed_by`·`reviewed_at`을 채우면 `reviewed`가 됩니다. (매핑표 1199건 중 확인 완료 1199건)
 
 없음.
 
