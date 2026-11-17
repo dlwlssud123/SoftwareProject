@@ -2,7 +2,8 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import delete, func, select
+from agetech_data.nutrition.api import computed_nutrition_block
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from test_public_data_import import corrections, snapshot
@@ -382,3 +383,39 @@ def test_postgres_mapping_only_uses_cookrcp01_recipes(tmp_path, pg_connection):
         assert db.scalar(select(RecipeComputedNutrition.recipe_revision_id)) != (
             recipe.active_revision_id
         )
+
+
+def test_postgres_nutrition_view_shows_each_published_recipe_once(
+    tmp_path, pg_connection
+):
+    with Session(pg_connection) as db, db.begin():
+        load(db, tmp_path)
+        map_recipe_foods.apply_mapping(db, MAP)
+        # 레시피 1이 새 판본이 되면 옛 판본 계산 행도 표에 남는다(식단표가 가리킬 수 있음)
+        edited = [dict(RECIPES[0], RCP_PARTS_DTLS="시금치 300g, 물 100ml"), RECIPES[1]]
+        load(db, tmp_path, recipes=edited, fetched_at=DAY2)
+        map_recipe_foods.apply_mapping(db, MAP)
+        assert count(db, RecipeComputedNutrition) == 3
+
+        rows = (
+            db.execute(text("SELECT * FROM recipe_nutrition_active ORDER BY source_id"))
+            .mappings()
+            .all()
+        )
+        # 뷰는 지금 보여 줄 판본 한 줄씩
+        assert [row["source_id"] for row in rows] == ["1", "2"]
+        recipe, _, summary = mapping(db, "1")
+        first = rows[0]
+        assert first["recipe_revision_id"] == recipe.active_revision_id
+        assert first["energy_kcal"] == Decimal(str(summary.computed["energy_kcal"]))
+        assert first["sodium_mg"] == Decimal(str(summary.computed["sodium_mg"]))
+
+        block = computed_nutrition_block(first)
+        assert block["basis"] == "whole_recipe" and block["complete"]
+        assert block["total"]["energy_kcal"] == round(
+            summary.computed["energy_kcal"], 1
+        )
+        assert block["density"]["sodium_mg_per_1000kcal"] == float(
+            summary.sodium_mg_per_1000kcal
+        )
+        assert block["version"] == summary.mapper_version
