@@ -19,7 +19,7 @@ from agetech_data.nutrition.foods import FoodRecord
 from agetech_data.nutrition.match import FoodIndex, load_ingredient_map, manual_entry
 from agetech_data.textutil import sha256_json
 
-MAPPER_VERSION = "recipe-food-map-v7"  # v2: 계량 단위·출처 있는 개당 중량(unit_weight) 환산
+MAPPER_VERSION = "recipe-food-map-v8"  # v2: 계량 단위·출처 있는 개당 중량(unit_weight) 환산
 #                                        v3: coverage 에 정성 분량(qualitative_items·complete_except_qualitative)
 #                                        v4: 손질 표기(○○다진것·○○채썬것)·'다진 ○○' 이 기본 재료 매핑을 따름,
 #                                            먹지 않는 재료 excluded(0 으로 취급)·coverage.missing_items·excluded_items
@@ -28,6 +28,8 @@ MAPPER_VERSION = "recipe-food-map-v7"  # v2: 계량 단위·출처 있는 개당
 #                                            이름 정리·상태근사·어순·구획 끝말 규칙 확장
 #                                        v6: 분량과 상관없는 비교 값 density(나트륨 1,000 kcal당 mg·탄수화물·단백질·지방 에너지 비율)
 #                                        v7: coverage.filled_items(원천에 없던 성분을 채운 식품을 쓴 재료)
+#                                        v8: 부피로 적은 재료를 매핑 식품의 부피당 무게로(unit_weights.json food_densities),
+#                                            단위 없는 숫자를 개수로 볼 때 다른 재료 g 합의 3배 넘으면 g 으로
 
 
 def food_records(normalized: list[dict]) -> list[FoodRecord]:

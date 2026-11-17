@@ -87,6 +87,11 @@ def test_unit_weight_table_lists_only_sourced_rows():
         assert row["grams"] > 0 and row["source"] in data["sources"] and row["evidence"]
     for row in data["volume_units"]:
         assert row["ml"] > 0 and row["source"] in data["sources"]
+    codes = [row["food_code"] for row in data["food_densities"]]
+    assert len(codes) == len(set(codes))
+    for row in data["food_densities"]:   # 기름 0.85·꿀 1.5·말린 허브 0.1 g/mL 처럼 물(1)과 다른 값만 근거와 함께
+        assert 0.05 < row["spoon_g_per_ml"] < 2 and 0.05 < row["cup_g_per_ml"] < 2, row
+        assert row["source"] in data["sources"] and row["evidence"].startswith("["), row
 
 
 def test_kg_and_mg():

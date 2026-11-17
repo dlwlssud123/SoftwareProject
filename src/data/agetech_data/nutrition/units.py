@@ -61,6 +61,13 @@ def _compact(name: str | None) -> str:
 
 
 @lru_cache
+@lru_cache
+def load_food_densities(path: Path = UNIT_WEIGHTS_FILE) -> dict[str, dict]:
+    """식품코드 → 부피 1 mL 의 무게(g) {spoon_g_per_ml, cup_g_per_ml, source, evidence} — 매핑한 뒤 approx_ml 줄을 고친다."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return {e["food_code"]: e for e in data.get("food_densities", [])}
+
+
 def load_unit_weights(path: Path = UNIT_WEIGHTS_FILE) -> tuple[dict, dict, dict]:
     """(개수 단위 {(재료명, 단위): 항목}, 계량 단위 {단위: 항목}, 출처 {키: 문장})."""
     data = json.loads(path.read_text(encoding="utf-8"))

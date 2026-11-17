@@ -42,7 +42,14 @@ from agetech_data.nutrition.match import (
     manual_entry,
     match_ingredient,
 )
-from agetech_data.nutrition.units import COUNT_TEXT, CONVERTED, GramAmount, load_unit_weights, to_grams
+from agetech_data.nutrition.units import (
+    COUNT_TEXT,
+    CONVERTED,
+    GramAmount,
+    load_food_densities,
+    load_unit_weights,
+    to_grams,
+)
 from agetech_data.recipes.correct import apply_corrections
 from agetech_data.recipes.validate import check_recipe, load_rows
 from agetech_data.textutil import parse_number
@@ -146,12 +153,16 @@ def _recipe_level_grams(rows: list[list], entries, est: Estimates, cooking_metho
         why = (f"숫자만 적은 재료가 {len(bare)}개" if len(bare) >= BARE_NUMBER_MIN
                else f"다른 재료 {measured}줄 중 {in_grams}줄이 g")
         official = load_unit_weights()[0]
+        known = sum(x[1].grams for x in rows if x[1].status in CONVERTED and x[1].grams and x[2].status not in NOT_COUNTED)
         for r in bare:
             text = _get(r[0], "amount_text") or ""
             key = ("".join((_get(r[0], "name") or "").split()), "개")
             each = official.get(key) or est.counts.get(key)
-            # 나머지가 g 인 레시피의 '달걀 2' 는 2g 이 아니라 2개 (숫자만 적은 레시피의 '계란 5' 는 5g)
-            if each and len(bare) < BARE_NUMBER_MIN and float(_get(r[0], "amount")).is_integer():
+            # 나머지가 g 인 레시피의 '달걀 2' 는 2g 이 아니라 2개 (숫자만 적은 레시피의 '계란 5' 는 5g).
+            # 다만 개수로 보면 다른 재료 g 합의 3배를 넘는 것('양파 15' → 15개 2.7 kg, 907)은 g 이 빠진 것으로 본다
+            as_count = float(_get(r[0], "amount")) * each["grams"] if each else None
+            if (each and len(bare) < BARE_NUMBER_MIN and float(_get(r[0], "amount")).is_integer()
+                    and (not known or as_count <= 3 * known)):
                 r[1] = GramAmount(round(float(_get(r[0], "amount")) * each["grams"], 4), "estimated",
                                   f"단위 없는 숫자 '{text}' → 개수로 봄, 1개={each['grams']}g(추정)")
                 continue
@@ -191,6 +202,30 @@ def _recipe_level_grams(rows: list[list], entries, est: Estimates, cooking_metho
                           f"{why} 원문 {listed:g}g은 튀길 때 쓰는 양 → 먹는 양 ≈ 다른 재료 {other:g}g × "
                           f"{est.frying_ratio:g}{split}, 원문 양을 넘지 않음 = {eaten:g}g"
                           f"(추정 — {source}, 소스 재료까지 들어가 조금 높게 잡힐 수 있음)")
+
+
+_SPOON_TEXT = re.compile(r"큰술|작은술|스푼|숟가락|\d\s*(?:Tbsp|tsp|Ts|ts|T|t)(?![A-Za-z])")
+
+
+def _volume_density(rows: list[list], by_code: dict[str, FoodRecord], entries, cache: dict | None) -> None:
+    """부피로 적은 재료(approx_ml, 1 mL≈1 g)를 매핑한 식품의 부피당 무게로 고친다(unit_weights.json food_densities).
+
+    큰술·작은술은 실제로 떠서 잰 숟가락 값, 컵·mL 는 컵 값. 영양 기준량이 100 mL 인 식품은 mL 그대로가 정확해 두고,
+    매핑표 food_factor 가 있는 재료(예: 국물 → 소금 농도)는 그 계수가 이미 부피당 양을 정하므로 그대로 둔다.
+    """
+    densities = load_food_densities()
+    for r in rows:
+        ing, g, m = r
+        if g.status != "approx_ml" or not m.usable or m.food_code not in densities:
+            continue
+        if by_code[m.food_code].basis_unit != "g" or _food_factor(ing, m, entries, cache) != 1.0:
+            continue
+        d = densities[m.food_code]
+        spoon = bool(_SPOON_TEXT.search(_get(ing, "amount_text") or ""))
+        per_ml = d["spoon_g_per_ml"] if spoon else d["cup_g_per_ml"]
+        r[1] = GramAmount(round(g.grams * per_ml, 4), "unit_weight",
+                          f"{g.basis.split(', 1mL≈1g')[0].split(' → 1mL≈1g')[0]} → {g.grams:g} mL × {per_ml} g/mL"
+                          f"({'숟가락' if spoon else '컵'} 기준, {d['evidence']})")
 
 
 def _food_factor(ing, m, entries, cache: dict | None) -> float:
@@ -390,6 +425,7 @@ def ingredient_nutrition(ingredients, index: FoodIndex, by_code: dict[str, FoodR
     _apply_item_overrides(rows, recipe_id, load_item_overrides() if overrides is None else overrides)
     _recipe_level_grams(rows, entries, est, cooking_method)
     _food_level_grams(rows, index, entries, est)
+    _volume_density(rows, by_code, entries, cache)
     for ing, g, m in rows:
         contrib, ml_approx = None, False
         if m.usable and g.status in CONVERTED:

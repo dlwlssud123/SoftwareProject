@@ -77,6 +77,34 @@ def _fixes_one_mark(expected: str, value: str) -> bool:
     )
 
 
+# '… 미나리 3g 주먹밥' — a section name (Hangul only) right after an item's amount, at the end of the text so far
+_SECTION_AFTER_AMOUNT = re.compile(r"(?:\d\s*[A-Za-z가-힣]*|\))\s+[가-힣]{2,20}$")
+
+
+def _adds_section_colons(expected: str, value: str) -> bool:
+    """Only ':' marks inserted, each after a section name typed between two items without its colon.
+
+    '미나리 3g 주먹밥 데친꼬막살 12g' → '미나리 3g 주먹밥: 데친꼬막살 12g': the name follows an item's amount and
+    a name (not an amount) follows the colon, so the colon starts a section and cannot turn a name into an amount.
+    """
+    if len(value) <= len(expected):
+        return False
+    i, spots = 0, []
+    for j, ch in enumerate(value):
+        if i < len(expected) and expected[i] == ch:
+            i += 1
+        elif ch == ":":
+            spots.append(j)
+        else:
+            return False
+    return i == len(expected) and all(
+        _SECTION_AFTER_AMOUNT.search(value[:k])
+        and value[k + 1 : k + 2].isspace()
+        and value[k + 1 :].lstrip()[:1].isalpha()
+        for k in spots
+    )
+
+
 def _attribution(entry: dict, manifest: dict) -> tuple[str, str]:
     """An entry may name its own verifier; otherwise the manifest-level one applies."""
     verified_at = entry.get("verified_at", manifest["verified_at"])
@@ -145,11 +173,14 @@ def apply_corrections(
             raise ValueError("Official source recovery may only fill missing fields")
         if entry["kind"] == "format_only" and not (
             field == "RCP_PARTS_DTLS"
-            and _fixes_one_mark(entry["expected_value"], entry["value"])
+            and (
+                _fixes_one_mark(entry["expected_value"], entry["value"])
+                or _adds_section_colons(entry["expected_value"], entry["value"])
+            )
         ):
             raise ValueError(
                 "Format correction may only fix a single parenthesis or bracket mark"
-                " (or one stray letter typed for a comma)"
+                " (or one stray letter typed for a comma, or add the colon after a section name)"
             )
         verified_at, verified_by = _attribution(entry, manifest)
         seen.add(key)
@@ -232,7 +263,8 @@ def render_report(audit: dict) -> str:
         "- ID 38의 표고버섯 기둥 분량은 공식 상세·배포 자료에도 수치가 없어 미확정으로 유지합니다.",
         f"- `INFO_WGT` {after['nutrition_blank']['INFO_WGT']}건 누락은 조리 후 중량 근거 없이 재료 합계로 대체하지 않습니다.",
         "- 표기 보완(format_only)은 재료 이름·수치·단위는 그대로 두고 괄호·대괄호 한 글자(닫는 괄호 넣기·여분 여는 괄호 빼기·"
-        "여는 괄호를 닫는 괄호로) 또는 쉼표 자리에 잘못 친 영문 한 글자만 고치는 수정입니다. 공식 원문에도 같은 표기 오류가 있습니다.",
+        "여는 괄호를 닫는 괄호로), 쉼표 자리에 잘못 친 영문 한 글자, 또는 재료 사이에 쌍점 없이 적힌 구획 이름 뒤 쌍점만 "
+        "고치는 수정입니다. 공식 원문에도 같은 표기 오류가 있습니다.",
         "- 보완본은 `data/processed/recipes_corrected.json`, 상세 감사 기록은 `recipe_correction_audit.json`입니다.",
         "- 백엔드 적재와 데이터 처리는 같은 보완 목록을 적용합니다. upstream 값이 바뀌면 재검증 오류를 냅니다. Flutter 앱의 보완 목록 연결은 후속 작업입니다.",
     ]

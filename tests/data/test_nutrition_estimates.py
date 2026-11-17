@@ -141,6 +141,35 @@ def test_bare_numbers_read_as_grams_or_counts(foods):
     assert got["1"]["소금"]["grams"]["grams"] == 0.2 and got["1"]["소금"]["grams"]["status"] == "estimated"
     assert got["1"]["달걀"]["grams"]["grams"] == 120.0               # 나머지가 g 인 레시피의 '달걀 2' = 2개
     assert got["2"]["계란"]["grams"]["grams"] == 5.0                 # 숫자만 적은 레시피의 '계란 5' = 5g
+    # 개수로 보면 다른 재료 g 합의 3배를 넘는 '양파 15'(15개 ≈ 2.7 kg)는 g 이 빠진 것 (907)
+    big = _recipe("3", "감자 50g, 마늘 5g, 소금 2g, 양파 15")
+    [r] = build_recipe_nutrition([big], foods, ENTRIES, estimates=EST)
+    assert _by_name(r)["양파"]["grams"]["grams"] == 15.0
+
+
+def test_volume_measures_use_the_matched_food_weight_per_ml(foods):
+    base = next(f for f in foods if f.name == "양파, 생것")
+    extra = [_food(base, "R114-017000000-0000", "올리브유", 900.0), _food(base, "R113-009000000-0000", "우유", 60.0),
+             dataclasses.replace(_food(base, "P119-401040100-0292", "플레인호상요구르트", 70.0), basis_unit="mL")]
+    entries = ENTRIES + (_entry("올리브유", "R114-017000000-0000"), _entry("우유", "R113-009000000-0000"),
+                         _entry("요구르트", "P119-401040100-0292"), _entry("올리브유물", "R114-017000000-0000", food_factor=0.5))
+    rows = [_recipe("1", "양파 50g, 올리브유 1큰술, 우유 1컵, 요구르트 1컵, 올리브유물 2큰술")]
+    [r] = build_recipe_nutrition(rows, foods + extra, entries, estimates=EST)
+    by = _by_name(r)
+    # 숟가락은 떠서 잰 값(올리브유 1큰술 12.7 g), 컵은 컵 값(우유 244 g / 236.6 mL)
+    assert (by["올리브유"]["grams"]["status"], by["올리브유"]["grams"]["grams"]) == ("unit_weight", pytest.approx(15 * 0.847))
+    assert by["우유"]["grams"]["grams"] == pytest.approx(200 * 1.031) and "컵 기준" in by["우유"]["grams"]["basis"]
+    # 영양 기준이 100 mL 인 식품, 매핑표 계수가 이미 양을 정하는 재료는 mL 그대로
+    assert (by["요구르트"]["grams"]["status"], by["요구르트"]["grams"]["grams"]) == ("approx_ml", 200.0)
+    assert (by["올리브유물"]["grams"]["status"], by["올리브유물"]["grams"]["grams"]) == ("approx_ml", 30.0)
+
+
+def test_count_estimates_name_their_source():
+    est = load_estimates()
+    for (name, unit), row in est.counts.items():
+        assert row["grams"] > 0 and row["source"] in est.sources and row["evidence"], (name, unit)
+    left = sorted(name for (name, _), row in est.counts.items() if row["source"] == "estimate")
+    assert left == ["건두부", "정향", "타임"]      # 측정·제품 표기를 찾지 못한 3개만 어림값
 
 
 def test_frying_oil_detected_from_amount_or_cooking_method(foods):
