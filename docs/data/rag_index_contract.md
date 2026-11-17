@@ -26,7 +26,7 @@
 
 | 파일 | 내용 |
 |---|---|
-| `manifest.json` | `index_version`(인덱스 판본, UTC 예 `20261107T072117Z` — 내용이 그대로면 직전 값 유지), `model_id`(revision 포함), `dim`(1024), `count`, `by_source_type`, `sources`(원천별 산출 근거, 아래), `data_versions`, 입력 sha256, 파일 sha256, 변경 건수, `embedded_this_run`, `built_at`. **마지막에 쓰므로 이 파일이 기준** |
+| `manifest.json` | `index_version`(인덱스 판본, UTC 예 `20261107T072117Z` — 내용이 그대로면 직전 값 유지), `model_id`(revision 포함), `dim`(1024), `count`, `by_source_type`, `sources`(원천별 산출 근거, 아래), `data_versions`, 입력 sha256, 파일 sha256, 변경 건수, `embedded_this_run`, `built_at`(청크 `embedded_at`으로 들어감 — 내용이 그대로면 판본처럼 직전 값 유지). **마지막에 쓰므로 이 파일이 기준** |
 | `chunks.jsonl` | 청크 한 줄에 하나. 칸은 `rag_chunk` 표와 같음(아래 3절, `embedding`·`embedding_model`·`embedded_at` 제외) |
 | `embeddings.npy` | float32 `(count, 1024)`. i번째 행 = `chunks.jsonl` i번째 줄. 길이 1로 정규화됨 |
 | `changes.json` | 직전 인덱스 대비 `added`·`changed`·`removed` chunk_id **전체 목록**, `unchanged` 건수, `first_index`. 변경은 **행 전체** 기준(본문 밖 칸 — 종료일·확인 시각·품질·원본 해시 — 만 바뀌어도 `changed`, 새 판본). 임베딩은 본문이 바뀐 청크만 다시 함 |
@@ -93,7 +93,7 @@
       - 하나도 안 붙으면 적재하지 않고 종료 코드 1. 결과 JSON에 `source_type`별 `in_index`(인덱스 청크)·`loaded`(넣은 청크).
    3. **판본 이름 = `<manifest index_version>.<지문 묶음 sha256 앞 12자리>`** (지문 묶음 = 넣은 청크의 `chunk_id`·지문 줄을 정렬한 sha256, `binding_sha256` 칸 · manifest 판본은 `manifest_version` 칸). `rag.index`는 청크 행이 그대로면 판본 이름을 유지하는데, 레시피 검증 판본이 올라가 재적재되면(예: #41 검증 v4) 내용은 같아도 레시피 1,156건의 게시 지문이 모두 바뀐다. 초안의 psql 스크립트는 manifest 판본만 보고 '이미 있음'으로 건너뛰어 **그 청크가 전부 검색에서 빠졌다**(복지·제철 청크가 그날 하나도 안 바뀌면 다음 변경 때까지) → 지문까지 이름에 넣어 새 판본으로 다시 적재한다. 같은 인덱스·같은 지문이면 이름이 같아 다시 돌려도 아무것도 안 한다(`already_active`). 한 번 활성이었던 이름은 자동으로 다시 활성화하지 않는다(`previously_activated`, 종료 코드 0) — 운영자가 일부러 되돌린 판본을 매일 작업이 되살리지 않게. 게시 지문이 예전 상태로 돌아간 경우도 같아서 `--verify`가 다름을 알리고, 바꾸려면 `--rollback <판본>`.
    4. `rag_rollback_index`와 같은 표 잠금(EXCLUSIVE — 검색 SELECT는 그대로 됨)을 잡고 `loading` 등록(`chunk_count` = 실제로 넣은 수) → 청크 넣기 → 행 수·모델 확인 → 이전 `active` → `retired`, 새 판본 → `active` → **직전 판본 하나만 남기고** 오래된 `retired`·`failed` 삭제(청크는 함께 지워짐 — 매일 새 판본이 생겨도 DB가 계속 커지지 않음). 결과 JSON에 `previous_active`·`pruned`.
-3. 확인: `--verify` — 활성 판본이 '이 인덱스를 지금 게시 판본에 붙인 것'과 이름·행 내용(벡터까지)이 같은지 보고 되돌린다(쓰지 않음). `searchable`(지금 검색되는 청크 수)·판본 목록을 출력하고, 다르면 종료 코드 1. 매일 갱신을 `--verify`로 돌리면 `rag_load_verify` 단계가 된다.
+3. 확인: `--verify` — 활성 판본이 '이 인덱스를 지금 게시 판본에 붙인 것'과 이름·행 내용(벡터까지, 임베딩 시각 `embedded_at`은 빼고 — 11/17 아래)이 같은지 보고 되돌린다(쓰지 않음). `searchable`(지금 검색되는 청크 수)·판본 목록을 출력하고, 다르면 종료 코드 1. 매일 갱신을 `--verify`로 돌리면 `rag_load_verify` 단계가 된다.
 4. 되돌리기: `--rollback <판본>`(= `SELECT rag_rollback_index('<판본>')`) — 없는·적재 중·실패한·한 번도 활성이 아니었던·건수나 모델이 안 맞는 판본은 거부하고 지금 활성 판본을 그대로 둔다. 판본 이름은 `--verify` 출력이나 `rag_search.sql` 운영 절의 목록 SQL로 본다.
 5. **원본 표와 맞추기 — 한 트랜잭션으로 묶지 않는다(11/07 결정).** 원본 표(복지 하루 1회·레시피 주 1회)와 RAG 판본은 따로 전환한다. 묶으면 임베딩 실패가 복지 정보 갱신까지 막고, 주기도 다르다. 대신 검색이 원본 표의 지금 게시 레코드와 레코드 해시를 대조한다(`rag_source_active` 뷰 JOIN).
    - 순서: ① 원본 수집·정제 → ② 원본 표 적재·전환 → ③ `rag.index`(바뀐 청크만 임베딩) → ④ `rag.export` → `load_rag_index --apply`
@@ -103,6 +103,7 @@
 - 판본마다 청크 전부(약 3,370행, CSV 46MB)를 넣는다. 임베딩은 바뀐 청크만 하므로 DB 적재만 통째로 하는 셈이고, 적재는 약 1.6초다(11/14, 이 PC).
 - `changes.json`은 DB 적재에는 쓰지 않고 관리자 화면·기록용(추가·변경·삭제 건수)으로 남긴다.
 - 11/07 실데이터 확인(pgvector 0.8.7, 초안 psql 스크립트): 판본 적재·같은 판본 재실행 건너뜀·적재 중에는 이전 판본만 검색·전환·되돌리기·건수 불일치 `failed`(종료 코드 3)·활성 두 개 거부·정리, 그리고 원본 표에서 사업을 내리거나 원본 해시가 바뀌면 RAG 판본이 그대로여도 그 사업이 바로 검색에서 빠지는 것을 모두 재현했다.
+- **11/17 고침 — 바뀐 게 없는 날 `rag_load_verify` 실패**: RAG 내용이 그대로면 `rag.index`가 판본 이름은 유지하면서 `built_at`만 지금 시각으로 다시 찍었다. 적재는 같은 판본이라 `already_active`로 건너뛰고, 파일의 `embedded_at`만 늦어져 `--verify`가 '3,370 × 2행이 다름'으로 실패했다(매일 갱신을 `--verify`로 돌리면 바뀐 게 없는 날마다 실패). → 내용이 그대로면 `built_at`도 유지하고, `--verify`는 임베딩 시각을 비교하지 않는다(이미 어긋난 DB도 다시 통과). 본문·벡터·지문이 바뀌면 지금처럼 '다름'으로 잡는다.
 - **11/14 실데이터 확인**(pgvector 0.8.7, 빈 DB → Alembic head → `daily_refresh --skip-refresh --verify` 16단계 전부 정상, 183초): 판본 `20261113T201421Z.817df9cd5186` 3,370청크(레시피 1,153·제철 488·중앙 273·지자체 1,456) 전부 지문이 붙어 활성, `--verify` 통과·검색되는 청크 3,370. 다시 `--apply` → `already_active`. 레시피를 검증 판본만 올려 다시 적재(새 레시피 판본 1,156, 내용 해시 그대로) → 검색되는 청크 3,370 → **2,217**(레시피 1,153개가 전부 빠짐 — 초안 스크립트였으면 여기서 멈춤), `--verify` 실패로 알림 → `--apply`가 같은 manifest를 새 이름 `….184e0a6bf8b0`으로 적재해 3,370 복구, 직전 판본 `retired`. `--rollback` 직전 판본 → 다시 `--apply`는 `previously_activated`(되돌린 판본 유지), 없는 판본 되돌리기 거부(종료 코드 1), 줄이 잘린 CSV 거부 — 모두 활성 판본 그대로. `sql/rag_search.sql`을 평가 질문 38개(주제 묶음, 음식은 대두 알레르기 조건)로 실행 → 상위 5개 순서가 파이썬 검색과 모두 같음(유사도 차이 최대 0.00005 — CSV 소수 7자리).
 
 ## 5. 검색 (AI 도우미 API)

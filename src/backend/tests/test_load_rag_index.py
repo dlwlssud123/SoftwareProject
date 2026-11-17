@@ -223,6 +223,21 @@ def test_apply_binds_published_rows_activates_and_reruns_as_no_op(db, tmp_path):
     verified = verify(db, plan)
     assert verified["verified"] is True and verified["searchable"] == 2
 
+    # The same index rebuilt later carries a later embedded_at; it stays the active version
+    # (already_active) and still verifies — embedded_at is when vectors were made, not content.
+    rows = list(
+        csv.DictReader((tmp_path / "rag" / "rag_chunk.csv").open(encoding="utf-8"))
+    )
+    later = [{**r, "embedded_at": "2026-11-17T02:35:15+00:00"} for r in rows]
+    replan = loader.prepare(write_index(tmp_path / "rag", "V1", later))
+    assert apply(db, replan)["status"] == "already_active"
+    assert verify(db, replan)["verified"] is True
+    edited = [
+        {**r, "title": "고친 제목"} if r["source_id"] == "1" else r for r in later
+    ]
+    broken = verify(db, loader.prepare(write_index(tmp_path / "rag", "V1", edited)))
+    assert broken["verified"] is False and "chunk rows differ" in broken["problems"][-1]
+
 
 def test_new_fingerprints_with_same_rows_load_a_new_version(db, tmp_path, monkeypatch):
     # rag.index keeps its version when no chunk row changed; a re-import with a new validation

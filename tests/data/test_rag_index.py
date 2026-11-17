@@ -138,10 +138,16 @@ def test_index_version_kept_when_unchanged_and_new_when_changed(tmp_path, monkey
     welfare, recipes = payloads()
     times = iter([datetime(2026, 11, 7, 1, 0, tzinfo=timezone.utc), datetime(2026, 11, 8, 1, 0, tzinfo=timezone.utc)])
     monkeypatch.setattr(ix, "new_index_version", lambda now=None: next(times).strftime("%Y%m%dT%H%M%SZ"))
-    assert build_index(welfare, recipes, FakeEmbedder(), index_dir=tmp_path)["index_version"] == "20261107T010000Z"
-    assert build_index(welfare, recipes, FakeEmbedder(), index_dir=tmp_path)["index_version"] == "20261107T010000Z"
+    stamps = iter(["2026-11-07T01:00:00+00:00", "2026-11-08T01:00:00+00:00"])
+    monkeypatch.setattr(ix, "_now", lambda: next(stamps))
+    first = build_index(welfare, recipes, FakeEmbedder(), index_dir=tmp_path)
+    assert (first["index_version"], first["built_at"]) == ("20261107T010000Z", "2026-11-07T01:00:00+00:00")
+    # 내용이 그대로면 판본도 만든 시각(= 청크 embedded_at)도 그대로 — DB는 이미 활성이라 다시 넣지 않으므로
+    again = build_index(welfare, recipes, FakeEmbedder(), index_dir=tmp_path)
+    assert (again["index_version"], again["built_at"]) == ("20261107T010000Z", "2026-11-07T01:00:00+00:00")
     welfare["records"] = welfare["records"][1:]
-    assert build_index(welfare, recipes, FakeEmbedder(), index_dir=tmp_path)["index_version"] == "20261108T010000Z"
+    changed = build_index(welfare, recipes, FakeEmbedder(), index_dir=tmp_path)
+    assert (changed["index_version"], changed["built_at"]) == ("20261108T010000Z", "2026-11-08T01:00:00+00:00")
 
 
 def test_manifest_sources_explain_chunk_counts(tmp_path):

@@ -43,10 +43,12 @@ STAGE = "rag_chunk_stage"
 KEEP_RETIRED = 1  # the previous version stays for rollback
 COPY_BLOCK = 1 << 20
 # Columns compared by --verify (index_version differs by design; vectors compare as text).
+# embedded_at is when the vectors were made, not content: an index rebuilt without changes keeps its
+# version (already_active, rows not reloaded), so older index files may carry a later timestamp.
 COMPARED = [
     "embedding::text" if c == "embedding" else c
     for c in COLUMNS
-    if c != "index_version"
+    if c not in ("index_version", "embedded_at")
 ]
 # Raised by rag_rollback_index with a readable message (version name and reason).
 ROLLBACK_ERRORS = {"22023", "23514"}

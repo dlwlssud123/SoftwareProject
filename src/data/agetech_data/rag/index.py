@@ -249,7 +249,9 @@ def build_index(welfare_payload: dict | None, recipe_payload: dict | None, embed
     manifest = {
         "schema_version": SCHEMA_VERSION,
         "index_version": index_version,
-        "built_at": _now(),
+        # 내용이 그대로면 만든 시각도 그대로 — 청크 embedded_at 이 이 값이라, 새로 찍으면 같은 판본인데
+        # DB(이미 활성이라 다시 넣지 않음)와 파일의 시각만 어긋난다
+        "built_at": (prev_manifest.get("built_at") or _now()) if unchanged else _now(),
         "model_id": embedder.model_id,
         "dim": embedder.dim,
         "max_chars": max_chars,
