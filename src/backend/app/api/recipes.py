@@ -1,5 +1,6 @@
 from typing import Annotated
 
+from agetech_data.nutrition.api import computed_nutrition_block
 from agetech_data.recipes.contract import to_api_record
 from agetech_data.recipes.validate import check_recipe
 from fastapi import APIRouter, Path, Query, Request
@@ -9,7 +10,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.auth import DbSession
 from app.core.errors import AppError
 from app.jobs.import_public_data import RECIPE_PROVIDER
-from app.models import DataImportRun, Recipe, RecipeRevision
+from app.models import DataImportRun, Recipe, RecipeComputedNutrition, RecipeRevision
+from app.models.recipe_nutrition import DENSITY_COLUMNS
 from app.schemas.catalog import (
     Page,
     RecipeDetailResponse,
@@ -28,16 +30,37 @@ router = APIRouter(
 
 def active_recipes():
     return (
-        select(Recipe, RecipeRevision, DataImportRun.inputs)
+        select(Recipe, RecipeRevision, DataImportRun.inputs, RecipeComputedNutrition)
         .join(RecipeRevision, Recipe.active_revision_id == RecipeRevision.id)
         .join(DataImportRun, RecipeRevision.import_run_id == DataImportRun.id)
+        # The active revision's computed nutrition, the same row the
+        # recipe_nutrition_active view gives (one per revision); None before mapping.
+        .outerjoin(
+            RecipeComputedNutrition,
+            RecipeComputedNutrition.recipe_revision_id == RecipeRevision.id,
+        )
         .where(
             Recipe.provider == RECIPE_PROVIDER, RecipeRevision.quality_status != "hold"
         )
     )
 
 
-def recipe_record(recipe: Recipe, revision: RecipeRevision, inputs: dict) -> RecipeRecord:
+COMPUTED_FIELDS = (
+    "computed",
+    "computed_missing",
+    "coverage",
+    "complete",
+    "mapper_version",
+    *DENSITY_COLUMNS,
+)
+
+
+def recipe_record(
+    recipe: Recipe,
+    revision: RecipeRevision,
+    inputs: dict,
+    computed: RecipeComputedNutrition | None = None,
+) -> RecipeRecord:
     source_meta = inputs.get("recipes", {}).get("meta", {})
     checked = check_recipe(revision.effective)
     data = to_api_record(checked, revision.effective, source_meta)
@@ -47,6 +70,11 @@ def recipe_record(recipe: Recipe, revision: RecipeRevision, inputs: dict) -> Rec
         revision_id=revision.id,
     )
     data["quality"]["status"] = revision.quality_status
+    if computed is not None:
+        data["computed_nutrition"] = computed_nutrition_block(
+            {field: getattr(computed, field) for field in COMPUTED_FIELDS},
+            data["nutrition"]["ingredient_servings"],
+        )
     return RecipeRecord.model_validate(data)
 
 

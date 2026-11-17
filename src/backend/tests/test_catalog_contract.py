@@ -1,4 +1,5 @@
 import json
+import typing
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -23,6 +24,42 @@ from app.schemas.catalog import (
 from app.schemas.common import ErrorResponse, SuccessResponse
 
 ROOT = Path(__file__).resolve().parents[3]
+
+
+def test_computed_nutrition_schema_matches_the_data_block():
+    from agetech_data.nutrition.api import (
+        NOTICES,
+        NUTRIENTS,
+        computed_nutrition_block,
+    )
+    from agetech_data.nutrition.build import DENSITY
+
+    from app.schemas.catalog import (
+        ComputedNutrition,
+        NutrientAmounts,
+        NutrientDensity,
+        NutrientKey,
+        NutritionNotice,
+    )
+
+    assert tuple(NutrientAmounts.model_fields) == NUTRIENTS
+    assert typing.get_args(NutrientKey) == NUTRIENTS
+    assert tuple(NutrientDensity.model_fields) == tuple(DENSITY)
+    code = NutritionNotice.model_fields["code"].annotation
+    assert set(typing.get_args(code)) == set(NOTICES)
+    summary = {
+        "computed": {"energy_kcal": 600.0, "sodium_mg": 900.0},
+        "computed_missing": {"sugars_g": 1},
+        "coverage": {
+            "complete": False,
+            "missing_items": [{"name": "소스", "amount_text": "1컵", "reason": "x"}],
+        },
+        "complete": False,
+        "mapper_version": "recipe-food-map-v8",
+    }
+    block = ComputedNutrition.model_validate(computed_nutrition_block(summary, 2))
+    assert block.per_serving.sodium_mg == 450.0
+    assert [notice.code for notice in block.notices] == ["partial", "amount_unknown"]
 
 
 def test_all_data_team_samples_fit_without_losing_unknown_nutrition():
