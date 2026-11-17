@@ -150,6 +150,64 @@ g 대신 0으로 치는 구획 규칙(`excluded`): 구획 이름에 '선택'이 
 
 행마다 `evidence`에 [같은 식품]/[가까운 식품], 자료의 식품 코드·원문 값·쪽(또는 FDC 번호)을 적는다. 예: 올리브유 1큰술 12.7 g(0.847 g/mL), 고춧가루 1큰술 6.5 g, 꿀 1큰술 22.8 g, 우유 1컵 206 g, 슈레드 모차렐라 1컵 95 g, 건새우 1컵 29 g. 표에 없는 물·국물·탄산수와 영양 기준이 100 mL인 식품(요구르트·저염간장 등)은 부피 그대로(`approx_ml`)이고, 매핑표 `food_factor`가 이미 부피당 양을 정하는 재료(골뱅이 국물 → 소금 농도)도 그대로 둔다. 전체 1,156건에서 부피 재료 285줄(72건)이 바뀌었고 1mL≈1g으로 남은 줄은 84줄(물 60·먹지 않는 재료 8·100 mL 기준 식품 9·탄산수·다시마 육수·녹차 5·`food_factor`로 양을 정하는 골뱅이 국물·바질페스토 2)이다.
 
+### 3.4 앱 API 응답 블록 (`computed_nutrition`, 2026-11-17)
+
+레시피 응답의 `nutrition`(레시피 정의서 2.3)은 **원천이 적은 1인분 값**(기준량 근거 없음, `per_serving_unverified`)이다. 이 블록은 **재료 목록 전체를 식품 DB로 계산한 값**(`whole_recipe`)이라 둘을 섞지 않고 따로 싣는다. 예를 들어 3282 어린잎채소 건두부말이는 원문 1인분이 233.8 kcal인데, 재료로 계산하면 2인분 합계가 1,244 kcal(1인분 622 kcal)이다.
+
+- **읽는 곳**: DB 뷰 `recipe_nutrition_active`(Alembic `20261117_02`). 게시 중인 레시피(보류 제외)마다 **지금 판본의 계산 영양 한 줄**이다. `recipe_computed_nutrition`에는 옛 판본 행도 남아 있으므로(식단표가 가리킬 수 있음), 지금 화면에 보여 줄 값은 이 뷰에서 읽는다. 앱 다섯 성분은 숫자 칸으로 따로 있어 거르기·정렬에 쓸 수 있다(`energy_kcal`·`carbohydrate_g`·`protein_g`·`fat_g`·`sodium_mg`, 비교 값 칸 4개도 함께).
+- **바꾸는 함수**: `agetech_data.nutrition.api.computed_nutrition_block(row, servings)`. `row`는 뷰 한 행이고, 파일(`recipe_ingredient_nutrition.json`)의 레시피 레코드도 받는다. `servings`는 레시피 응답의 `nutrition.ingredient_servings`(재료 원문 'N인분', 전체 62건)를 넘긴다.
+- 뷰에 행이 없는 레시피(아직 매핑 전)는 블록을 `null`로 둔다.
+
+| 키 | 타입 | 설명 |
+|---|---|---|
+| `basis` | `"whole_recipe"` | 재료 목록 전체 합계. 1인분이 아님 |
+| `servings` | 숫자 \| null | 재료 원문 'N인분'. 없으면 null — 몇 인분인지 모름 |
+| `total` | 객체 | 성분 11개 합계(소수 첫째 자리): `energy_kcal`·`carbohydrate_g`·`protein_g`·`fat_g`·`sodium_mg`(앱 다섯 성분, 빈 값 없음 — 2.1) + `sugars_g`·`fiber_g`·`sat_fat_g`·`cholesterol_mg`·`potassium_mg`·`calcium_mg` |
+| `per_serving` | 객체 \| null | `servings`가 있을 때만 `total` ÷ `servings`. **없으면 null — 1인분을 지어내지 않는다** |
+| `partial_nutrients` | 문자열 배열 | 값이 없는 재료가 있어 일부 재료 합계인 성분(예: `sugars_g` — 당류는 원재료 DB에 빈 값이 많음). 이 성분은 비교·판정에 쓰지 않는다 |
+| `complete` | 불리언 | 먹는 재료가 모두 계산에 들어갔는지(3절 `coverage.complete`) |
+| `density` | 객체 | 분량과 상관없는 비교 값 4개(3.2). 레시피끼리 비교·추천의 '낮은 편' 판정은 이 값으로 한다 |
+| `notices` | 배열 | 화면 안내 `{code, label, items}` — 해당하는 것만 들어감(아래) |
+| `version` | 문자열 \| null | 계산기 판본(`recipe-food-map-v8`) |
+
+| `code` | `label`(화면에 그대로 써도 됨) | `items` 원소 |
+|---|---|---|
+| `partial` | 일부 재료만 계산한 값이에요 | 없음(아래 둘에 이름) |
+| `qualitative_not_counted` | '약간·적당량'이라 양을 모르는 재료는 계산에 넣지 않았어요 | `{name, amount_text}` |
+| `amount_unknown` | 양을 몰라 계산에 넣지 않은 재료가 있어요 | `{name, amount_text, reason}` (`reason`은 3절 `missing_items`) |
+| `estimated_amount` | 일부 재료는 양을 추정했어요 | `{name, amount_text, grams}` |
+| `filled_value` | 일부 식품의 성분은 다른 자료로 채운 값이에요 | `{name, food_name, nutrients}` |
+
+화면에는 `per_serving`이 있으면 1인분 값을, 없으면 "레시피 전체(재료 기준)"로 `total`을 보여 주고, `notices`의 `label`을 붙인다(3절 '화면 표시 권장'과 같은 내용). 원천 1인분 값(`nutrition`)을 함께 보여 줄 때는 "원문 표기"로 구분한다.
+
+```json
+{
+  "basis": "whole_recipe",
+  "servings": 2.0,
+  "total": {"energy_kcal": 1244.0, "carbohydrate_g": 73.0, "protein_g": 63.6, "fat_g": 78.1, "sodium_mg": 752.8,
+            "sugars_g": 42.2, "fiber_g": 5.3, "sat_fat_g": 23.5, "cholesterol_mg": 59.2, "potassium_mg": 750.6, "calcium_mg": 1102.9},
+  "per_serving": {"energy_kcal": 622.0, "carbohydrate_g": 36.5, "protein_g": 31.8, "fat_g": 39.0, "sodium_mg": 376.4, "…": "…"},
+  "partial_nutrients": ["cholesterol_mg", "potassium_mg"],
+  "complete": true,
+  "density": {"sodium_mg_per_1000kcal": 605.1, "carbohydrate_energy_pct": 23.5, "protein_energy_pct": 20.5, "fat_energy_pct": 56.5},
+  "notices": [{"code": "estimated_amount", "label": "일부 재료는 양을 추정했어요",
+               "items": [{"name": "건두부", "amount_text": "(10장)", "grams": 130.0}, {"name": "후춧가루", "amount_text": "(약간)", "grams": 0.02}]}],
+  "version": "recipe-food-map-v8"
+}
+```
+
+서버에 붙이는 법(API 코드는 백엔드 담당이 정함 — 데이터 쪽 제안):
+
+```python
+# 응답 스키마: RecipeRecord 에 computed_nutrition: RecipeComputedNutrition | None = None
+# 조회: 레시피 목록·상세 쿼리에 뷰를 붙이고(LEFT JOIN, 지금 판본 기준) 행을 블록으로 바꿈
+from agetech_data.nutrition.api import computed_nutrition_block
+row = db.execute(text("SELECT * FROM recipe_nutrition_active WHERE recipe_revision_id = :rid"),
+                 {"rid": revision.id}).mappings().first()
+record["computed_nutrition"] = (computed_nutrition_block(row, record["nutrition"]["ingredient_servings"])
+                                if row else None)
+```
+
 ## 4. 코드에서 쓰는 함수 (서버 연동용)
 
 ```python
@@ -169,6 +227,8 @@ ingredient_index = FoodIndex(foods)                  # 원재료성·가공식�
 match_ingredient("다진 마늘", ingredient_index)       # → MatchResult(status, food_code, food_name, rule, rationale, candidates)
 from agetech_data.nutrition.build import nutrient_density
 nutrient_density(computed, computed_missing, complete)  # 레시피 비교 값 (3.2, DB 칸과 같은 함수)
+from agetech_data.nutrition.api import computed_nutrition_block
+computed_nutrition_block(row, servings)             # 뷰 recipe_nutrition_active 한 행 → 앱 API 블록 (3.4)
 ```
 
 - `search_dishes`는 **후보 목록**이다. 최종 음식·분량은 사용자 확인 후 확정한다(기획서 CORE-04). 점수가 같으면 100g 기준 행이 앞에 온다.

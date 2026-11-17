@@ -19,6 +19,7 @@
 - **레시피 판본 하나 = `recipe_computed_nutrition` 한 행**: `computed`(11개 성분 합계), `computed_missing`(성분별 값 없는 재료 수), `coverage`(정성 분량 `qualitative_items`·`complete_except_qualitative` 포함 — 정의서 3절), `complete`(물을 뺀 모든 재료가 계산에 들어갔는지), `items`·`items_used`·`grams_used_pct`, 계산기 판본·매핑표 해시·`mapping_sha256`.
   - 원천 레시피가 적어 둔 영양(`recipe_revisions.source_*`)과는 **다른 값**이다. 섞어 쓰지 않는다. 화면은 `complete = false`면 "일부 재료 기준"으로 보여 준다(정의서 3절).
   - **분량과 상관없는 비교 값** 칸 4개(Alembic `20261117_01`, 계산기 v6): `sodium_mg_per_1000kcal`·`carbohydrate_energy_pct`·`protein_energy_pct`·`fat_energy_pct`(numeric, 0 이상 CHECK). 재료 목록이 몇 인분인지 몰라 합계끼리는 비교할 수 없어서 — 레시피끼리 '나트륨이 낮은 편' 같은 비교·정렬은 이 칸으로 한다. 정의·비우는 경우(null)는 정의서 3.2.
+- **화면에 보여 줄 값 = 뷰 `recipe_nutrition_active`** (Alembic `20261117_02`): 게시 중인 레시피(보류 제외)마다 지금 판본의 계산 영양 한 줄, 앱 다섯 성분을 숫자 칸으로 뽑아 둠. 앱 API 블록으로 바꾸는 함수와 응답 모양은 정의서 3.4.
 - **옛 판본 행은 지우지 않는다.** 레시피가 새 판본이 되면 새 판본 행을 만들고, 옛 판본 행은 남긴다 — 식단표(#18 `meal_plan_entries`)가 고른 당시 판본을 가리킬 수 있어서.
 
 ## 2. 다시 계산하는 규칙
@@ -33,6 +34,12 @@
 ## 3. 조회 예 (API 쪽)
 
 ```sql
+-- 앱 화면: 게시 중인 레시피의 지금 판본 계산 영양 한 줄씩(뷰, Alembic 20261117_02) → 정의서 3.4 블록
+SELECT * FROM recipe_nutrition_active WHERE source_id = :recipe_id;
+-- 다 계산된 레시피를 나트륨 밀도가 낮은 순으로(비교 값이 null 이면 부분 합계라 뺌)
+SELECT source_id, name, energy_kcal, sodium_mg_per_1000kcal FROM recipe_nutrition_active
+ WHERE complete AND sodium_mg_per_1000kcal IS NOT NULL ORDER BY sodium_mg_per_1000kcal;
+
 -- 레시피 상세: 계산 영양과 완전성
 SELECT n.computed, n.computed_missing, n.complete, n.grams_used_pct
 FROM recipes r JOIN recipe_computed_nutrition n ON n.recipe_revision_id = r.active_revision_id
