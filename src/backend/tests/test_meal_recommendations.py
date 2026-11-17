@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
 
+from agetech_data.nutrition.api import computed_nutrition_block
 from agetech_data.recipes.contract import to_api_record
 from agetech_data.recipes.validate import check_recipe
 from sqlalchemy import select
@@ -17,13 +18,18 @@ from app.models import (
     MealLog,
     MealLogItem,
     Recipe,
+    RecipeComputedNutrition,
     RecipeRevision,
     RecommendationItem,
     RecommendationRun,
     SeasonalFood,
     SeasonalRecipeLink,
 )
-from app.schemas.catalog import RecipeRecommendationRequest, RecipeRecord
+from app.schemas.catalog import (
+    ComputedNutrition,
+    RecipeRecommendationRequest,
+    RecipeRecord,
+)
 from app.schemas.profile import Preferences
 from app.services.meal_recommendations import recommend
 
@@ -78,6 +84,92 @@ def test_cooking_preferences_get_priority_and_only_label_matching_recipes():
     ]
 
 
+def _with_density(recipe_id, source_sodium, sodium=None, carbohydrate=None):
+    row = {
+        "RCP_SEQ": recipe_id,
+        "RCP_NM": f"메뉴{recipe_id}",
+        "RCP_PAT2": "일품",
+        "RCP_PARTS_DTLS": "쌀 100g",
+        "MANUAL01": "1. 익힌다.",
+        "INFO_ENG": "300",
+        "INFO_NA": source_sodium,
+    }
+    record = RecipeRecord.model_validate(to_api_record(check_recipe(row), row, None))
+    if sodium is None and carbohydrate is None:
+        return record
+    summary = {
+        "computed": {"energy_kcal": 500.0},
+        "computed_missing": {},
+        "coverage": {"complete": True},
+        "complete": True,
+        "mapper_version": "test",
+        "sodium_mg_per_1000kcal": sodium,
+        "carbohydrate_energy_pct": carbohydrate,
+    }
+    computed = ComputedNutrition.model_validate(computed_nutrition_block(summary))
+    return record.model_copy(update={"computed_nutrition": computed})
+
+
+def test_health_conditions_compare_ingredient_density_not_source_amounts():
+    recipes = [
+        # The source per-serving sodium says the opposite of the computed density.
+        _with_density("1", "900", sodium=300, carbohydrate=70),
+        _with_density("2", "100", sodium=1500, carbohydrate=40),
+        _with_density("3", "100", sodium=1000, carbohydrate=50),
+        _with_density("4", "50"),  # not mapped yet: left out of the comparison
+    ]
+
+    def reasons(condition):
+        payload = RecipeRecommendationRequest(
+            meal_time="lunch", health_conditions=[condition], limit=4
+        )
+        ranked = recommend(recipes, payload, Preferences(), [], {}, [], set())
+        return {
+            match.record.recipe_id: [
+                reason for reason in match.reasons if "재료로 계산했을 때" in reason
+            ]
+            for match in ranked
+        }
+
+    assert reasons("hypertension") == {
+        "1": ["재료로 계산했을 때 같은 열량에 든 나트륨이 적은 편이에요."],
+        "2": [],
+        "3": [],
+        "4": [],
+    }
+    assert reasons("diabetes") == {
+        "1": [],
+        "2": ["재료로 계산했을 때 열량 중 탄수화물 비율이 낮은 편이에요."],
+        "3": [],
+        "4": [],
+    }
+
+
+def _computed_row(db, source_id, sodium_per_1000kcal):
+    recipe, revision = db.execute(
+        select(Recipe, RecipeRevision)
+        .join(RecipeRevision, Recipe.active_revision_id == RecipeRevision.id)
+        .where(Recipe.source_id == source_id)
+    ).one()
+    db.add(
+        RecipeComputedNutrition(
+            recipe_id=recipe.id,
+            recipe_revision_id=revision.id,
+            computed={"energy_kcal": 500.0, "sodium_mg": sodium_per_1000kcal / 2},
+            computed_missing={},
+            coverage={"complete": True},
+            complete=True,
+            items=1,
+            items_used=1,
+            sodium_mg_per_1000kcal=Decimal(sodium_per_1000kcal),
+            mapper_version="test",
+            ingredient_map_sha256="0" * 64,
+            mapping_sha256="0" * 64,
+            mapping_run_id=revision.import_run_id,
+        )
+    )
+
+
 def test_recommendations_use_own_profile_and_confirmed_history(
     pg_connection, client, tmp_path
 ):
@@ -99,7 +191,8 @@ def test_recommendations_use_own_profile_and_confirmed_history(
                 "RCP_PARTS_DTLS": ingredients,
                 "RCP_PAT2": category,
                 "MANUAL01": "1. 재료를 익힌다.",
-                "INFO_NA": "50" if source_id == "1" else "300",
+                # Source per-serving sodium is no longer what the health rule reads.
+                "INFO_NA": "900" if source_id == "1" else "300",
             }
             for source_id, name, ingredients, category in rows
         ],
@@ -109,6 +202,9 @@ def test_recommendations_use_own_profile_and_confirmed_history(
         apply_import(
             db, prepare_import("recipes", path, corrections_path=corrections(tmp_path))
         )
+        # Recipe 4 is not mapped yet, so it has no computed nutrition.
+        for source_id in ("1", "2", "3", "5", "6", "7"):
+            _computed_row(db, source_id, 300 if source_id == "1" else 1000)
         other, other_headers = guest(client)
         user, headers = guest(client)
         response = client.patch(
@@ -148,7 +244,7 @@ def test_recommendations_use_own_profile_and_confirmed_history(
         assert response.status_code == 200
         assert response.headers["Cache-Control"] == "no-store"
         data = response.json()["data"]
-        assert data["rules_version"] == "meal-rules-4"
+        assert data["rules_version"] == "meal-rules-5"
         run_id = UUID(data["recommendation_id"])
         run = db.get(RecommendationRun, run_id)
         assert run.user_id == UUID(user["user_id"])
@@ -232,6 +328,15 @@ def test_recommendations_use_own_profile_and_confirmed_history(
         ).json()["data"]
         by_recipe = {item["item"]["recipe_id"]: item for item in health["items"]}
         assert any("나트륨" in reason for reason in by_recipe["1"]["reasons"])
+        assert [
+            recipe_id
+            for recipe_id, item in by_recipe.items()
+            if any("나트륨" in reason for reason in item["reasons"])
+        ] == ["1"]
+        computed = by_recipe["1"]["item"]["computed_nutrition"]
+        assert computed["density"]["sodium_mg_per_1000kcal"] == 300
+        assert by_recipe["4"]["item"]["computed_nutrition"] is None
+        assert "같은 열량 기준" in health["warnings"][0]
         assert by_recipe["7"]["seasonal_ingredients"][0]["name"] == "오이"
         assert "2" not in by_recipe
         seasonal.is_published = False
