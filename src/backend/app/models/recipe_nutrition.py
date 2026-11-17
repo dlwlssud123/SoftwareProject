@@ -111,6 +111,14 @@ class RecipeIngredientFood(Base):
     basis_ml_approx: Mapped[bool] = mapped_column(server_default="false")
 
 
+DENSITY_COLUMNS = (
+    "sodium_mg_per_1000kcal",
+    "carbohydrate_energy_pct",
+    "protein_energy_pct",
+    "fat_energy_pct",
+)
+
+
 class RecipeComputedNutrition(Base):
     __tablename__ = "recipe_computed_nutrition"
     __table_args__ = (
@@ -127,6 +135,10 @@ class RecipeComputedNutrition(Base):
             "grams_used_pct IS NULL OR (grams_used_pct >= 0 AND grams_used_pct <= 100)",
             name="ck_recipe_computed_pct",
         ),
+        *(
+            CheckConstraint(f"{c} IS NULL OR {c} >= 0", name=f"ck_recipe_computed_{c}")
+            for c in DENSITY_COLUMNS
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -139,6 +151,12 @@ class RecipeComputedNutrition(Base):
     items: Mapped[int]
     items_used: Mapped[int]
     grams_used_pct: Mapped[Decimal | None] = mapped_column(Numeric)
+    # Portion-free comparison values (agetech_data.nutrition.build.nutrient_density); NULL when the
+    # recipe is not fully computed or a food lacks that nutrient. Alembic 20261117_01.
+    sodium_mg_per_1000kcal: Mapped[Decimal | None] = mapped_column(Numeric)
+    carbohydrate_energy_pct: Mapped[Decimal | None] = mapped_column(Numeric)
+    protein_energy_pct: Mapped[Decimal | None] = mapped_column(Numeric)
+    fat_energy_pct: Mapped[Decimal | None] = mapped_column(Numeric)
     mapper_version: Mapped[str] = mapped_column(String(64))
     ingredient_map_sha256: Mapped[str] = mapped_column(String(64))
     mapping_sha256: Mapped[str] = mapped_column(String(64))

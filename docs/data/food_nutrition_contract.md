@@ -74,7 +74,7 @@ DB 적재는 정제 레코드까지 판본 지문에 포함한다. 원본이 같
 
 최상위: `schema_version`, `input`(영양 원본·레시피 원본 경로와 sha256), `summary`, `recipes[]`
 
-`recipes[]`: `source_id`(RCP_SEQ), `name`, `quality_status`(레시피 품질 검증의 ok/flagged/hold), `raw_sha256`, `ingredients[]`, `computed`(계산 합계), `computed_missing`(성분별 결측 재료 수), `coverage`, `source_values`(원문 `INFO_*` 문자열 그대로)
+`recipes[]`: `source_id`(RCP_SEQ), `name`, `quality_status`(레시피 품질 검증의 ok/flagged/hold), `raw_sha256`, `ingredients[]`, `computed`(계산 합계), `computed_missing`(성분별 결측 재료 수), `density`(분량과 상관없는 비교 값, 3.2), `coverage`, `source_values`(원문 `INFO_*` 문자열 그대로)
 
 `ingredients[]`:
 
@@ -117,6 +117,24 @@ g 대신 0으로 치는 구획 규칙(`excluded`): 구획 이름에 '선택'이 
 
 **DB 적재**: 같은 계산을 DB 활성 판본(레시피 재료 × 식품)으로 돌려 `recipe_ingredient_foods`(재료 하나)·`recipe_computed_nutrition`(레시피 판본 하나)에 넣는다 — `python -m app.jobs.map_recipe_foods`, 칸 대응·규칙은 [`recipe_food_map_db.md`](recipe_food_map_db.md).
 
+
+### 3.2 분량과 상관없는 비교 값 (`density`, 계산기 `recipe-food-map-v6`)
+
+`computed`는 **재료 목록 전체의 합**이다. 그런데 재료 목록이 몇 인분인지는 원천에 거의 없다 — 1,156건 중 'N인분'을 적은 것은 62건이고, 우리 계산 열량 ÷ 원천 1인분 열량으로 보면 1인분 근처는 45%뿐이고 2인분·5인분이 넘는 목록(빵 한 판, 양갱 한 틀)도 많다. 원천 `INFO_*`는 1인분이라 적혀 있어도 그 1인분이 몇 g인지 대부분 없다(`INFO_WGT` 285건). 그래서 **레시피끼리 '나트륨이 낮은 편'을 비교할 때 합계나 원천 표기값을 쓰면 분량 차이가 그대로 섞인다**(원천 표기와 우리 계산의 '중앙값보다 낮음' 판정이 나트륨 32%·탄수화물 25%에서 갈림, 11/17). 1인분 무게를 지어내지 않고(1절 규칙), 분량에 따라 변하지 않는 값을 같이 낸다.
+
+| 키 | 뜻 | 계산 |
+|---|---|---|
+| `sodium_mg_per_1000kcal` | 나트륨 밀도 — 1,000 kcal를 먹을 때 따라오는 나트륨 | `sodium_mg` × 1000 ÷ `energy_kcal` |
+| `carbohydrate_energy_pct` | 탄수화물 에너지 비율 (%) | `carbohydrate_g` × 4 ÷ `energy_kcal` × 100 |
+| `protein_energy_pct` | 단백질 에너지 비율 (%) | `protein_g` × 4 ÷ `energy_kcal` × 100 |
+| `fat_energy_pct` | 지방 에너지 비율 (%) | `fat_g` × 9 ÷ `energy_kcal` × 100 |
+
+- 소수 첫째 자리. 열량은 DB 값(`energy_kcal`), 다량 영양소는 4·4·9 kcal/g라 세 비율의 합이 100%와 조금 다를 수 있다(전체 중간 50%가 98~104%, 알코올이 든 와인배숙 54%·열량이 아주 적은 국 149% 같은 끝값 있음).
+- **비우는 경우(null)**: `coverage.complete`가 아니거나, 열량이 없거나 0이거나, 그 성분 값이 DB에 없는 재료가 있을 때(`computed_missing`에 그 성분 — 합계가 부분값). 부분값으로 순위를 매기지 않으려는 것이다. 11/17 파일 기준 1,156건 중 탄수화물·단백질·지방 비율 1,152건, 나트륨 밀도 1,089건(63건은 대구·전복 생것처럼 DB에 나트륨이 비어 있는 식품이 들어 있음).
+- 열량 기준이라 국처럼 물이 많은 음식도 묽어지지 않는다(100 g당이면 국은 오히려 싱겁게 나옴). 분류별 나트륨 밀도 중앙값: 국·찌개 약 3,000 · 반찬 약 1,150 · 밥·일품 약 990 · 후식 약 280 mg/1,000 kcal. 열량이 아주 적은 음식(나물·김치·국 — 60 kcal 미만 71건)은 값이 크게 나온다(최대 약 75,000). 실제로 열량에 비해 나트륨이 많은 음식이라 순위로는 맞다.
+- **기준값은 데이터가 정하지 않는다.** 몇 이하를 '낮다'로 볼지는 쓰는 쪽(추천·화면)이 최신 한국인 영양소 섭취기준으로 정한다. 예: 탄수화물 에너지적정비율 55~65%(2020 기준), 나트륨은 하루 목표량 ÷ 하루 에너지 필요량으로 1,000 kcal당 값을 만들어 비교.
+- 레시피 하나의 영양을 보여 줄 때는 여전히 `computed`(재료 목록 전체 합)와 `complete`를 쓴다. `density`는 **비교·정렬용**이다.
+
 ## 4. 코드에서 쓰는 함수 (서버 연동용)
 
 ```python
@@ -134,6 +152,8 @@ p = portion_nutrients(by_code["D109-416000000-0001"], 60, "g")   # 사용자가 
 meal_total([p, ...])                                 # 한 끼 합계
 ingredient_index = FoodIndex(foods)                  # 원재료성·가공식품 (레시피 재료 매핑용)
 match_ingredient("다진 마늘", ingredient_index)       # → MatchResult(status, food_code, food_name, rule, rationale, candidates)
+from agetech_data.nutrition.build import nutrient_density
+nutrient_density(computed, computed_missing, complete)  # 레시피 비교 값 (3.2, DB 칸과 같은 함수)
 ```
 
 - `search_dishes`는 **후보 목록**이다. 최종 음식·분량은 사용자 확인 후 확정한다(기획서 CORE-04). 점수가 같으면 100g 기준 행이 앞에 온다.

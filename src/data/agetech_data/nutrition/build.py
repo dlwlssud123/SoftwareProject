@@ -334,11 +334,35 @@ def _apply_item_overrides(rows: list[list], recipe_id: str | None, overrides: di
                               f"{r[1].basis} × 가식부 {e['ratio']:g} — {e['reason']}")
 
 
+# 분량과 상관없이 레시피끼리 비교하는 값 — 재료 목록이 몇 인분인지 원천에 거의 없어(1,156건 중 62건만 'N인분')
+# 합계로는 비교할 수 없다. 열량 기준이라 국처럼 물이 많은 음식도 묽어지지 않는다. 열량은 DB 값(energy_kcal),
+# 다량 영양소 에너지는 4·4·9 kcal/g. 기준값(몇 이하가 '낮다')은 쓰는 쪽이 최신 한국인 영양소 섭취기준으로 정한다.
+DENSITY: dict[str, tuple[str, float]] = {
+    "sodium_mg_per_1000kcal": ("sodium_mg", 1000.0),      # 나트륨 밀도: 1,000 kcal당 mg
+    "carbohydrate_energy_pct": ("carbohydrate_g", 400.0),  # 탄수화물 에너지 비율: g × 4 / kcal × 100
+    "protein_energy_pct": ("protein_g", 400.0),
+    "fat_energy_pct": ("fat_g", 900.0),
+}
+
+
+def nutrient_density(computed: dict, computed_missing: dict, complete: bool) -> dict:
+    """DENSITY 값. 재료가 다 계산되지 않았거나(complete 아님) 열량이 없거나, 그 성분 값이 DB에 없는 재료가
+    있으면(computed_missing — 합계가 부분값) 지어내지 않고 None."""
+    energy = computed.get("energy_kcal")
+    usable = complete and energy is not None and energy > 0 and not computed_missing.get("energy_kcal")
+    out = {}
+    for key, (nutrient, factor) in DENSITY.items():
+        value = computed.get(nutrient)
+        ok = usable and value is not None and not computed_missing.get(nutrient)
+        out[key] = round(value * factor / energy, 1) if ok else None
+    return out
+
+
 def ingredient_nutrition(ingredients, index: FoodIndex, by_code: dict[str, FoodRecord], entries,
                          cache: dict | None = None, estimates: Estimates | None = None,
                          cooking_method: str | None = None, recipe_id: str | None = None,
                          overrides: dict | None = None) -> dict:
-    """레시피 재료 목록 → {ingredients, computed, computed_missing, coverage}.
+    """레시피 재료 목록 → {ingredients, computed, computed_missing, density, coverage}.
 
     ingredients 는 재료 파서 결과(Ingredient) 또는 그 dict(DB recipe_ingredients.parsed)다.
     파일 산출물(build_recipe_nutrition)과 DB 적재(nutrition.recipe_map)가 같은 계산을 쓴다.
@@ -391,10 +415,12 @@ def ingredient_nutrition(ingredients, index: FoodIndex, by_code: dict[str, FoodR
     qualitative = [i for i in counted if i["grams"]["status"] == "qualitative"]
     quantified = [i for i in counted if i["grams"]["status"] != "qualitative"]
     complete_except_qualitative = bool(quantified) and all(i["contribution"] is not None for i in quantified)
+    computed = {k: round(v, 2) for k, v in totals.items()}
     return {
         "ingredients": items,
-        "computed": {k: round(v, 2) for k, v in totals.items()},
+        "computed": computed,
         "computed_missing": dict(missing),
+        "density": nutrient_density(computed, dict(missing), complete),
         "coverage": {
             "items": len(items),
             "items_used": sum(i["contribution"] is not None for i in items),

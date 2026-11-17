@@ -19,13 +19,14 @@ from agetech_data.nutrition.foods import FoodRecord
 from agetech_data.nutrition.match import FoodIndex, load_ingredient_map, manual_entry
 from agetech_data.textutil import sha256_json
 
-MAPPER_VERSION = "recipe-food-map-v5"  # v2: 계량 단위·출처 있는 개당 중량(unit_weight) 환산
+MAPPER_VERSION = "recipe-food-map-v6"  # v2: 계량 단위·출처 있는 개당 중량(unit_weight) 환산
 #                                        v3: coverage 에 정성 분량(qualitative_items·complete_except_qualitative)
 #                                        v4: 손질 표기(○○다진것·○○채썬것)·'다진 ○○' 이 기본 재료 매핑을 따름,
 #                                            먹지 않는 재료 excluded(0 으로 취급)·coverage.missing_items·excluded_items
 #                                        v5: 출처 없는 g 추정(gram status estimated, estimated_amounts.json)·
 #                                            coverage.estimated_items, 매핑표 food_factor, 튀김기름 자동 판정(조리방법),
 #                                            이름 정리·상태근사·어순·구획 끝말 규칙 확장
+#                                        v6: 분량과 상관없는 비교 값 density(나트륨 1,000 kcal당 mg·탄수화물·단백질·지방 에너지 비율)
 
 
 def food_records(normalized: list[dict]) -> list[FoodRecord]:
@@ -51,7 +52,7 @@ def _review(item: dict, ingredient: dict, entries) -> dict | None:
 
 
 def recipe_map_rows(recipes: list[dict], foods: list[FoodRecord], entries=None) -> list[dict]:
-    """레시피마다 {recipe_id, ingredients[…, review], computed, computed_missing, coverage, content_sha256}."""
+    """레시피마다 {recipe_id, ingredients[…, review], computed, computed_missing, density, coverage, content_sha256}."""
     entries = load_ingredient_map() if entries is None else entries
     index = FoodIndex(foods)
     by_code = {f.food_code: f for f in foods}
