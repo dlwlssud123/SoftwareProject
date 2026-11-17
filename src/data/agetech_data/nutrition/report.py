@@ -141,9 +141,13 @@ def render_report(inputs: dict, s: dict, recipes: list[dict], dishes: dict) -> s
           "- 이상값은 `quality_flags`로 표시합니다. 근거가 있는 원천 오류만 보정표"
           "(`src/data/agetech_data/resources/food_corrections.json`)로 고치며, 수집 원본은 바꾸지 않고 원래 값을 `corrections`에 남깁니다.", ""]
     cs = f.get("corrections", [])
-    L += [f"### 원천 오류 보정 {len(cs)}건", ""]
+    fills = [c for c in cs if c.get("kind") == "fill_missing"]
+    L += [f"### 원천 오류 보정 {len(cs) - len(fills)}건 · 빈 값 채우기 {len(fills)}건", "",
+          "빈 값 채우기는 오류 보정이 아니라 원천에 측정값이 없는 성분을 같은 DB의 같은 식품 행(다른 표본, "
+          "같은 식품 생것을 수분으로 환산)으로 채운 추정입니다(품질 표시 `filled`). 원천이 값을 내면 원천 값을 씁니다.", ""]
     L += _table(["식품코드", "식품명", "필드", "원래 값", "바꾼 값", "이유", "확인"], [
-        [f"`{c['food_code']}`", c["name"], f"`{c['field']}`", c["from"], c["to"], c["reason"], f"{c['by']} {c['at']}"]
+        [f"`{c['food_code']}`", c["name"], f"`{c['field']}`", "(빈 값)" if c["from"] is None else c["from"], c["to"],
+         c["reason"], f"{c['by']} {c['at']}"]
         for c in cs
     ]) if cs else ["없음."]
     stale, gone = f.get("corrections_stale", []), f.get("corrections_missing", [])
