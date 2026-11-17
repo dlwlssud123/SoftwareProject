@@ -3,14 +3,17 @@ from threading import Barrier
 from unittest.mock import Mock
 
 import pytest
+from agetech_data.nutrition.api import computed_nutrition_block
 from fastapi.testclient import TestClient
 from sqlalchemy import select, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 from test_auth import guest
 from test_public_data_import import corrections, snapshot
+from test_recipe_food_mapping import DAY2, MAP, RECIPES, load
 
 from app.core.database import get_db
+from app.jobs import map_recipe_foods
 from app.jobs.import_public_data import apply_import, prepare_import
 from app.models import Recipe, RecipeRevision
 
@@ -161,6 +164,48 @@ def test_recipe_routes_use_active_revision_and_keep_missing_nutrients(api_db, tm
     revision.quality_status = "hold"
     db.commit()
     assert client.get("/api/v1/recipes/1").status_code == 404
+
+
+def test_recipe_routes_attach_computed_nutrition_of_the_active_revision(
+    api_db, tmp_path
+):
+    client, db = api_db
+    recipes = [
+        RECIPES[0],
+        dict(RECIPES[1], RCP_PARTS_DTLS="[2인분] 양파 1개, 참기름 10g"),
+    ]
+    load(db, tmp_path, recipes=recipes)
+    db.commit()
+    assert client.get("/api/v1/recipes/1").json()["data"]["computed_nutrition"] is None
+
+    map_recipe_foods.apply_mapping(db, MAP)
+    db.commit()
+    view = {
+        row["source_id"]: row
+        for row in db.execute(text("SELECT * FROM recipe_nutrition_active")).mappings()
+    }
+    items = client.get("/api/v1/recipes").json()["data"]["items"]
+    assert [item["recipe_id"] for item in items] == ["1", "2"]
+    for item in items:
+        # Same block as turning the view row into the API block (contract 3.4).
+        servings = item["nutrition"]["ingredient_servings"]
+        expected = computed_nutrition_block(view[item["recipe_id"]], servings)
+        assert item["computed_nutrition"] == expected
+    detail = client.get("/api/v1/recipes/2").json()["data"]["computed_nutrition"]
+    assert detail["basis"] == "whole_recipe" and detail["servings"] == 2
+    assert detail["per_serving"]["energy_kcal"] == round(
+        detail["total"]["energy_kcal"] / 2, 1
+    )
+    assert detail["density"]["sodium_mg_per_1000kcal"] is not None
+    one = client.get("/api/v1/recipes/1").json()["data"]["computed_nutrition"]
+    assert one["servings"] is None and one["per_serving"] is None
+
+    # A new revision is not shown with the old revision's numbers before mapping.
+    edited = [dict(recipes[0], RCP_PARTS_DTLS="시금치 300g, 물 100ml"), recipes[1]]
+    load(db, tmp_path, recipes=edited, fetched_at=DAY2)
+    db.commit()
+    assert client.get("/api/v1/recipes/1").json()["data"]["computed_nutrition"] is None
+    assert client.get("/api/v1/recipes/2").json()["data"]["computed_nutrition"]
 
 
 @pytest.mark.parametrize(

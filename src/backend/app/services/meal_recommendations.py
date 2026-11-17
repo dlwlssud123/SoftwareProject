@@ -10,10 +10,20 @@ from agetech_data.textutil import nfc
 from app.schemas.catalog import RecipeRecommendationRequest, RecipeRecord, SeasonalMatch
 from app.schemas.profile import Preferences
 
-RULES_VERSION = "meal-rules-4"
+RULES_VERSION = "meal-rules-5"
+# Compare the portion-free values of the ingredient-based nutrition
+# (food_nutrition_contract.md 3.2). The public per-serving figures have no
+# serving basis and the ingredient lists feed different numbers of people, so
+# comparing amounts would mostly compare portion sizes.
 HEALTH_METRICS = {
-    "hypertension": ("sodium_mg", "나트륨"),
-    "diabetes": ("carbohydrate_g", "탄수화물"),
+    "hypertension": (
+        "sodium_mg_per_1000kcal",
+        "재료로 계산했을 때 같은 열량에 든 나트륨이 적은 편이에요.",
+    ),
+    "diabetes": (
+        "carbohydrate_energy_pct",
+        "재료로 계산했을 때 열량 중 탄수화물 비율이 낮은 편이에요.",
+    ),
 }
 
 TIME_CATEGORIES = {
@@ -74,14 +84,11 @@ def _is_soft_menu(record: RecipeRecord) -> bool:
     return False
 
 
-def _nutrient(record: RecipeRecord, field: str) -> float | None:
-    value = getattr(record.nutrition, field)
-    # The public source uses unverified serving sizes and may contain zero placeholders.
-    return (
-        value
-        if not record.nutrition.suspect and value is not None and value > 0
-        else None
-    )
+def _density(record: RecipeRecord, field: str) -> float | None:
+    # None (left out of the comparison) before mapping, or when an ingredient was
+    # not computed or a food lacks the nutrient.
+    computed = record.computed_nutrition
+    return None if computed is None else getattr(computed.density, field)
 
 
 def recommend(
@@ -180,11 +187,11 @@ def recommend(
         )
 
     for condition in dict.fromkeys(payload.health_conditions):
-        field, label = HEALTH_METRICS[condition]
+        field, reason = HEALTH_METRICS[condition]
         known = [
             (entry, value)
             for entry in pool
-            if (value := _nutrient(entry.record, field)) is not None
+            if (value := _density(entry.record, field)) is not None
         ]
         if len({value for _, value in known}) < 2:
             continue
@@ -192,9 +199,7 @@ def recommend(
         for entry, value in known:
             if value < middle:
                 entry.score += 2
-                entry.reasons.append(
-                    f"공개 레시피를 비교했을 때 {label} 표기량이 낮은 편이에요."
-                )
+                entry.reasons.append(reason)
 
     used_categories: Counter[str] = Counter()
     used_names: set[str] = set()

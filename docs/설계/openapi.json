@@ -943,6 +943,99 @@
         ],
         "title": "AllergenEvidence"
       },
+      "ComputedNutrition": {
+        "properties": {
+          "basis": {
+            "type": "string",
+            "const": "whole_recipe",
+            "title": "Basis"
+          },
+          "servings": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Servings"
+          },
+          "total": {
+            "$ref": "#/components/schemas/NutrientAmounts"
+          },
+          "per_serving": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NutrientAmounts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "partial_nutrients": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "energy_kcal",
+                "carbohydrate_g",
+                "protein_g",
+                "fat_g",
+                "sodium_mg",
+                "sugars_g",
+                "fiber_g",
+                "sat_fat_g",
+                "cholesterol_mg",
+                "potassium_mg",
+                "calcium_mg"
+              ]
+            },
+            "type": "array",
+            "title": "Partial Nutrients"
+          },
+          "complete": {
+            "type": "boolean",
+            "title": "Complete"
+          },
+          "density": {
+            "$ref": "#/components/schemas/NutrientDensity"
+          },
+          "notices": {
+            "items": {
+              "$ref": "#/components/schemas/NutritionNotice"
+            },
+            "type": "array",
+            "title": "Notices"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "basis",
+          "servings",
+          "total",
+          "per_serving",
+          "partial_nutrients",
+          "complete",
+          "density",
+          "notices",
+          "version"
+        ],
+        "title": "ComputedNutrition",
+        "description": "Ingredient-based nutrition (food_nutrition_contract.md 3.4), separate from `nutrition`."
+      },
       "DetectedAllergen": {
         "properties": {
           "allergen": {
@@ -1121,6 +1214,241 @@
         "title": "IdentityData"
       },
       "JsonValue": {},
+      "NutrientAmounts": {
+        "properties": {
+          "energy_kcal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energy Kcal"
+          },
+          "carbohydrate_g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Carbohydrate G"
+          },
+          "protein_g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protein G"
+          },
+          "fat_g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fat G"
+          },
+          "sodium_mg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sodium Mg"
+          },
+          "sugars_g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sugars G"
+          },
+          "fiber_g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fiber G"
+          },
+          "sat_fat_g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sat Fat G"
+          },
+          "cholesterol_mg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cholesterol Mg"
+          },
+          "potassium_mg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Potassium Mg"
+          },
+          "calcium_mg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calcium Mg"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "energy_kcal",
+          "carbohydrate_g",
+          "protein_g",
+          "fat_g",
+          "sodium_mg",
+          "sugars_g",
+          "fiber_g",
+          "sat_fat_g",
+          "cholesterol_mg",
+          "potassium_mg",
+          "calcium_mg"
+        ],
+        "title": "NutrientAmounts"
+      },
+      "NutrientDensity": {
+        "properties": {
+          "sodium_mg_per_1000kcal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sodium Mg Per 1000Kcal"
+          },
+          "carbohydrate_energy_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Carbohydrate Energy Pct"
+          },
+          "protein_energy_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protein Energy Pct"
+          },
+          "fat_energy_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fat Energy Pct"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sodium_mg_per_1000kcal",
+          "carbohydrate_energy_pct",
+          "protein_energy_pct",
+          "fat_energy_pct"
+        ],
+        "title": "NutrientDensity"
+      },
+      "NutritionNotice": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "partial",
+              "qualitative_not_counted",
+              "amount_unknown",
+              "estimated_amount",
+              "filled_value"
+            ],
+            "title": "Code"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "label",
+          "items"
+        ],
+        "title": "NutritionNotice"
+      },
       "Page_RecipeRecord_": {
         "properties": {
           "items": {
@@ -1981,6 +2309,16 @@
           },
           "nutrition": {
             "$ref": "#/components/schemas/RecipeNutrition"
+          },
+          "computed_nutrition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ComputedNutrition"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "sodium_tip": {
             "anyOf": [

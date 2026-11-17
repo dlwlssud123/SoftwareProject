@@ -114,6 +114,71 @@ class RecipeNutrition(ContractModel):
     suspect: bool
 
 
+NutrientKey = Literal[
+    "energy_kcal",
+    "carbohydrate_g",
+    "protein_g",
+    "fat_g",
+    "sodium_mg",
+    "sugars_g",
+    "fiber_g",
+    "sat_fat_g",
+    "cholesterol_mg",
+    "potassium_mg",
+    "calcium_mg",
+]
+
+
+class NutrientAmounts(ContractModel):
+    # The five nutrients the app shows come first; foods have no empty values for them.
+    energy_kcal: float | None
+    carbohydrate_g: float | None
+    protein_g: float | None
+    fat_g: float | None
+    sodium_mg: float | None
+    sugars_g: float | None
+    fiber_g: float | None
+    sat_fat_g: float | None
+    cholesterol_mg: float | None
+    potassium_mg: float | None
+    calcium_mg: float | None
+
+
+class NutrientDensity(ContractModel):
+    # Portion-free values for comparing recipes; null unless every ingredient was computed.
+    sodium_mg_per_1000kcal: float | None
+    carbohydrate_energy_pct: float | None
+    protein_energy_pct: float | None
+    fat_energy_pct: float | None
+
+
+class NutritionNotice(ContractModel):
+    code: Literal[
+        "partial",
+        "qualitative_not_counted",
+        "amount_unknown",
+        "estimated_amount",
+        "filled_value",
+    ]
+    label: str
+    items: list[dict[str, JsonValue]]
+
+
+class ComputedNutrition(ContractModel):
+    """Ingredient-based nutrition (food_nutrition_contract.md 3.4), separate from `nutrition`."""
+
+    basis: Literal["whole_recipe"]
+    servings: float | None
+    total: NutrientAmounts
+    # Only when the ingredient text states 'N인분'; a serving is never made up.
+    per_serving: NutrientAmounts | None
+    partial_nutrients: list[NutrientKey]
+    complete: bool
+    density: NutrientDensity
+    notices: list[NutritionNotice]
+    version: str | None
+
+
 class AllergenEvidence(ContractModel):
     ingredient: str
     term: str
@@ -177,6 +242,8 @@ class RecipeRecord(ContractModel):
     steps: list[RecipeStep]
     missing_step_nos: list[int]
     nutrition: RecipeNutrition
+    # None until the recipe's active revision has been mapped to foods.
+    computed_nutrition: ComputedNutrition | None = None
     sodium_tip: str | None
     allergens: RecipeAllergens
     quality: RecipeQuality
