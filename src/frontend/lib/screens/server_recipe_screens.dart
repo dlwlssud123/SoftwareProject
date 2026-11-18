@@ -133,7 +133,7 @@ class _ServerRecipeListState extends State<ServerRecipeList> {
             ),
           const SizedBox(height: 12),
           const Text(
-            '출처: 식품안전나라 COOKRCP01\n영양 수치는 1인분 기준이 확인되지 않은 참고값이에요.',
+            '출처: 식품안전나라 COOKRCP01\n열량은 재료로 계산한 값이에요. 계산 전인 레시피는 원문 표기를 보여드려요.',
             style: TextStyle(fontSize: 13, color: muted, height: 1.6),
           ),
         ],
@@ -144,7 +144,15 @@ class _ServerRecipeListState extends State<ServerRecipeList> {
   static String _summary(RecipeRecord recipe) => [
     ?recipe.category,
     ?recipe.cookingMethod,
-    _amount('열량', recipe.nutrition.energyKcal, 'kcal'),
+    switch (recipe.computedNutrition) {
+      final computed? when computed.perServing != null => _amount(
+        '1인분',
+        computed.perServing!.energyKcal,
+        'kcal',
+      ),
+      final computed? => _amount('전체', computed.total.energyKcal, 'kcal'),
+      null => _amount('원문 열량', recipe.nutrition.energyKcal, 'kcal'),
+    },
   ].join(' · ');
 }
 
@@ -268,21 +276,31 @@ class _RecipeBody extends StatelessWidget {
           const Notice('재료 분석이 끝나지 않은 레시피예요. 알레르기 재료는 원재료를 직접 확인해 주세요.'),
         ],
         const SectionTitle('영양 정보'),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            _NutrientBox('열량', _amount(null, nutrition.energyKcal, 'kcal')),
-            _NutrientBox('단백질', _amount(null, nutrition.proteinG, 'g')),
-            _NutrientBox('탄수화물', _amount(null, nutrition.carbohydrateG, 'g')),
-            _NutrientBox('나트륨', _amount(null, nutrition.sodiumMg, 'mg')),
-          ],
-        ),
-        const SizedBox(height: 10),
-        const Text(
-          '공공데이터 제공 수치예요. 1인분 기준이 확인되지 않아 참고로만 봐 주세요.',
-          style: TextStyle(fontSize: 13, color: muted),
-        ),
+        if (recipe.computedNutrition case final computed?)
+          _ComputedNutritionView(computed: computed, source: nutrition)
+        else ...[
+          const Text(
+            '원문 표기',
+            key: Key('server-recipe-source-nutrition'),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _NutrientBox('열량', _amount(null, nutrition.energyKcal, 'kcal')),
+              _NutrientBox('단백질', _amount(null, nutrition.proteinG, 'g')),
+              _NutrientBox('탄수화물', _amount(null, nutrition.carbohydrateG, 'g')),
+              _NutrientBox('나트륨', _amount(null, nutrition.sodiumMg, 'mg')),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            '공공데이터 제공 수치예요. 1인분 기준이 확인되지 않아 참고로만 봐 주세요.',
+            style: TextStyle(fontSize: 13, color: muted),
+          ),
+        ],
         if (nutrition.suspect) ...[
           const SizedBox(height: 10),
           const Notice('열량과 영양소 수치가 서로 맞지 않아 확인이 필요한 값이에요.'),
@@ -448,6 +466,79 @@ class _IngredientGroups extends StatelessWidget {
       ],
     );
   }
+}
+
+/// 재료로 계산한 영양(computed_nutrition)과 원문 표기를 구분해 보여준다.
+class _ComputedNutritionView extends StatelessWidget {
+  const _ComputedNutritionView({required this.computed, required this.source});
+
+  final ComputedNutrition computed;
+  final RecipeNutritionInfo source;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = computed.shown;
+    final partial = computed.partialNutrients;
+    String box(String key, double? value, String unit) {
+      final text = _amount(null, value, unit);
+      return partial.contains(key) && value != null ? '$text (일부 재료)' : text;
+    }
+
+    final servings = computed.servings;
+    final title = computed.perServing != null && servings != null
+        ? '재료로 계산한 1인분 (${_count(servings)}인분 기준)'
+        : '레시피 전체 (재료 기준)';
+    return Column(
+      key: const Key('server-recipe-computed-nutrition'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _NutrientBox('열량', box('energy_kcal', shown.energyKcal, 'kcal')),
+            _NutrientBox('단백질', box('protein_g', shown.proteinG, 'g')),
+            _NutrientBox(
+              '탄수화물',
+              box('carbohydrate_g', shown.carbohydrateG, 'g'),
+            ),
+            _NutrientBox('나트륨', box('sodium_mg', shown.sodiumMg, 'mg')),
+          ],
+        ),
+        if (computed.perServing == null) ...[
+          const SizedBox(height: 10),
+          const Text(
+            '몇 인분인지 원문에 없어 재료 전체를 합한 값이에요. 한 번에 드시는 양은 이보다 적을 수 있어요.',
+            style: TextStyle(fontSize: 13, color: muted, height: 1.5),
+          ),
+        ],
+        for (final notice in computed.notices) ...[
+          const SizedBox(height: 10),
+          Notice(
+            notice.itemNames.isEmpty
+                ? notice.label
+                : '${notice.label}\n${notice.itemNames.join(', ')}',
+          ),
+        ],
+        const SizedBox(height: 14),
+        Text(
+          '원문 표기(1인분 기준 미확인): ${[_amount('열량', source.energyKcal, 'kcal'), _amount('단백질', source.proteinG, 'g'), _amount('탄수화물', source.carbohydrateG, 'g'), _amount('나트륨', source.sodiumMg, 'mg')].join(' · ')}',
+          key: const Key('server-recipe-source-nutrition'),
+          style: const TextStyle(fontSize: 13, color: muted, height: 1.5),
+        ),
+      ],
+    );
+  }
+
+  /// 2.0 → '2', 1.5 → '1.5'
+  static String _count(double value) => value == value.roundToDouble()
+      ? value.toStringAsFixed(0)
+      : value.toString();
 }
 
 class _NutrientBox extends StatelessWidget {
