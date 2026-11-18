@@ -185,6 +185,14 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(
+        tester.widget<Image>(find.byType(Image)).image,
+        isA<ResizeImage>().having(
+          (image) => image.height,
+          'decode height',
+          240,
+        ),
+      );
       final scrollable = find.descendant(
         of: find.byKey(const Key('recipe-detail-scroll')),
         matching: find.byType(Scrollable),

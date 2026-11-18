@@ -201,11 +201,14 @@ class _RecipeImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cacheHeight = (height * MediaQuery.devicePixelRatioOf(context))
+        .ceil();
     if (!recipe.fromServer) {
       return Image.asset(
         recipe.image,
         width: width,
         height: height,
+        cacheHeight: cacheHeight,
         fit: BoxFit.cover,
       );
     }
@@ -221,6 +224,7 @@ class _RecipeImage extends StatelessWidget {
       url,
       width: width,
       height: height,
+      cacheHeight: cacheHeight,
       fit: BoxFit.cover,
       errorBuilder: (_, _, _) => placeholder,
     );

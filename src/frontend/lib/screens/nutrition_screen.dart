@@ -53,6 +53,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const previewHeight = 180.0;
+    final cacheHeight = (previewHeight * MediaQuery.devicePixelRatioOf(context))
+        .ceil();
     final recipe = widget.repository.recipes.first;
     final hasPhoto = photo != null || example;
     final content = ListView(
@@ -60,7 +63,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
       children: [
         if (hasPhoto)
           Container(
-            height: 180,
+            height: previewHeight,
             decoration: BoxDecoration(
               border: Border.all(color: line),
               borderRadius: BorderRadius.circular(10),
@@ -70,10 +73,15 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 ? Image.file(
                     File(photo!.path),
                     fit: BoxFit.contain,
+                    cacheHeight: cacheHeight,
                     errorBuilder: (_, _, _) =>
                         const Center(child: Text('사진을 다시 선택해 주세요.')),
                   )
-                : Image.asset(recipe.image, fit: BoxFit.contain),
+                : Image.asset(
+                    recipe.image,
+                    fit: BoxFit.contain,
+                    cacheHeight: cacheHeight,
+                  ),
           )
         else
           Padding(
