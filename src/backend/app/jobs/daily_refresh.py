@@ -2,6 +2,7 @@
 
     cd src/backend
     uv run python -m app.jobs.daily_refresh                  # collect -> import -> map -> RAG
+    uv run python -m app.jobs.daily_refresh --welfare-only --verify
     uv run python -m app.jobs.daily_refresh --dry-run        # print the steps and commands only
     uv run python -m app.jobs.daily_refresh --skip-refresh   # re-import the current snapshots (retry)
     RAG_PYTHON=/path/to/python-with-embed-extra uv run python -m app.jobs.daily_refresh
@@ -68,6 +69,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[2]
 HOUR = 3600
 TAIL_CHARS = 1500
 JOBS = JobRun.__table__
+WELFARE_SOURCES = ("welfare_central", "welfare_local")
 # Exit 0 only when the interpreter can build embeddings (rag.index / rag.export import these).
 RAG_ENV_CHECK = (
     "import importlib.util as u, sys; "
@@ -84,6 +86,7 @@ class Step:
     needs: tuple[str, ...] = ()  # skipped unless these steps were ok in this run
     snapshots: tuple[Path, ...] = ()  # skipped while any of these is not complete
     timeout: int = HOUR
+    required_files: tuple[Path, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -103,10 +106,12 @@ def build_steps(
     sources: list[str] | None = None,
     verify: bool = False,
     rag: bool = True,
+    welfare_only: bool = False,
 ) -> list[Step]:
     steps: list[Step] = []
     if refresh:
-        source_args = ("--source", *sources) if sources else ()
+        selected_sources = WELFARE_SOURCES if welfare_only else sources
+        source_args = ("--source", *selected_sources) if selected_sources else ()
         steps.append(
             Step(
                 "refresh",
@@ -116,11 +121,14 @@ def build_steps(
         )
     imports = [
         ("import_welfare", (paths.WELFARE_CENTRAL_RAW, paths.WELFARE_LOCAL_RAW)),
-        ("import_public_data", (paths.RECIPES_ALL_RAW, paths.NUTRITION_RAW)),
-        ("import_meal_facilities", (paths.FREE_MEAL_RAW,)),
-        ("import_seasonal", (paths.SEASONAL_RAW,)),
-        ("map_recipe_foods", ()),
     ]
+    if not welfare_only:
+        imports += [
+            ("import_public_data", (paths.RECIPES_ALL_RAW, paths.NUTRITION_RAW)),
+            ("import_meal_facilities", (paths.FREE_MEAL_RAW,)),
+            ("import_seasonal", (paths.SEASONAL_RAW,)),
+            ("map_recipe_foods", ()),
+        ]
     for name, snapshots in imports:
         steps.append(
             Step(name, ("-m", f"app.jobs.{name}", "--apply"), snapshots=snapshots)
@@ -135,34 +143,56 @@ def build_steps(
                 )
             )
     if rag:
-        steps += [
-            Step("welfare_build", ("-m", "agetech_data.welfare.build", "--no-report")),
+        welfare_needs = ()
+        rag_files: tuple[Path, ...] = ()
+        if welfare_only:
+            welfare_needs = (
+                ("import_welfare_verify",) if verify else ("import_welfare",)
+            )
+        steps.append(
             Step(
-                "recipes_contract",
-                (
-                    "-m",
-                    "agetech_data.recipes.contract",
-                    "--input",
-                    str(paths.RECIPES_ALL_RAW),
-                    "--no-sample",
-                    # RAG chunks must match the published rows (DB recipe_revisions.effective)
-                    "--corrections",
-                    str(paths.RECIPE_CORRECTIONS),
-                    "--output-json",
-                    str(paths.RECIPES_API_ALL),
+                "welfare_build",
+                ("-m", "agetech_data.welfare.build", "--no-report"),
+                needs=welfare_needs,
+            )
+        )
+        if welfare_only:
+            # The index contains all topics. A welfare-only run must keep the weekly inputs.
+            rag_files = (paths.RECIPES_API_ALL, paths.SEASONAL_RAW)
+            rag_needs = ("import_welfare", "welfare_build")
+        else:
+            steps.append(
+                Step(
+                    "recipes_contract",
+                    (
+                        "-m",
+                        "agetech_data.recipes.contract",
+                        "--input",
+                        str(paths.RECIPES_ALL_RAW),
+                        "--no-sample",
+                        # Match the effective rows that were published to the DB.
+                        "--corrections",
+                        str(paths.RECIPE_CORRECTIONS),
+                        "--output-json",
+                        str(paths.RECIPES_API_ALL),
+                    ),
                 ),
-            ),
+            )
+            rag_needs = (
+                "import_welfare",
+                "import_public_data",
+                "welfare_build",
+                "recipes_contract",
+            )
+        steps += [
             Step(
                 "rag_index",
                 ("-m", "agetech_data.rag.index"),
                 runtime="rag",
-                needs=(
-                    "import_welfare",
-                    "import_public_data",
-                    "welfare_build",
-                    "recipes_contract",
-                ),
+                needs=rag_needs,
+                snapshots=(paths.SEASONAL_RAW,) if welfare_only else (),
                 timeout=3 * HOUR,
+                required_files=rag_files,
             ),
             Step(
                 "rag_export",
@@ -330,6 +360,9 @@ def execute(
         not_ok = [n for n in step.needs if n in done and done[n] != "ok"]
         if not_ok:
             return {"reason": "needs_not_ok", "detail": ", ".join(not_ok)}
+        for path in step.required_files:
+            if not path.is_file():
+                return {"reason": "missing_input", "detail": _rel(path)}
         for snapshot in step.snapshots:
             wait = snapshot_wait(snapshot)
             if wait:
@@ -587,6 +620,11 @@ def main(argv: list[str] | None = None) -> int:
         "--source", nargs="+", choices=list(SOURCES), help="refresh only these sources"
     )
     parser.add_argument(
+        "--welfare-only",
+        action="store_true",
+        help="refresh and import only welfare; reuse weekly RAG inputs",
+    )
+    parser.add_argument(
         "--skip-refresh", action="store_true", help="import the current snapshots only"
     )
     parser.add_argument(
@@ -612,12 +650,15 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.skip_refresh and args.source:
         parser.error("--source needs the refresh step (drop --skip-refresh)")
+    if args.welfare_only and args.source:
+        parser.error("--welfare-only selects both welfare sources; omit --source")
 
     steps = build_steps(
         refresh=not args.skip_refresh,
         sources=args.source,
         verify=args.verify,
         rag=not args.no_rag,
+        welfare_only=args.welfare_only,
     )
     rag_python = args.rag_python or os.environ.get("RAG_PYTHON") or sys.executable
     if args.dry_run:
@@ -636,6 +677,7 @@ def main(argv: list[str] | None = None) -> int:
                             "cwd": _rel(s.cwd),
                             "needs": list(s.needs),
                             "waits_for_complete": [_rel(p) for p in s.snapshots],
+                            "required_files": [_rel(p) for p in s.required_files],
                         }
                         for s in steps
                     ],

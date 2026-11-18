@@ -156,6 +156,51 @@ def test_build_steps_order_and_options():
     )
 
 
+def test_welfare_only_plan_reuses_weekly_files_and_skips_nutrition_work(capsys):
+    assert dr.main(["--dry-run", "--welfare-only", "--verify"]) == 0
+    plan = json.loads(capsys.readouterr().out)
+    steps = by_name(plan["steps"])
+    assert list(steps) == [
+        "refresh",
+        "import_welfare",
+        "import_welfare_verify",
+        "welfare_build",
+        "rag_index",
+        "rag_export",
+        "rag_load",
+        "rag_load_verify",
+    ]
+    assert steps["refresh"]["args"][-3:] == [
+        "--source",
+        "welfare_central",
+        "welfare_local",
+    ]
+    assert steps["welfare_build"]["needs"] == ["import_welfare_verify"]
+    assert steps["rag_index"]["required_files"] == [
+        "data/processed/recipes_api_all.json",
+        "data/raw/seasonal/food_month.json",
+    ]
+    with pytest.raises(SystemExit):
+        dr.main(["--dry-run", "--welfare-only", "--source", "recipes"])
+
+
+def test_welfare_only_keeps_index_if_a_weekly_input_is_missing(tmp_path):
+    steps = local_steps(tmp_path, welfare_only=True, verify=True)
+    missing = tmp_path / "recipes_api_all.json"
+    steps = [
+        dataclasses.replace(step, required_files=(missing,))
+        if step.name == "rag_index"
+        else step
+        for step in steps
+    ]
+    runner = FakeRunner()
+    rows = by_name(run(steps, runner, tmp_path))
+    assert rows["import_welfare_verify"]["status"] == "ok"
+    assert rows["rag_index"]["reason"] == "missing_input"
+    assert rows["rag_load"]["reason"] == "needs_not_ok"
+    assert not any("app.jobs.load_rag_index" in argv for argv, _, _ in runner.calls)
+
+
 def test_all_steps_ok_with_summaries_and_logs(tmp_path):
     runner = FakeRunner(refresh_status=tmp_path / "refresh_status.json")
     rows = by_name(run(local_steps(tmp_path), runner, tmp_path))
