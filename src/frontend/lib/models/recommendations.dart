@@ -49,6 +49,7 @@ class Recipe {
     required this.soft,
     this.fromServer = false,
     this.imageUrl,
+    this.revisionId,
   });
   final String id, name, ingredients, method;
   final List<String> steps;
@@ -56,6 +57,7 @@ class Recipe {
   final Set<String> allergens;
   final bool soft, fromServer;
   final String? imageUrl;
+  final String? revisionId;
   String get image => 'assets/images/$id.png';
 
   List<int> get missingStepNumbers {

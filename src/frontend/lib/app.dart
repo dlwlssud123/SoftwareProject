@@ -3,18 +3,21 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'data/demo_repository.dart';
 import 'data/recipe_api.dart';
 import 'services/settings.dart';
+import 'services/account.dart';
 import 'theme.dart';
 import 'screens/meal_screen.dart';
 import 'screens/assistant_screen.dart';
 import 'screens/nutrition_screen.dart';
 import 'screens/content_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/account_screen.dart';
 
 class ValueFlowApp extends StatelessWidget {
   const ValueFlowApp({
     required this.repository,
     required this.settings,
     this.recipeApi,
+    this.account,
     super.key,
   });
   final DemoRepository repository;
@@ -22,6 +25,7 @@ class ValueFlowApp extends StatelessWidget {
 
   /// null이면 서버 없이 데모 데이터만 쓴다.
   final RecipeApi? recipeApi;
+  final Account? account;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: settings,
@@ -41,13 +45,26 @@ class ValueFlowApp extends StatelessWidget {
               minScaleFactor: settings.textScale,
               child: child!,
             ),
-      home: AppShell(
-        repository: repository,
-        settings: settings,
-        recipeApi: recipeApi,
-      ),
+      home: _home(),
     ),
   );
+
+  Widget _home() {
+    Widget shell() => AppShell(
+      key: ValueKey(account?.session?.userId),
+      repository: repository,
+      settings: settings,
+      recipeApi: recipeApi,
+      account: account,
+    );
+    final auth = account;
+    if (auth == null) return shell();
+    return ListenableBuilder(
+      listenable: auth,
+      builder: (_, _) =>
+          auth.entered ? shell() : AccountStartScreen(account: auth),
+    );
+  }
 }
 
 class AppShell extends StatefulWidget {
@@ -55,11 +72,13 @@ class AppShell extends StatefulWidget {
     required this.repository,
     required this.settings,
     this.recipeApi,
+    this.account,
     super.key,
   });
   final DemoRepository repository;
   final AppSettings settings;
   final RecipeApi? recipeApi;
+  final Account? account;
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -77,6 +96,7 @@ class _AppShellState extends State<AppShell> {
       repository: widget.repository,
       settings: widget.settings,
       recipeApi: widget.recipeApi,
+      account: widget.account,
     ),
     NutritionScreen(repository: widget.repository, settings: widget.settings),
     AssistantScreen(repository: widget.repository, settings: widget.settings),
@@ -116,8 +136,10 @@ class _AppShellState extends State<AppShell> {
                               icon: const Icon(Icons.settings, color: blue),
                               onPressed: () => Navigator.of(context).push(
                                 MaterialPageRoute<void>(
-                                  builder: (_) =>
-                                      SettingsScreen(settings: widget.settings),
+                                  builder: (_) => SettingsScreen(
+                                    settings: widget.settings,
+                                    account: widget.account,
+                                  ),
                                 ),
                               ),
                             ),

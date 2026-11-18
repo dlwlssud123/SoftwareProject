@@ -19,6 +19,7 @@ class RecipeRecord {
     required this.sodiumTip,
     required this.allergens,
     required this.qualityStatus,
+    this.revisionId,
   });
 
   final String recipeId;
@@ -35,6 +36,7 @@ class RecipeRecord {
   final String? sodiumTip;
   final RecipeAllergenInfo allergens;
   final String qualityStatus;
+  final String? revisionId;
 
   factory RecipeRecord.fromJson(Map<String, dynamic> json) {
     final images = json['images'] as Map<String, dynamic>;
@@ -66,6 +68,8 @@ class RecipeRecord {
         json['allergens'] as Map<String, dynamic>,
       ),
       qualityStatus: quality['status'] as String,
+      revisionId:
+          (json['source'] as Map<String, dynamic>?)?['revision_id'] as String?,
     );
   }
 }

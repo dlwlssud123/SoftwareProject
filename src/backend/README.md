@@ -63,7 +63,7 @@ docker compose exec -T db psql -U valueflow_dev -d valueflow -c "SELECT extversi
 
 DB 사용자·이름을 바꿨으면 마지막 명령의 인자도 바꾼다. 서버 종료는 실행 터미널에서 `Ctrl+C`, DB 종료는 `docker compose stop db`를 사용한다. 데이터 볼륨은 유지한다.
 
-세션 기본 만료는 7일이며 `.env`의 `SESSION_TTL_SECONDS`로 조정한다. 토큰은 발급·갱신 응답에서만 반환하고 DB에는 해시만 저장한다. 앱의 보안 저장소에 보관하고 로그에 출력하지 않는다. 관리자는 기본 생성하지 않으며 운영자가 `python -m app.jobs.set_user_role <사용자-UUID> --role admin`으로 지정한다. `--role user`로 해제한다. 카카오 로그인·만료 사용자 복구·관리자 운영 기능은 후속이다.
+세션 기본 만료는 7일이며 `.env`의 `SESSION_TTL_SECONDS`로 조정한다. 토큰은 발급·갱신 응답에서만 반환하고 DB에는 해시만 저장한다. 앱의 보안 저장소에 보관하고 로그에 출력하지 않는다. 관리자는 기본 생성하지 않으며 운영자가 `python -m app.jobs.set_user_role <사용자-UUID> --role admin`으로 지정한다. `--role user`로 해제한다. 카카오 로그인과 게스트 계정 연결을 제공한다. 관리자 운영 기능은 후속이다.
 
 ## 사용자 기록과 운영 자료 저장 구조
 
@@ -82,7 +82,7 @@ Alembic `20261111_02`는 레시피 재료 → 식품 매핑(`recipe_ingredient_f
 
 Alembic `20261114_03`은 RAG 검색 표를 만든다: `rag_index_version`(적재한 인덱스 판본, 활성은 하나), `rag_chunk`(청크·KURE-v1 1024차원 `vector`), 되돌리기 함수 `rag_rollback_index(판본)`, 검색이 근거로 써도 되는 게시 원본 뷰 `rag_source_active`. pgvector 확장이 필요하다(`docker/initdb`가 만든다). 적재는 `python -m app.jobs.load_rag_index --apply`(psql 필요 없음, 입력은 데이터 쪽 `rag.export`가 만든 `data/processed/rag/rag_chunk.csv`·`manifest.json`), 확인 `--verify`, 되돌리기 `--rollback <판본>`. 표·적재 규칙은 `docs/data/rag_index_contract.md` 4절, 검색 SQL은 `docs/data/sql/rag_search.sql`. 이 표들은 ORM 모델 없이 마이그레이션 SQL로만 관리하므로 autogenerate·`alembic check`는 건너뛴다(`alembic/env.py`의 `include_name`).
 
-매일 갱신은 `python -m app.jobs.daily_refresh` 하나로 돌린다: 공공데이터 수집 → 위 적재들(복지·레시피·식품·급식시설·제철) → 재료 매핑 → RAG 인덱스·적재. 단계마다 기존 명령을 별도 프로세스로 실행하고 `job_runs`(`kind = 'public_data_daily'`)에 실행 상태·처음 실패한 단계(`error_code`)를 남긴다. worker는 `queued` 행을 만들고 `--job-id`로 넘기면 된다. 단계·건너뛰는 조건·RAG 파이썬·기록 파일은 `docs/data/public_data_refresh.md` 5절에 있다.
+전체 갱신은 `python -m app.jobs.daily_refresh --verify`로 실행한다. 복지만 갱신하는 날은 `--welfare-only`를 더한다. 단계마다 기존 명령을 별도 프로세스로 실행하고 `job_runs`(`kind = 'public_data_daily'`)에 실행 상태와 처음 실패한 단계(`error_code`)를 남긴다. worker는 `queued` 행을 만들고 `--job-id`로 넘기면 된다. 단계·RAG 파이썬·기록 파일은 [데이터 갱신 문서](../../docs/data/public_data_refresh.md), crontab 예시는 [서버 예약 실행](../../docs/data/public_data_refresh.md#서버-예약-실행)에 있다.
 
 DB에서 사용자를 삭제하면 세션·프로필·기록·저장·식단표·사용자 작업도 삭제된다. 프로필 동의 철회는 기존 API대로 프로필만 삭제한다. 원천 판본과 공통 작업은 보존된다. 새 저장 구조를 사용하는 기능별 API와 작업 실행기는 별도 작업에서 연결한다.
 
@@ -137,7 +137,7 @@ Remove-Item Env:RUN_DB_TESTS
 - 기존 레시피 원문 보완을 포함한 Flutter analyze에서 문제 없음, Flutter 테스트 33개 통과. 실기기·APK 배포 검증은 이번 실행 범위에 포함하지 않았다.
 - 로컬 DB를 `20261107_01`로 올리고 `alembic check`에서 차이 없음 확인. 기존 레시피 1,156건·영양 8,807건의 활성 판본 대조 검증 통과. 운영용 관리자·테스트 사용자는 생성하지 않았다.
 - 실제 Uvicorn HTTP에서 health/live·health/ready·docs·openapi 200, 인증 없는 auth/me·admin/me 401, 예정 recipes 경로 404 확인. 테스트 임시 스키마 잔여 0건.
-- 구현된 HTTP 경로 7개와 별도 예정 계약 6개를 구분한다. 앱/관리자 실제 연결·카카오·운영 인증 절차·업무별 API와 RAG는 후속이다.
+- 실행 중인 HTTP 경로와 별도 예정 계약을 구분한다. 실제 경로는 생성된 OpenAPI를 기준으로 확인한다.
 
 2026-11-09 레시피 조회·프로필 검증
 
@@ -147,3 +147,11 @@ Remove-Item Env:RUN_DB_TESTS
 - 프로필 최초 동의·부분 변경·사용자 분리·철회와 재동의 요구를 검증. 실제 앱 동의 화면·프로필 입력 화면·보안 저장소 연동은 프런트 작업에서 연결한다.
 - 데이터 패키지 `agetech`를 로컬 editable 의존성으로 설치하므로 `uv sync --locked` 후 일반 Uvicorn 진입점에서 계약 모듈을 불러온다. 이미지 빌드 시 저장소 루트와 `src/data`도 포함한다.
 - 원천 수집 시각 역행과 시각 있는 이력 뒤의 무시각 입력을 차단한다. 이전 정상 레시피가 최신 보류 판정을 덮는 경우와 식품 판본 후퇴를 실제 DB에서 재현한 뒤 방지 테스트를 추가했다.
+
+### 카카오 계정 연결
+
+백엔드 `.env`의 `KAKAO_APP_ID`는 카카오 개발자 앱의 숫자 ID다. Native 앱 키와 구분한다. `alembic upgrade head`로 `20261118_01`을 적용한 뒤 실행한다. 서버는 카카오 토큰 정보 API에서 앱 ID·사용자 식별자·만료를 검증하고, 카카오 토큰은 저장하지 않는다.
+
+- `POST /api/v1/auth/kakao`에 `{access_token}`을 보내면 같은 카카오 사용자에게 같은 내부 사용자 ID로 서비스 세션을 발급한다.
+- `POST /api/v1/auth/kakao/link`는 현재 Bearer 세션에 카카오 계정을 연결한다. 사용자 ID를 유지하므로 프로필·식단표·저장 레시피도 유지한다. 다른 사용자에게 연결된 계정은 409로 거부한다.
+- 세션 발급·조회·갱신 응답의 `kakao_linked`로 연결 여부를 확인한다. 로그아웃은 현재 서비스 세션만 폐기한다.

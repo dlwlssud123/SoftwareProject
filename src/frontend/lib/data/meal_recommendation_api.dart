@@ -1,81 +1,19 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 import '../core/network/api_client.dart';
-import '../core/network/api_exception.dart';
 import '../models/recommendations.dart';
+import 'guest_session.dart';
 
 class MealRecommendationApi {
-  MealRecommendationApi(this._client, {this.guestStorageKey});
+  MealRecommendationApi(
+    this._client, {
+    String? guestStorageKey,
+    GuestSession? session,
+  }) : _session = session ?? GuestSession(_client, storageKey: guestStorageKey);
 
   final ApiClient _client;
-  final String? guestStorageKey;
-  Future<String>? _guestToken;
+  final GuestSession _session;
 
-  Future<MealRecommendations> recommend(
-    UserProfile profile,
-    MealTime time,
-  ) async {
-    final pending = _guestToken ??= _loadGuest();
-    late final String token;
-    try {
-      token = await pending;
-    } on ApiException {
-      if (identical(_guestToken, pending)) _guestToken = null;
-      rethrow;
-    }
-    try {
-      return await _recommend(profile, time, token);
-    } on ApiException catch (error) {
-      if (error.statusCode != 401) rethrow;
-      final renewal = identical(_guestToken, pending)
-          ? (_guestToken = _loadGuest(renew: true))
-          : (_guestToken ??= _loadGuest(renew: true));
-      try {
-        return await _recommend(profile, time, await renewal);
-      } on ApiException {
-        if (identical(_guestToken, renewal)) _guestToken = null;
-        rethrow;
-      }
-    }
-  }
-
-  Future<String> _loadGuest({bool renew = false}) async {
-    final key = guestStorageKey;
-    const storage = FlutterSecureStorage();
-    if (key != null) {
-      try {
-        final stored = renew ? null : await storage.read(key: key);
-        if (!renew && stored != null && _validToken(stored)) return stored;
-      } on Exception {
-        // Session persistence is optional. The current app session can still recommend.
-      }
-    }
-    final token = await _createGuest();
-    if (key != null) {
-      try {
-        await storage.write(key: key, value: token);
-      } on Exception {
-        // Keep the working session in memory when the device cannot write.
-      }
-    }
-    return token;
-  }
-
-  static bool _validToken(String token) =>
-      RegExp(r'^[A-Za-z0-9_-]{43}$').hasMatch(token);
-
-  Future<String> _createGuest() => _client.post(
-    '/api/v1/auth/guest',
-    body: <String, Object>{},
-    followRedirects: false,
-    parse: (body) {
-      final token = _object(_object(body)['data'])['access_token'];
-      if (token is! String || !_validToken(token)) {
-        throw const FormatException('Invalid service session');
-      }
-      return token;
-    },
-  );
+  Future<MealRecommendations> recommend(UserProfile profile, MealTime time) =>
+      _session.request((token) => _recommend(profile, time, token));
 
   Future<MealRecommendations> _recommend(
     UserProfile profile,
@@ -134,6 +72,11 @@ class MealRecommendationApi {
         },
         soft: false,
         fromServer: true,
+        revisionId: _optionalString(
+          item['source'] == null
+              ? null
+              : _object(item['source'])['revision_id'],
+        ),
         imageUrl: _httpsUrl(image)?.toString(),
       ),
       _strings(json['reasons']),

@@ -95,8 +95,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('welfare-start')));
-    await tap('welfare-start');
+    expect(find.text('복지 추천'), findsNothing);
+    await tap('tab-2');
+    final welfare = find.text('복지 소식 · 맞춤 추천');
+    await tester.ensureVisible(welfare);
+    await tester.tap(welfare);
+    await tester.pumpAndSettle();
     await completeForm('04-welfare');
     expect(find.byKey(const Key('welfare-results')), findsOneWidget);
     await capture('05-welfare-results');

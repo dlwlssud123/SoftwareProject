@@ -125,12 +125,16 @@ void main() {
     expect(find.byKey(const Key('meal-start')), findsOneWidget);
   });
 
-  testWidgets('welfare presentation reaches condition-specific examples', (
+  testWidgets('welfare presentation starts in the assistant tab', (
     tester,
   ) async {
     await launchApp(tester, repository, settings: AppSettings(textScale: 1.4));
-    await tester.ensureVisible(find.byKey(const Key('welfare-start')));
-    await tap(tester, 'welfare-start');
+    expect(find.text('복지 추천'), findsNothing);
+    await tap(tester, 'tab-2');
+    final welfare = find.text('복지 소식 · 맞춤 추천');
+    await tester.ensureVisible(welfare);
+    await tester.tap(welfare);
+    await tester.pumpAndSettle();
     await completeForm(tester);
     expect(find.byKey(const Key('welfare-results')), findsOneWidget);
     expect(find.text('김영희님을 위한\n복지 서비스'), findsOneWidget);

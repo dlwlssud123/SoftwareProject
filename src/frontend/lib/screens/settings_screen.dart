@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import '../services/settings.dart';
+import '../services/account.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'account_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({required this.settings, super.key});
+  const SettingsScreen({required this.settings, this.account, super.key});
   final AppSettings settings;
+  final Account? account;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: settings,
@@ -15,6 +18,7 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
+          if (account case final auth?) AccountSettings(account: auth),
           const SectionTitle('글자 크기'),
           Container(
             padding: const EdgeInsets.all(14),

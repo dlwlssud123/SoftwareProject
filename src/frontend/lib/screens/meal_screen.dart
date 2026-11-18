@@ -5,19 +5,24 @@ import '../core/network/api_config.dart';
 import '../data/demo_repository.dart';
 import '../data/meal_recommendation_api.dart';
 import '../data/recipe_api.dart';
+import '../data/guest_session.dart';
+import '../data/recipe_library_api.dart';
 import '../models/recommendations.dart';
 import '../services/settings.dart';
+import '../services/account.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'profile_form.dart';
 import 'recommendation_results.dart';
 import 'server_recipe_screens.dart';
+import 'recipe_library_screens.dart';
 
 class MealScreen extends StatefulWidget {
   const MealScreen({
     required this.repository,
     required this.settings,
     this.recipeApi,
+    this.account,
     super.key,
   });
   final DemoRepository repository;
@@ -25,6 +30,7 @@ class MealScreen extends StatefulWidget {
 
   /// 있으면 '레시피 살펴보기'가 서버 레시피 목록을 연다.
   final RecipeApi? recipeApi;
+  final Account? account;
 
   @override
   State<MealScreen> createState() => _MealScreenState();
@@ -33,9 +39,11 @@ class MealScreen extends StatefulWidget {
 class _MealScreenState extends State<MealScreen> {
   DemoRepository get repository => widget.repository;
   AppSettings get settings => widget.settings;
-  late final MealRecommendationApi? _mealApi = _createMealApi();
+  late final _services = _createServices();
+  MealRecommendationApi? get _mealApi => _services?.meals;
+  RecipeLibraryApi? get _library => _services?.library;
 
-  MealRecommendationApi? _createMealApi() {
+  ({MealRecommendationApi meals, RecipeLibraryApi library})? _createServices() {
     final server = Uri.tryParse(ApiConfig.baseUrl);
     if (server == null || server.host.isEmpty || server.userInfo.isNotEmpty) {
       return null;
@@ -48,27 +56,29 @@ class _MealScreenState extends State<MealScreen> {
               '127.0.0.1',
               'localhost',
             }.contains(server.host))) {
-      return MealRecommendationApi(
-        ApiClient(),
-        guestStorageKey: settings.persist ? 'mealGuest:${server.origin}' : null,
+      final client = ApiClient();
+      final session = GuestSession(
+        client,
+        account: widget.account,
+        storageKey: settings.persist ? 'mealGuest:${server.origin}' : null,
+      );
+      return (
+        meals: MealRecommendationApi(client, session: session),
+        library: RecipeLibraryApi(client, session),
       );
     }
     return null;
   }
 
-  void start(
-    BuildContext context, {
-    bool welfare = false,
-    MealTime time = MealTime.lunch,
-  }) {
+  void start(BuildContext context, {MealTime time = MealTime.lunch}) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ProfileForm(
           repository: repository,
           settings: settings,
-          welfare: welfare,
           initialTime: time,
-          mealApi: welfare ? null : _mealApi,
+          mealApi: _mealApi,
+          library: _library,
         ),
       ),
     );
@@ -147,17 +157,40 @@ class _MealScreenState extends State<MealScreen> {
           ],
         ),
       ),
-      const SizedBox(height: 14),
-      FeatureTile(
-        key: const Key('welfare-start'),
-        title: '복지 추천',
-        subtitle: '내 조건에 맞는 복지 서비스를 찾아요',
-        icon: Icons.campaign_rounded,
-        color: const Color(0xFFCE4149),
-        background: const Color(0xFFFFF1F1),
-        onTap: () => start(context, welfare: true),
-      ),
       const SectionTitle('레시피 살펴보기'),
+      if (_library case final library?)
+        if (widget.recipeApi case final recipes?) ...[
+          FeatureTile(
+            key: const Key('meal-plan-start'),
+            title: '하루 식단표 만들기',
+            subtitle: '날짜별로 아침·점심·저녁 메뉴를 담아요',
+            icon: Icons.calendar_month_outlined,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => MealPlanScreen(
+                  library: library,
+                  recipes: recipes,
+                  settings: settings,
+                ),
+              ),
+            ),
+          ),
+          FeatureTile(
+            key: const Key('saved-recipes-start'),
+            title: '저장한 레시피',
+            subtitle: '마음에 드는 레시피를 다시 찾아봐요',
+            icon: Icons.bookmark_outline,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => SavedRecipesScreen(
+                  library: library,
+                  recipes: recipes,
+                  settings: settings,
+                ),
+              ),
+            ),
+          ),
+        ],
       if (widget.recipeApi case final api?)
         FeatureTile(
           key: const Key('server-recipes-start'),
@@ -167,7 +200,11 @@ class _MealScreenState extends State<MealScreen> {
           color: const Color(0xFFB85A00),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => ServerRecipeList(api: api, settings: settings),
+              builder: (_) => ServerRecipeList(
+                api: api,
+                settings: settings,
+                library: _library,
+              ),
             ),
           ),
         )

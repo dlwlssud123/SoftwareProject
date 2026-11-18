@@ -227,6 +227,8 @@ void main() {
 
     final start = find.byKey(const Key('server-recipes-start'));
     await tester.scrollUntilVisible(start, 300);
+    await tester.pumpAndSettle();
+    expect(start.hitTestable(), findsOneWidget);
     await tester.tap(start);
     await tester.pumpAndSettle();
 
