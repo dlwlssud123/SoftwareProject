@@ -111,6 +111,8 @@ gh variable set VALUEFLOW_CD_ENABLED --repo dlwlssud123/SoftwareProject --body f
 | Repository Variables | `VALUEFLOW_CD_ENABLED` | 첫 검증 후 `true`로 활성화 |
 | 서버 `.env` | `DATABASE_URL`, `POSTGRES_*`, `KAKAO_APP_ID` 등 | 실행 설정, GitHub로 전송하지 않음 |
 
+`development` 환경에는 `main` 브랜치 배포 정책을 등록한다. 현재 구성은 이 정책 하나만 허용하여 다른 브랜치·태그의 작업이 배포 키를 받지 않게 한다. 이미 추가 승인·대기 보호 규칙이 있는 환경은 설정 도구가 덮어쓰지 않고 중단한다. 기존에 별도 등록한 허용 브랜치 정책은 자동 삭제하지 않으므로 환경 정책 목록을 확인한다.
+
 호스트키 검사를 끄지 않는다. 기존 `known_hosts`에 서버가 없으면 담당자가 알려준 지문과 대조하고 서버에 직접 접속해 신뢰한 후 설정한다. 연결 키는 기존 SSH 키와 별개이며 삭제하려면 서버의 `authorized_keys`에서 `valueflow-actions` 항목만 제거하고 GitHub의 해당 Secret을 폐기한다.
 
 ## 앱 연결과 접속 확인

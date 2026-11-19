@@ -1,6 +1,7 @@
 """Prepare an isolated deployment key; optionally configure GitHub development CD."""
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -84,14 +85,60 @@ def main():
     os.chmod(key, 0o600)
     os.chmod(hosts, 0o600)
     if args.configure:
+        environment_endpoint = f"repos/{args.repo}/environments/development"
+        existing = subprocess.run(
+            ["gh", "api", environment_endpoint],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if existing.returncode == 0:
+            if any(
+                rule["type"] != "branch_policy"
+                for rule in json.loads(existing.stdout).get("protection_rules", [])
+            ):
+                raise SystemExit(
+                    "Existing environment has additional protection rules; preserve "
+                    "them when configuring deployment branch restrictions manually."
+                )
+        elif "HTTP 404" not in existing.stderr:
+            raise SystemExit(
+                "Cannot inspect the deployment environment; configuration stopped."
+            )
         run(
             "gh",
             "api",
             "--method",
             "PUT",
-            f"repos/{args.repo}/environments/development",
+            environment_endpoint,
+            "-F",
+            "deployment_branch_policy[protected_branches]=false",
+            "-F",
+            "deployment_branch_policy[custom_branch_policies]=true",
             stdout=subprocess.DEVNULL,
         )
+        policy_endpoint = (
+            f"repos/{args.repo}/environments/development/deployment-branch-policies"
+        )
+        policies = json.loads(
+            run("gh", "api", policy_endpoint, capture_output=True, text=True).stdout
+        )
+        if not any(
+            policy["name"] == "main" and policy.get("type", "branch") == "branch"
+            for policy in policies["branch_policies"]
+        ):
+            run(
+                "gh",
+                "api",
+                "--method",
+                "POST",
+                policy_endpoint,
+                "-f",
+                "name=main",
+                "-f",
+                "type=branch",
+                stdout=subprocess.DEVNULL,
+            )
         for name, file in (
             ("VALUEFLOW_SSH_KEY", key),
             ("VALUEFLOW_KNOWN_HOSTS", hosts),
