@@ -48,6 +48,169 @@ def test_sessions_persist_only_hash_and_keep_users_separate(auth_db):
     )
 
 
+def test_kakao_link_preserves_guest_profile_and_rejects_other_owner(
+    auth_db, monkeypatch
+):
+    from types import SimpleNamespace
+
+    from app.api import auth
+    from app.models.auth import KakaoIdentity
+
+    client, db = auth_db
+    monkeypatch.setattr(auth, "get_settings", lambda: SimpleNamespace(kakao_app_id=42))
+    monkeypatch.setattr(auth, "verify_kakao_token", lambda token, app_id: 123)
+    original, headers = guest(client)
+    other, other_headers = guest(client)
+    profile = client.patch(
+        "/api/v1/profile",
+        headers=headers,
+        json={"consent": True},
+    )
+    assert profile.status_code == 200
+    credentials = {"access_token": "test-kakao-token"}
+
+    link = client.post("/api/v1/auth/kakao/link", headers=headers, json=credentials)
+    assert link.status_code == 200
+    assert link.json()["data"]["user_id"] == original["user_id"]
+    assert link.json()["data"]["kakao_linked"] is True
+    assert "access_token" not in link.json()["data"]
+    assert (
+        client.post(
+            "/api/v1/auth/kakao/link", headers=headers, json=credentials
+        ).status_code
+        == 200
+    )
+
+    rejected = client.post(
+        "/api/v1/auth/kakao/link", headers=other_headers, json=credentials
+    )
+    assert rejected.status_code == 409
+    assert rejected.json()["error"]["code"] == "KAKAO_ALREADY_LINKED"
+    assert (
+        client.get("/api/v1/auth/me", headers=other_headers).json()["data"]["user_id"]
+        == other["user_id"]
+    )
+    assert len(list(db.scalars(select(KakaoIdentity)))) == 1
+
+    login = client.post("/api/v1/auth/kakao", json=credentials)
+    assert login.status_code == 200
+    signed_in = login.json()["data"]
+    assert signed_in["user_id"] == original["user_id"]
+    assert signed_in["access_token"] != original["access_token"]
+    signed_in_headers = {"Authorization": f"Bearer {signed_in['access_token']}"}
+    assert (
+        client.get("/api/v1/profile", headers=signed_in_headers).json()["data"]
+        == profile.json()["data"]
+    )
+    assert (
+        client.get("/api/v1/auth/me", headers=headers).json()["data"]["kakao_linked"]
+        is True
+    )
+
+
+def test_kakao_first_login_reuses_one_identity(auth_db, monkeypatch):
+    from types import SimpleNamespace
+
+    from app.api import auth
+    from app.models.auth import KakaoIdentity
+
+    client, db = auth_db
+    monkeypatch.setattr(auth, "get_settings", lambda: SimpleNamespace(kakao_app_id=42))
+    monkeypatch.setattr(auth, "verify_kakao_token", lambda token, app_id: 321)
+
+    credentials = {"access_token": "test-kakao-token"}
+    first = client.post("/api/v1/auth/kakao", json=credentials)
+    second = client.post("/api/v1/auth/kakao", json=credentials)
+    assert first.status_code == second.status_code == 200
+    assert first.json()["data"]["user_id"] == second.json()["data"]["user_id"]
+    assert first.json()["data"]["access_token"] != second.json()["data"]["access_token"]
+    assert len(list(db.scalars(select(KakaoIdentity)))) == 1
+
+
+def test_kakao_link_and_relogin_preserve_meal_plan_and_saved_recipes(
+    auth_db, monkeypatch, tmp_path
+):
+    from types import SimpleNamespace
+
+    from test_public_data_import import corrections, snapshot
+
+    from app.api import auth
+    from app.jobs.import_public_data import apply_import, prepare_import
+
+    client, db = auth_db
+    monkeypatch.setattr(auth, "get_settings", lambda: SimpleNamespace(kakao_app_id=42))
+    monkeypatch.setattr(auth, "verify_kakao_token", lambda token, app_id: 123)
+    path = snapshot(
+        tmp_path,
+        rows=[
+            {
+                "RCP_SEQ": "1",
+                "RCP_NM": "쌀죽",
+                "RCP_PARTS_DTLS": "쌀 100g, 물 200ml",
+                "MANUAL01": "1. 익힌다.",
+            }
+        ],
+    )
+    apply_import(
+        db, prepare_import("recipes", path, corrections_path=corrections(tmp_path))
+    )
+    original, headers = guest(client)
+    day = "/api/v1/meal-plans/2026-11-18"
+    assert (
+        client.put(
+            day + "/breakfast", headers=headers, json={"recipe_id": "1"}
+        ).status_code
+        == 200
+    )
+    assert client.put("/api/v1/saved-recipes/1", headers=headers).status_code == 200
+    credentials = {"access_token": "test-kakao-token"}
+    assert (
+        client.post(
+            "/api/v1/auth/kakao/link", headers=headers, json=credentials
+        ).status_code
+        == 200
+    )
+    assert client.delete("/api/v1/auth/session", headers=headers).status_code == 200
+    login = client.post("/api/v1/auth/kakao", json=credentials).json()["data"]
+    assert login["user_id"] == original["user_id"]
+    signed_in = {"Authorization": f"Bearer {login['access_token']}"}
+    assert (
+        client.get(day, headers=signed_in).json()["data"]["items"][0]["recipe_id"]
+        == "1"
+    )
+    assert client.get("/api/v1/saved-recipes", headers=signed_in).json()["data"][
+        "items"
+    ] == [{"recipe_id": "1", "name": "쌀죽"}]
+
+
+@pytest.mark.parametrize("app_id, expires_in", [(42, 120), (43, 120), (42, 0)])
+def test_kakao_token_must_belong_to_our_app_and_be_active(
+    monkeypatch, app_id, expires_in
+):
+    import json
+    from io import BytesIO
+    from unittest.mock import Mock
+
+    from app.core import kakao
+    from app.core.errors import AppError
+
+    payload = BytesIO(
+        json.dumps({"app_id": app_id, "expires_in": expires_in, "id": 123}).encode()
+    )
+    opener = Mock()
+    opener.open.return_value = payload
+    monkeypatch.setattr(kakao, "build_opener", lambda handler: opener)
+    if app_id == 42 and expires_in > 0:
+        assert kakao.verify_kakao_token("test-kakao-token", 42) == 123
+    else:
+        with pytest.raises(AppError) as error:
+            kakao.verify_kakao_token("test-kakao-token", 42)
+        assert error.value.code == "KAKAO_TOKEN_INVALID"
+    request = opener.open.call_args.args[0]
+    assert request.full_url == "https://kapi.kakao.com/v1/user/access_token_info"
+    assert request.get_header("Authorization") == "Bearer test-kakao-token"
+
+
 def test_refresh_rotates_once_and_logout_revokes_only_current_session(auth_db):
     client, _ = auth_db
     first, headers = guest(client)

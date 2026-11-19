@@ -1,0 +1,6 @@
+# Applied only to one-off import containers, never to the running API service.
+services:
+  api:
+    mem_limit: 1536m
+    healthcheck:
+      disable: true

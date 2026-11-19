@@ -1,6 +1,6 @@
 """Database models; importing this package registers migration metadata."""
 
-from app.models.auth import AuthSession, User  # noqa: F401
+from app.models.auth import AuthSession, KakaoIdentity, User  # noqa: F401
 from app.models.content import (  # noqa: F401
     LifeGuide,
     MealFacility,

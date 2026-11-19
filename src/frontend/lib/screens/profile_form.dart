@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../core/network/api_exception.dart';
 import '../data/demo_repository.dart';
 import '../data/meal_recommendation_api.dart';
+import '../data/recipe_library_api.dart';
 import '../models/recommendations.dart';
 import '../services/settings.dart';
 import '../theme.dart';
@@ -16,6 +17,7 @@ class ProfileForm extends StatefulWidget {
     this.welfare = false,
     this.initialTime = MealTime.lunch,
     this.mealApi,
+    this.library,
     super.key,
   });
   final DemoRepository repository;
@@ -23,6 +25,7 @@ class ProfileForm extends StatefulWidget {
   final bool welfare;
   final MealTime initialTime;
   final MealRecommendationApi? mealApi;
+  final RecipeLibraryApi? library;
   @override
   State<ProfileForm> createState() => _ProfileFormState();
 }
@@ -211,6 +214,7 @@ class _ProfileFormState extends State<ProfileForm> {
           profile: profile,
           time: requestedTime,
           serverMeals: recommendations,
+          library: widget.library,
           welfare: widget.welfare,
         ),
       ),

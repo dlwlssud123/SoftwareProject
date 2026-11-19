@@ -43,6 +43,12 @@ dist/
 # Environment Variables & Secrets
 .env
 .env.local
+deploy/.local/
+deploy/.state/
+deploy/.incoming/
+deploy/backups/
+deploy/*.tar.gz
+deploy/*.tar
 .env.development.local
 .env.test.local
 .env.production.local

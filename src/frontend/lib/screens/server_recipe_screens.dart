@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../core/network/api_exception.dart';
 import '../data/recipe_api.dart';
+import '../data/recipe_library_api.dart';
 import '../models/recipe_record.dart';
 import '../services/settings.dart';
 import '../theme.dart';
 import '../widgets/async_state_view.dart';
 import '../widgets/common.dart';
+import '../widgets/recipe_actions.dart';
 import 'recommendation_results.dart';
 
 const _recipeColor = Color(0xFFB85A00);
@@ -16,11 +18,15 @@ class ServerRecipeList extends StatefulWidget {
   const ServerRecipeList({
     required this.api,
     required this.settings,
+    this.library,
+    this.pickRecipe = false,
     super.key,
   });
 
   final RecipeApi api;
   final AppSettings settings;
+  final RecipeLibraryApi? library;
+  final bool pickRecipe;
 
   @override
   State<ServerRecipeList> createState() => _ServerRecipeListState();
@@ -43,7 +49,10 @@ class _ServerRecipeListState extends State<ServerRecipeList> {
 
   Future<void> _loadFirstPage() async {
     try {
-      final page = await widget.api.list(limit: _pageSize);
+      final page = await widget.api.list(
+        limit: _pageSize,
+        excludeAllergens: _allergies,
+      );
       if (!mounted) return;
       setState(() {
         _items
@@ -76,6 +85,7 @@ class _ServerRecipeListState extends State<ServerRecipeList> {
       final page = await widget.api.list(
         limit: _pageSize,
         offset: _items.length,
+        excludeAllergens: _allergies,
       );
       if (!mounted) return;
       setState(() {
@@ -92,7 +102,9 @@ class _ServerRecipeListState extends State<ServerRecipeList> {
   @override
   Widget build(BuildContext context) => Scaffold(
     key: const Key('server-recipe-list'),
-    appBar: AppBar(title: const Text('레시피 살펴보기')),
+    appBar: AppBar(
+      title: Text(widget.pickRecipe ? '식단에 담을 메뉴 고르기' : '레시피 살펴보기'),
+    ),
     body: AsyncStateView(
       loading: _loading,
       error: _error,
@@ -115,15 +127,18 @@ class _ServerRecipeListState extends State<ServerRecipeList> {
               subtitle: _summary(recipe),
               icon: Icons.menu_book_outlined,
               color: _recipeColor,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => ServerRecipeDetail(
-                    api: widget.api,
-                    recipeId: recipe.recipeId,
-                    settings: widget.settings,
-                  ),
-                ),
-              ),
+              onTap: () => widget.pickRecipe
+                  ? Navigator.of(context).pop(recipe)
+                  : Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ServerRecipeDetail(
+                          api: widget.api,
+                          recipeId: recipe.recipeId,
+                          settings: widget.settings,
+                          library: widget.library,
+                        ),
+                      ),
+                    ),
             ),
           if (_items.length < _total)
             OutlinedButton(
@@ -146,6 +161,11 @@ class _ServerRecipeListState extends State<ServerRecipeList> {
     ?recipe.cookingMethod,
     _amount('열량', recipe.nutrition.energyKcal, 'kcal'),
   ].join(' · ');
+
+  Set<String> get _allergies => {
+    for (final value in widget.settings.mealPreferences ?? <String>[])
+      if (value.startsWith('avoid:')) value.substring(6),
+  };
 }
 
 /// 서버 레시피 상세(`GET /api/v1/recipes/{id}`).
@@ -154,12 +174,14 @@ class ServerRecipeDetail extends StatefulWidget {
     required this.api,
     required this.recipeId,
     required this.settings,
+    this.library,
     super.key,
   });
 
   final RecipeApi api;
   final String recipeId;
   final AppSettings settings;
+  final RecipeLibraryApi? library;
 
   @override
   State<ServerRecipeDetail> createState() => _ServerRecipeDetailState();
@@ -210,20 +232,29 @@ class _ServerRecipeDetailState extends State<ServerRecipeDetail> {
       onRetry: _retry,
       isEmpty: false,
       loadingMessage: '레시피를 불러오는 중이에요',
-      builder: (context) =>
-          _RecipeBody(recipe: _recipe!, settings: widget.settings),
+      builder: (context) => _RecipeBody(
+        recipe: _recipe!,
+        settings: widget.settings,
+        library: widget.library,
+      ),
     ),
   );
 }
 
 class _RecipeBody extends StatelessWidget {
-  const _RecipeBody({required this.recipe, required this.settings});
+  const _RecipeBody({
+    required this.recipe,
+    required this.settings,
+    this.library,
+  });
 
   final RecipeRecord recipe;
   final AppSettings settings;
+  final RecipeLibraryApi? library;
 
   @override
   Widget build(BuildContext context) {
+    const imageHeight = 240.0;
     final nutrition = recipe.nutrition;
     final allergens = recipe.allergens;
     final uncertain = allergens.needsCheck.difference(allergens.detected);
@@ -239,8 +270,10 @@ class _RecipeBody extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
             child: Image.network(
               url,
-              height: 240,
+              height: imageHeight,
               width: double.infinity,
+              cacheHeight:
+                  (imageHeight * MediaQuery.devicePixelRatioOf(context)).ceil(),
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => const SizedBox.shrink(),
             ),
@@ -248,6 +281,15 @@ class _RecipeBody extends StatelessWidget {
           const SizedBox(height: 22),
         ],
         Text(recipe.name, style: Theme.of(context).textTheme.headlineSmall),
+        if (library case final api?)
+          RecipeActions(
+            api: api,
+            recipe: RecipeChoice(
+              recipe.recipeId,
+              recipe.name,
+              revisionId: recipe.revisionId,
+            ),
+          ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,

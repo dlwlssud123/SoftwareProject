@@ -214,6 +214,163 @@
         ]
       }
     },
+    "/api/v1/auth/kakao": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login With Kakao",
+        "operationId": "login_with_kakao_api_v1_auth_kakao_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KakaoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_SessionData_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/kakao/link": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Link Kakao",
+        "operationId": "link_kakao_api_v1_auth_kakao_link_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KakaoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_IdentityData_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ]
+      }
+    },
     "/api/v1/auth/refresh": {
       "post": {
         "tags": [
@@ -900,6 +1057,612 @@
           }
         ]
       }
+    },
+    "/api/v1/meal-plans/{plan_date}": {
+      "get": {
+        "tags": [
+          "meal-plans"
+        ],
+        "summary": "Get Meal Plan",
+        "operationId": "get_meal_plan_api_v1_meal_plans__plan_date__get",
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Plan Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_DayMealPlan_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "meal-plans"
+        ],
+        "summary": "Delete Meal Plan",
+        "operationId": "delete_meal_plan_api_v1_meal_plans__plan_date__delete",
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Plan Date"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/meal-plans/{plan_date}/{meal_slot}": {
+      "put": {
+        "tags": [
+          "meal-plans"
+        ],
+        "summary": "Save Meal",
+        "operationId": "save_meal_api_v1_meal_plans__plan_date___meal_slot__put",
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Plan Date"
+            }
+          },
+          {
+            "name": "meal_slot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/MealSlot"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MealPlanSave"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_PlannedMeal_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "meal-plans"
+        ],
+        "summary": "Delete Meal",
+        "operationId": "delete_meal_api_v1_meal_plans__plan_date___meal_slot__delete",
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Plan Date"
+            }
+          },
+          {
+            "name": "meal_slot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/MealSlot"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/saved-recipes": {
+      "get": {
+        "tags": [
+          "saved-recipes"
+        ],
+        "summary": "List Saved Recipes",
+        "operationId": "list_saved_recipes_api_v1_saved_recipes_get",
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_Page_SavedRecipeItem__"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/saved-recipes/{recipe_id}": {
+      "get": {
+        "tags": [
+          "saved-recipes"
+        ],
+        "summary": "Get Saved State",
+        "operationId": "get_saved_state_api_v1_saved_recipes__recipe_id__get",
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "recipe_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "pattern": "^[0-9]+$",
+              "title": "Recipe Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_SavedRecipeState_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "saved-recipes"
+        ],
+        "summary": "Save Recipe",
+        "operationId": "save_recipe_api_v1_saved_recipes__recipe_id__put",
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "recipe_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "pattern": "^[0-9]+$",
+              "title": "Recipe Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_SavedRecipeState_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "saved-recipes"
+        ],
+        "summary": "Remove Recipe",
+        "operationId": "remove_recipe_api_v1_saved_recipes__recipe_id__delete",
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "recipe_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "pattern": "^[0-9]+$",
+              "title": "Recipe Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1035,6 +1798,29 @@
         ],
         "title": "ComputedNutrition",
         "description": "Ingredient-based nutrition (food_nutrition_contract.md 3.4), separate from `nutrition`."
+      },
+      "DayMealPlan": {
+        "properties": {
+          "plan_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Plan Date"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PlannedMeal"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "plan_date",
+          "items"
+        ],
+        "title": "DayMealPlan"
       },
       "DetectedAllergen": {
         "properties": {
@@ -1203,6 +1989,11 @@
             "type": "string",
             "format": "date-time",
             "title": "Expires At"
+          },
+          "kakao_linked": {
+            "type": "boolean",
+            "title": "Kakao Linked",
+            "default": false
           }
         },
         "type": "object",
@@ -1214,6 +2005,63 @@
         "title": "IdentityData"
       },
       "JsonValue": {},
+      "KakaoRequest": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "maxLength": 2048,
+            "minLength": 1,
+            "format": "password",
+            "title": "Access Token",
+            "writeOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "access_token"
+        ],
+        "title": "KakaoRequest"
+      },
+      "MealPlanSave": {
+        "properties": {
+          "recipe_id": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[0-9]+$",
+            "title": "Recipe Id"
+          },
+          "recipe_revision_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipe Revision Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "recipe_id"
+        ],
+        "title": "MealPlanSave"
+      },
+      "MealSlot": {
+        "type": "string",
+        "enum": [
+          "breakfast",
+          "lunch",
+          "dinner",
+          "snack",
+          "special"
+        ],
+        "title": "MealSlot"
+      },
       "NutrientAmounts": {
         "properties": {
           "energy_kcal": {
@@ -1484,6 +2332,76 @@
           "total"
         ],
         "title": "Page[RecipeRecord]"
+      },
+      "Page_SavedRecipeItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SavedRecipeItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Offset"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "limit",
+          "offset",
+          "total"
+        ],
+        "title": "Page[SavedRecipeItem]"
+      },
+      "PlannedMeal": {
+        "properties": {
+          "meal_slot": {
+            "$ref": "#/components/schemas/MealSlot"
+          },
+          "recipe_id": {
+            "type": "string",
+            "title": "Recipe Id"
+          },
+          "recipe_revision_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Recipe Revision Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "meal_slot",
+          "recipe_id",
+          "recipe_revision_id",
+          "name",
+          "is_active"
+        ],
+        "title": "PlannedMeal"
       },
       "Preferences": {
         "properties": {
@@ -2511,6 +3429,46 @@
         "type": "object",
         "title": "RevokedData"
       },
+      "SavedRecipeItem": {
+        "properties": {
+          "recipe_id": {
+            "type": "string",
+            "title": "Recipe Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "recipe_id",
+          "name"
+        ],
+        "title": "SavedRecipeItem"
+      },
+      "SavedRecipeState": {
+        "properties": {
+          "saved": {
+            "type": "boolean",
+            "title": "Saved"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "saved"
+        ],
+        "title": "SavedRecipeState"
+      },
       "SeasonalMatch": {
         "properties": {
           "name": {
@@ -2555,6 +3513,11 @@
             "format": "date-time",
             "title": "Expires At"
           },
+          "kakao_linked": {
+            "type": "boolean",
+            "title": "Kakao Linked",
+            "default": false
+          },
           "access_token": {
             "type": "string",
             "format": "password",
@@ -2576,6 +3539,22 @@
           "access_token"
         ],
         "title": "SessionData"
+      },
+      "SuccessResponse_DayMealPlan_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DayMealPlan"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[DayMealPlan]"
       },
       "SuccessResponse_HealthData_": {
         "properties": {
@@ -2625,6 +3604,38 @@
         ],
         "title": "SuccessResponse[Page[RecipeRecord]]"
       },
+      "SuccessResponse_Page_SavedRecipeItem__": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Page_SavedRecipeItem_"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[Page[SavedRecipeItem]]"
+      },
+      "SuccessResponse_PlannedMeal_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PlannedMeal"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[PlannedMeal]"
+      },
       "SuccessResponse_RecipeRecommendationResult_": {
         "properties": {
           "data": {
@@ -2672,6 +3683,22 @@
           "meta"
         ],
         "title": "SuccessResponse[RevokedData]"
+      },
+      "SuccessResponse_SavedRecipeState_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SavedRecipeState"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[SavedRecipeState]"
       },
       "SuccessResponse_SessionData_": {
         "properties": {

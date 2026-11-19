@@ -1,0 +1,60 @@
+# Keep this project separate from the shared server's existing containers/volumes.
+name: valueflow-server
+
+services:
+  db:
+    image: pgvector/pgvector:0.8.7-pg16-bookworm
+    restart: unless-stopped
+    mem_limit: 768m
+    cpus: 1.0
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-valueflow}
+      POSTGRES_USER: ${POSTGRES_USER:-valueflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./initdb/001-vector.sql:/docker-entrypoint-initdb.d/001-vector.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  api:
+    image: ${API_IMAGE:?Set API_IMAGE to a tested image tag or digest}
+    restart: unless-stopped
+    mem_limit: 768m
+    cpus: 1.0
+    init: true
+    environment:
+      APP_NAME: ValueFlow API
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL with the db service hostname}
+      CORS_ORIGINS: ${CORS_ORIGINS:-[]}
+      KAKAO_APP_ID: ${KAKAO_APP_ID:?Set the numeric Kakao app ID in deploy/.env}
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-604800}
+    ports:
+      - "127.0.0.1:${API_PORT:-18081}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  postgres_data:

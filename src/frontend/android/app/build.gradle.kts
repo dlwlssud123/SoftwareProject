@@ -1,8 +1,19 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val kakaoNativeKey = (findProperty("dart-defines") as? String)
+    .orEmpty()
+    .split(',')
+    .filter { it.isNotEmpty() }
+    .map { String(Base64.getDecoder().decode(it), Charsets.UTF_8) }
+    .firstOrNull { it.startsWith("KAKAO_NATIVE_APP_KEY=") }
+    ?.substringAfter('=')
+    .orEmpty()
 
 android {
     namespace = "com.valueflow.valueflow"
@@ -23,6 +34,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["kakaoAuthScheme"] = "kakao$kakaoNativeKey"
+        manifestPlaceholders["kakaoAuthEnabled"] = kakaoNativeKey.isNotEmpty().toString()
     }
 
     buildTypes {

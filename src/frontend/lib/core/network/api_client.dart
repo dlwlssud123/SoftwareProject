@@ -29,8 +29,16 @@ class ApiClient {
   Future<T> get<T>(
     String path, {
     Map<String, dynamic>? query,
+    String? token,
     required T Function(Object? json) parse,
-  }) => _send(() => _dio.get<Object?>(path, queryParameters: query), parse);
+  }) => _send(
+    () => _dio.get<Object?>(
+      path,
+      queryParameters: query,
+      options: _options(token),
+    ),
+    parse,
+  );
 
   Future<T> post<T>(
     String path, {
@@ -42,12 +50,39 @@ class ApiClient {
     () => _dio.post<Object?>(
       path,
       data: body,
-      options: Options(
-        followRedirects: followRedirects && token == null,
-        headers: {if (token != null) 'Authorization': 'Bearer $token'},
-      ),
+      options: _options(token, followRedirects: followRedirects),
     ),
     parse,
+  );
+
+  Future<T> put<T>(
+    String path, {
+    Object? body,
+    required String token,
+    required T Function(Object? json) parse,
+  }) => _send(
+    () => _dio.put<Object?>(path, data: body, options: _options(token)),
+    parse,
+  );
+
+  Future<void> delete(String path, {required String token}) => _send<void>(
+    () => _dio.delete<Object?>(path, options: _options(token)),
+    (_) {},
+  );
+
+  Future<T> patch<T>(
+    String path, {
+    required Object body,
+    required String token,
+    required T Function(Object? json) parse,
+  }) => _send(
+    () => _dio.patch<Object?>(path, data: body, options: _options(token)),
+    parse,
+  );
+
+  Options _options(String? token, {bool followRedirects = true}) => Options(
+    followRedirects: followRedirects && token == null,
+    headers: {if (token != null) 'Authorization': 'Bearer $token'},
   );
 
   Future<T> _send<T>(

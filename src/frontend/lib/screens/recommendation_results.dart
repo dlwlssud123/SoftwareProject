@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../data/demo_repository.dart';
+import '../data/recipe_library_api.dart';
+import '../widgets/recipe_actions.dart';
 import '../models/recommendations.dart';
 import '../models/recipe_ingredients.dart';
 import '../services/settings.dart';
@@ -18,6 +20,7 @@ class RecommendationResults extends StatelessWidget {
     required this.time,
     this.welfare = false,
     this.serverMeals,
+    this.library,
     super.key,
   });
   final DemoRepository repository;
@@ -26,6 +29,7 @@ class RecommendationResults extends StatelessWidget {
   final MealTime time;
   final bool welfare;
   final MealRecommendations? serverMeals;
+  final RecipeLibraryApi? library;
 
   @override
   Widget build(BuildContext context) {
@@ -158,6 +162,7 @@ class RecommendationResults extends StatelessWidget {
           for (final match in preferredMeals)
             _RecipeCard(
               match: match,
+              library: library,
               settings: settings,
               showAllergyNotice: hasAllergyFilter,
             ),
@@ -166,6 +171,7 @@ class RecommendationResults extends StatelessWidget {
           for (final match in otherMeals)
             _RecipeCard(
               match: match,
+              library: library,
               settings: settings,
               showAllergyNotice: hasAllergyFilter,
             ),
@@ -201,11 +207,14 @@ class _RecipeImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cacheHeight = (height * MediaQuery.devicePixelRatioOf(context))
+        .ceil();
     if (!recipe.fromServer) {
       return Image.asset(
         recipe.image,
         width: width,
         height: height,
+        cacheHeight: cacheHeight,
         fit: BoxFit.cover,
       );
     }
@@ -221,6 +230,7 @@ class _RecipeImage extends StatelessWidget {
       url,
       width: width,
       height: height,
+      cacheHeight: cacheHeight,
       fit: BoxFit.cover,
       errorBuilder: (_, _, _) => placeholder,
     );
@@ -232,8 +242,10 @@ class _RecipeCard extends StatelessWidget {
     required this.match,
     required this.settings,
     required this.showAllergyNotice,
+    this.library,
   });
   final RecipeMatch match;
+  final RecipeLibraryApi? library;
   final AppSettings settings;
   final bool showAllergyNotice;
   @override
@@ -253,6 +265,7 @@ class _RecipeCard extends StatelessWidget {
             MaterialPageRoute<void>(
               builder: (_) => RecipeDetail(
                 recipe: r,
+                library: library,
                 settings: settings,
                 seasonal: match.seasonal,
                 showAllergyNotice: showAllergyNotice,
@@ -494,9 +507,11 @@ class RecipeDetail extends StatelessWidget {
     required this.settings,
     this.seasonal = const [],
     this.showAllergyNotice = false,
+    this.library,
     super.key,
   });
   final Recipe recipe;
+  final RecipeLibraryApi? library;
   final AppSettings settings;
   final List<SeasonalIngredient> seasonal;
   final bool showAllergyNotice;
@@ -517,6 +532,15 @@ class RecipeDetail extends StatelessWidget {
         ),
         const SizedBox(height: 22),
         Text(recipe.name, style: Theme.of(context).textTheme.headlineSmall),
+        if (recipe.fromServer && library != null)
+          RecipeActions(
+            api: library!,
+            recipe: RecipeChoice(
+              recipe.id,
+              recipe.name,
+              revisionId: recipe.revisionId,
+            ),
+          ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,

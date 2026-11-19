@@ -1,7 +1,7 @@
 # ValueFlow 공통 백엔드 API 명세서
 
 - 작성일: 2026-11-03
-- 갱신일: 2026-11-10
+- 갱신일: 2026-11-18
 - API 경로 버전: `v1` / 애플리케이션 버전: `0.1.0`
 - 구현 기준: `src/backend/app`의 실제 등록 경로·Pydantic 모델·예외 처리
 - 로컬 주소: `http://127.0.0.1:8000`
@@ -157,6 +157,31 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 `openapi.json`은 실행 코드의 `app.openapi()`에서 생성한 스냅샷이다. `catalog.openapi.json`은 모든 경로에 `x-implementation-status: planned`를 붙인 별도 인계 문서다. 실행 서버에 예정 경로를 추가하지 않는다. `src/backend`에서 `python -m app.jobs.export_api_contract`로 둘을 재생성한다. 표본 갱신은 `PYTHONPATH=../data` 설정 후 같은 명령에 `--welfare-snapshot <실제 수집 JSON 경로>`를 전달한다. 실제/예정 스냅샷과 DTO 표본은 테스트에서 대조한다.
 
+### 카카오 로그인과 게스트 연결
+
+`POST /api/v1/auth/kakao`는 `{access_token}`을 받아 서버에서 카카오 앱 ID·사용자 식별자·만료를 검증한 뒤 서비스 세션을 발급한다. 같은 카카오 사용자는 같은 내부 사용자 ID로 로그인한다. `POST /api/v1/auth/kakao/link`는 기존 서비스 Bearer 세션이 필요하며 현재 사용자의 ID와 식단표·저장 레시피를 유지한 채 연결한다. 다른 사용자에게 이미 연결된 카카오 계정은 `KAKAO_ALREADY_LINKED`(409), 현재 사용자에게 다른 카카오 계정이 연결되어 있으면 `USER_ALREADY_LINKED`(409)다. 클라이언트는 자동 병합하지 않고 기존 계정 로그인 선택을 안내한다.
+
+세션 발급·조회·갱신 응답에 `kakao_linked`가 포함된다. 요청에 내부 사용자 ID를 받지 않고 카카오 원본 토큰은 저장하지 않는다. 미설정은 `KAKAO_DISABLED`(503), 다른 앱·만료 토큰은 `KAKAO_TOKEN_INVALID`(401), 제공자 연결 실패는 `KAKAO_UNAVAILABLE`(503)다. 마이그레이션은 `20261118_01`, 백엔드 설정은 `KAKAO_APP_ID`다.
+
+### 하루 식단표와 저장한 레시피
+
+아래 경로는 `/api/v1` 접두사와 Bearer 세션이 필요하다. 사용자 ID는 인증 정보에서 결정하며 사용자별 데이터는 `Cache-Control: no-store`로 반환한다.
+
+| 메서드 | 경로 | 동작 |
+| --- | --- | --- |
+| GET | `/meal-plans/{date}` | `YYYY-MM-DD` 날짜의 끼니별 메뉴 조회 |
+| PUT | `/meal-plans/{date}/{slot}` | 메뉴 담기 또는 교체, `{recipe_id, recipe_revision_id?}` |
+| DELETE | `/meal-plans/{date}/{slot}` | 해당 끼니 비우기, 204 |
+| DELETE | `/meal-plans/{date}` | 해당 날짜 비우기, 204 |
+| GET | `/saved-recipes?limit=20&offset=0` | 최신 저장순 목록과 total |
+| GET | `/saved-recipes/{recipe_id}` | `{saved: boolean}` |
+| PUT | `/saved-recipes/{recipe_id}` | 레시피 저장, 반복해도 한 건 |
+| DELETE | `/saved-recipes/{recipe_id}` | 저장 해제, 반복해도 204 |
+
+`slot`은 `breakfast/lunch/dinner/snack/special`이다. 식단표는 사용자·날짜·끼니마다 한 메뉴를 저장한다. 조회 항목은 `meal_slot`, `recipe_id`, `recipe_revision_id`, `name`, `is_active`를 담는다. 선택 당시 판본을 유지하고 갱신된 메뉴는 `is_active=false`로 안내한다. 저장 요청의 판본이 현재 판본과 다르면 409를 반환한다. 게시 보류·삭제된 메뉴의 신규 저장은 404이며, 기존 저장 목록에서는 이름을 null로 반환해 해제할 수 있다. 기존 `meal_plan_entries/saved_recipes` 테이블을 사용하므로 추가 마이그레이션은 없다.
+
+게스트는 현재 기기의 보관된 세션으로 연결된다. 세션 만료·삭제 후 새 게스트를 만들면 다른 사용자로 취급되므로 장기 보관과 다른 기기 복원에는 세션 만료 전 카카오 계정을 연결한다. 식단표는 섭취 기록이나 하루 영양 적정량 판정을 생성하지 않는다.
+
 ### 식단 추천
 
 `POST /api/v1/meal/recommendations`에는 게스트 또는 사용자 Bearer 세션이 필요하다. 현재 공개된 레시피에 요청과 계정의 제외 조건을 먼저 적용하고, 부드러운 음식·간단한 조리를 선택하면 일치한 조리 조건 수가 많은 메뉴를 우선한다. 그 안에서 선호 재료, 시간대, 최근 섭취·추천 이력, 메뉴 유형 다양성 등을 반영한다. `items[].matched_preferences`는 해당 메뉴가 충족한 `soft_food`·`simple_cooking`을 알려 준다. 죽·미음, 일부 찜, 갈거나 으깨서 거른 수프를 부드러운 조리로 분류한다. 간단한 조리는 재료 1~6개와 누락 없는 조리 단계 1~4개를 기준으로 한다. 건강 조건은 재료로 계산한 영양의 분량과 상관없는 값(`computed_nutrition.density` — 고혈압은 1,000 kcal당 나트륨 `sodium_mg_per_1000kcal`, 당뇨는 열량 중 탄수화물 비율 `carbohydrate_energy_pct`, [영양 정의서](../data/food_nutrition_contract.md) 3.2)으로 후보끼리 비교해, 후보 중앙값보다 낮은 메뉴에 가산하고 이유를 붙인다(`meal-rules-5`). 값이 없는 레시피(매핑 전·일부 재료만 계산)는 비교에서 뺀다. 원천 1인분 표기값(`nutrition`)은 몇 인분 기준인지 근거가 없어 쓰지 않는다.
@@ -173,7 +198,6 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 | 영역 | 예정 경로 | 상태 |
 | --- | --- | --- |
-| 카카오 식별 | `POST /api/v1/auth/kakao` | 제공자 연동 후속. 게스트 세션은 8절 구현 |
 | 섭취 기록 | `POST/GET /api/v1/meals`, `PATCH/DELETE /api/v1/meals/{id}` | 미구현 |
 | 사진 영양 분석 | `POST /api/v1/nutrition/analyses`, `GET /api/v1/nutrition/analyses/{id}`, `POST /api/v1/nutrition/analyses/{id}/confirm` | 미구현 |
 | 복지 | `GET /api/v1/welfare`, `GET /api/v1/welfare/{service_id}`, `POST /api/v1/welfare/recommendations` | DTO 계약 제공·실제 조회 후속 |
@@ -183,11 +207,13 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 이 표는 예정 경로의 요약이며 전체 기능의 확정 계약은 아니다. 신규 기능의 채택 상태는 최종 기획서, 기능별 계획은 구현계획서를 따른다.
 
-## 8. 게스트 인증·관리자 진입
+## 8. 게스트·카카오 인증·관리자 진입
 
 | 메서드·경로 | 요청 | 성공 |
 | --- | --- | --- |
 | `POST /api/v1/auth/guest` | JSON `{}`, 인증 없음 | 201, 새 `user_id`·`role=user`·`access_token`·`token_type=Bearer`·`expires_at` |
+| `POST /api/v1/auth/kakao` | JSON `{access_token}`, 카카오 토큰 | 200, 같은 카카오 사용자에 서비스 세션 발급 |
+| `POST /api/v1/auth/kakao/link` | JSON `{access_token}`, 기존 서비스 Bearer | 200, 기존 사용자 ID와 `kakao_linked=true` |
 | `GET /api/v1/auth/me` | Bearer 세션 | 200, `user_id`·`role`·`expires_at` |
 | `POST /api/v1/auth/refresh` | Bearer 세션, 본문 없음 | 200, 같은 사용자에 새 토큰. 이전 토큰은 즉시 폐기 |
 | `DELETE /api/v1/auth/session` | Bearer 세션, 본문 없음 | 200, `data.revoked=true`. 해당 세션만 폐기 |
@@ -197,7 +223,7 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 토큰은 256비트 난수 기반 opaque 문자열이며 DB에는 SHA-256 해시만 저장한다. 기본 유효기간은 7일, `SESSION_TTL_SECONDS`는 300~2,592,000초로 제한한다. 갱신은 유효한 기존 토큰을 한 번 소비하고 새 토큰을 같은 트랜잭션에 저장한다. 동시 갱신은 하나만 성공한다. 별도 장기 refresh token은 없으며 만료 후에는 갱신할 수 없다.
 
-앱은 세션을 보안 저장소에 보관하고 로그·일반 설정 저장소에 넣지 않는다. 새 게스트 발급은 새 사용자 생성이므로 앱 시작마다 호출하지 않는다. 만료/기기 변경 후 예전 사용자 복구·카카오 연결은 후속 정책이다. DB 마이그레이션 전 발급/조회는 저장소 오류 503이 될 수 있다.
+앱은 세션을 보안 저장소에 보관하고 로그·일반 설정 저장소에 넣지 않는다. 새 게스트 발급은 새 사용자 생성이므로 앱 시작마다 호출하지 않는다. 카카오 연결 사용자는 재로그인해 같은 사용자 ID를 복구한다. 미연결 게스트의 만료 후 복구는 제공하지 않는다. DB 마이그레이션 전 발급/조회는 저장소 오류 503이 될 수 있다.
 
 관리자 권한은 공개 API로 신청/변경할 수 없다. 운영자가 게스트 발급으로 확인한 사용자 UUID에 서버 DB 자격으로 아래 CLI를 실행한다. CLI는 사용자 ID와 결과 권한만 출력한다. 권한은 매 요청 DB에서 읽으므로 `user`로 내리면 기존 토큰도 다음 관리자 요청부터 403이다. 기본 관리자·공유 비밀번호·자동 승격은 없다.
 

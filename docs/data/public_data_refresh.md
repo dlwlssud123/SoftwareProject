@@ -101,13 +101,14 @@ uv run python -m agetech_data.refresh --rollback welfare_local 20261101T030000Z
 
 **2026-11-01 첫 실행 결과**: 레시피 1,156건·영양 8,807건 정상(두 번째 실행 변경 0건). 복지는 상세 한도를 첫 시도에서 소진해 목록만 게시(중앙 130·지자체 1,338건, 상세 `pending`) — 다음 실행부터 상세를 채운다.
 
-## 5. 매일 한 번에 돌리기 — `app.jobs.daily_refresh`
+## 5. DB 적재·검증 스크립트 — `app.jobs.daily_refresh`
 
-수집부터 DB 적재·재료 매핑·RAG 인덱스 적재까지 하루 한 번 이 명령 하나로 돌린다. 실행 기록은 `job_runs`(`kind = 'public_data_daily'`)에 남는다.
+이 명령으로 공공데이터 수집, DB 적재, 재료 매핑, RAG 인덱스 적재를 실행한다. 실행 기록은 `job_runs`(`kind = 'public_data_daily'`)에 남는다.
 
 ```bash
 cd src/backend
 uv run python -m app.jobs.daily_refresh                  # 전체
+uv run python -m app.jobs.daily_refresh --welfare-only --verify
 uv run python -m app.jobs.daily_refresh --dry-run        # 단계·명령만 보기 (DB 안 씀)
 uv run python -m app.jobs.daily_refresh --skip-refresh   # 수집 없이 지금 수집본으로 다시 적재 (재시도)
 RAG_PYTHON=<embed extra가 깔린 python> uv run python -m app.jobs.daily_refresh   # RAG 단계용 (아래)
@@ -137,7 +138,23 @@ RAG_PYTHON=<embed extra가 깔린 python> uv run python -m app.jobs.daily_refres
 - **RAG 파이썬**: `rag.index`·`rag.export`는 numpy·sentence-transformers가 필요하다(백엔드 가상환경에는 없음). `--rag-python` 또는 `RAG_PYTHON`에 `uv sync --extra embed`로 만든 루트 가상환경의 python을 준다. 바뀐 청크가 없으면 모델을 올리지 않는다(0.4초). 바뀐 청크가 있으면 그 단계 동안만 모델(약 2.5GB)을 올린다 — 같은 서버에서 AI 도우미 API가 모델을 올려 두고 있으면 메모리를 함께 본다.
 - **RAG 적재(11/14부터 psql 없음)**: `rag_load`는 다른 적재와 같은 백엔드 파이썬·같은 `DATABASE_URL`로 `rag_chunk.csv`를 COPY한다(psycopg). 예전 `load_index.sql`(psql 전용 `\gset`·`\if`·`\copy`)과 `--psql` 옵션은 없앴다 — 서버에 postgresql-client가 없어도 된다. 활성화하면 직전 판본 하나만 남기고 오래된 판본을 지운다(판본 하나 약 3,400행).
 - **기록 파일** (gitignore): `data/processed/daily_refresh_status.json` — 마지막 실행 `{job_run_id, status, started_at, finished_at, error_code, planned, steps[]}`, 단계마다 `{name, status, started_at, duration_sec, exit_code, summary, error | reason·detail}`(진행 중에도 단계마다 갱신). `summary`는 적재 결과 JSON(긴 목록은 10개까지), 수집은 소스별 `{status, items, changes, error}`. `daily_refresh_log.jsonl` — 실행마다 한 줄. `data/processed/daily_refresh/<단계>.log` — 단계별 마지막 출력 전체. 출력에 섞일 수 있는 DB 주소·비밀번호·공공데이터 API 키는 `***`로 가린다.
-- **일정**: 서버에서 하루 1회(예: 새벽 3시 KST — 복지 상세 한도가 00시에 초기화됨) cron/systemd timer 또는 worker가 실행하고, 종료 코드 1이면 운영 알림. 실데이터 실행(이 PC, 2026-11-13, 빈 DB + RAG 표): 전체 465초 — 수집 368초(영양 DB 응답이 느려 249초, 제철 상세 135회 81초), 적재 합계 58초, 재료 매핑 31초, RAG 5단계 8초(다시 임베딩 0, 활성 2,878청크). 수집 없이 다시 돌리면(`--skip-refresh`) 적재는 모두 `already_imported`, 약 33초. 11/14(파이썬 적재로 바꾼 뒤, 빈 DB + Alembic head, `--skip-refresh --verify` 16단계): 183초 — 적재 60초·검증 38초·재료 매핑 33초, `rag_index` 45초(본문이 바뀐 72청크만 다시 임베딩), `rag_load` 1.6초(3,370청크 활성)·`rag_load_verify` 1.6초.
+- **실행 시간 기록**: 실데이터 실행(이 PC, 2026-11-13, 빈 DB + RAG 표): 전체 465초 — 수집 368초(영양 DB 응답이 느려 249초, 제철 상세 135회 81초), 적재 합계 58초, 재료 매핑 31초, RAG 5단계 8초(다시 임베딩 0, 활성 2,878청크). 수집 없이 다시 돌리면(`--skip-refresh`) 적재는 모두 `already_imported`, 약 33초. 11/14(파이썬 적재로 바꾼 뒤, 빈 DB + Alembic head, `--skip-refresh --verify` 16단계): 183초 — 적재 60초·검증 38초·재료 매핑 33초, `rag_index` 45초(본문이 바뀐 72청크만 다시 임베딩), `rag_load` 1.6초(3,370청크 활성)·`rag_load_verify` 1.6초.
+
+### 서버 예약 실행
+
+서버 배포 후 같은 배포 경로에서 `alembic upgrade head`를 실행한다. 전체 수집본을 준비한 다음 `python -m app.jobs.daily_refresh --skip-refresh --verify`를 한 번 실행해 적재와 검증 결과를 확인한다. RAG까지 운영할 때는 단계 기록에서 `rag_load_verify`가 `ok`인지도 확인하고 예약 실행을 등록한다. API 키는 기존 환경변수 또는 저장소 루트 `.env`, DB 연결은 백엔드 `.env`에 둔다.
+
+- **월요일 03:00 KST**에 전체를 수집·적재·검증한다. 복지와 함께 레시피·식품 영양·급식소·제철을 갱신하고 레시피 계산 영양을 다시 확인한다.
+- **화~일요일 03:00 KST**에 `--welfare-only --verify`로 중앙부처·지자체 복지만 수집·적재·검증한다. RAG는 주간 실행에서 만든 `recipes_api_all.json`과 제철 수집본을 재사용한다. 입력 파일이 빠지거나 복지 검증이 끝나지 않으면 RAG 단계가 건너뛰어지고 직전 인덱스를 계속 사용한다. 전체 종료 상태와 단계별 `skipped` 이유를 함께 확인한다.
+
+아래 crontab 예시는 서버의 cron 시간대가 KST이고 저장소가 `/srv/valueflow`에 배치됐을 때 사용한다. UTC 서버에서는 화~일 KST 실행을 `0 18 * * 1-6`, 월요일 KST 실행을 `0 18 * * 0`으로 넣는다. 배포 경로와 Python 경로는 서버에 맞춘다.
+
+```cron
+PYTHONPATH=/srv/valueflow/src/data
+RAG_PYTHON=/srv/valueflow/.venv/bin/python
+0 3 * * 1 cd /srv/valueflow/src/backend && .venv/bin/python -m app.jobs.daily_refresh --verify >> /srv/valueflow/data/processed/public-data-cron.log 2>&1
+0 3 * * 0,2-6 cd /srv/valueflow/src/backend && .venv/bin/python -m app.jobs.daily_refresh --welfare-only --verify >> /srv/valueflow/data/processed/public-data-cron.log 2>&1
+```
 
 ## 6. 알려진 제한
 
