@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'data/demo_repository.dart';
 import 'data/recipe_api.dart';
+import 'data/intake_api.dart';
 import 'services/settings.dart';
 import 'services/account.dart';
 import 'theme.dart';
@@ -18,6 +19,7 @@ class ValueFlowApp extends StatelessWidget {
     required this.settings,
     this.recipeApi,
     this.account,
+    this.intakeApi,
     super.key,
   });
   final DemoRepository repository;
@@ -26,6 +28,7 @@ class ValueFlowApp extends StatelessWidget {
   /// null이면 서버 없이 데모 데이터만 쓴다.
   final RecipeApi? recipeApi;
   final Account? account;
+  final IntakeApi? intakeApi;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: settings,
@@ -56,6 +59,7 @@ class ValueFlowApp extends StatelessWidget {
       settings: settings,
       recipeApi: recipeApi,
       account: account,
+      intakeApi: intakeApi,
     );
     final auth = account;
     if (auth == null) return shell();
@@ -73,12 +77,14 @@ class AppShell extends StatefulWidget {
     required this.settings,
     this.recipeApi,
     this.account,
+    this.intakeApi,
     super.key,
   });
   final DemoRepository repository;
   final AppSettings settings;
   final RecipeApi? recipeApi;
   final Account? account;
+  final IntakeApi? intakeApi;
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -98,7 +104,11 @@ class _AppShellState extends State<AppShell> {
       recipeApi: widget.recipeApi,
       account: widget.account,
     ),
-    NutritionScreen(repository: widget.repository, settings: widget.settings),
+    NutritionScreen(
+      repository: widget.repository,
+      settings: widget.settings,
+      intakeApi: widget.intakeApi,
+    ),
     AssistantScreen(repository: widget.repository, settings: widget.settings),
     const ContentScreen(),
   ];
