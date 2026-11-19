@@ -212,13 +212,36 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 `calculation_version=food-portion-v1`, 항목별 `source`(제공자·식품 코드·판본·원천 해시·적재 시각), 입력값과 환산 근거를 반환한다. 영양소 결측은 `null`이며 0과 구분한다. `total.complete`는 모든 음식의 분량 계산 성공 여부다. 모든 영양소가 채워졌다는 뜻은 아니므로 `missing_items`(영양소별 결측 음식 수)도 확인한다. 일부 음식만 계산되면 `excluded`에 제외 항목의 배열 위치·이유를 남기며, 전부 제외되면 합계도 `null`이다. 계산 응답은 `Cache-Control: no-store`다. 사진 분석·진단·섭취 확정 기능과 별개다.
 
+## 확정 섭취 기록
+
+모든 `/api/v1/meals` 요청은 서비스 Bearer 세션이 필요하며, 오류·입력 검증 응답까지 `Cache-Control: no-store`를 적용한다. 사용자 ID와 영양 수치를 요청에 넣지 않는다. 서버는 선택한 식품 판본과 분량으로 다시 계산해 저장하고 사용자별로 기록을 격리한다. 식단표·레시피 저장과 별개이며 사진 분석 없이 직접 선택한 음식도 기록할 수 있다.
+
+| 메서드·경로 | 요청·응답 |
+| --- | --- |
+| `POST /api/v1/meals` | 헤더 `Idempotency-Key` 필수(16~128자, 영문·숫자·`_`·`-`, UUID 권장). 본문 `{eaten_at, items}`. 첫 저장 201, 같은 요청 재전송 200. `data={meal,replayed}` |
+| `GET /api/v1/meals` | `limit`(1~50, 기본 20)·`offset`·선택 `day=YYYY-MM-DD`. 최신 섭취순 요약 페이지, `total`은 해당 사용자·날짜 조건의 건수 |
+| `GET /api/v1/meals/{id}` | UUID 기록의 상세. 선택한 음식·분량·영양값·계산 근거 포함 |
+| `PATCH /api/v1/meals/{id}` | `expected_version` 필수, `eaten_at` 또는 `items` 중 하나 이상. 변경 필드에 null 금지. `items`는 음식 목록 전체 교체이며 서버에서 재계산 |
+| `DELETE /api/v1/meals/{id}?version=1` | 상세 응답의 `version` 필수. 성공 204. 이미 없거나 다른 사용자의 기록은 같은 404 |
+
+`eaten_at`은 시간대가 있는 ISO 8601 시각이며 UTC로 정규화해 보관한다. `items`는 계산 미리보기와 같은 `{food_id,revision_id,amount,unit}` 1~30개다. `day` 조회는 한국 시간 자정부터 다음 날 자정까지를 적용한다. 목록 요약에는 `id/eaten_at/created_at/version/total/legacy_snapshot_missing`을 반환하고 음식별 세부 내용은 상세에서 읽는다.
+
+저장 시 계산이 안 되는 항목을 조용히 빼지 않는다. 모든 음식의 분량이 환산 가능해야 하며, 원천 중량이 없는 그릇·개수 단위는 g·mL로 다시 확인한다(`PORTION_NOT_RECORDABLE`, 422). 환산 후 중량은 기존 DB 규격에 맞춰 0.001~9,999,999.999 g·mL, 소수점 셋째 자리까지 표현 가능해야 한다. g↔mL 근사는 명시적으로 표시하며, 영양소 결측은 그대로 null과 `missing_items`로 보관한다. 식품 판본이 바뀌었으면 미리보기와 같은 409로 재선택을 요청한다.
+
+상세의 `items[]`에는 `food_id/revision_id/food_code/name/order_no/amount/amount_unit/nutrients/calculation_version/calculation`을 반환한다. `calculation`은 저장 시점의 입력 분량·환산 근거·근사 여부·원천 판본을 보관한 스냅샷이다. 원천 갱신은 과거 기록의 수치를 바꾸지 않는다. 섭취 시각만 수정할 때도 음식과 당시 영양값은 유지한다. 이전 버전에서 저장한 스냅샷 없는 기록은 기존 수치를 그대로 반환하고 `calculation=null`, `legacy_snapshot_missing=true`로 알린다. 근거를 새로 만들어 채우지 않는다.
+
+같은 사용자의 같은 키·같은 요청은 기록을 하나만 생성한다. 날짜는 UTC 기준으로 비교하므로 같은 시각의 다른 시간대 표기도 같은 요청이다. 같은 키로 다른 내용을 보내면 `IDEMPOTENCY_KEY_REUSED`(409), 기록을 삭제한 뒤 그 생성 요청을 재전송하면 `MEAL_ALREADY_DELETED`(409)다. 수정 후 최초 생성 요청을 재전송하면 같은 기록의 **현재 상태**와 `replayed=true`를 반환한다. 신규 저장에는 새 키, 네트워크 재시도에는 기존 키를 사용한다.
+
+수정·삭제는 `version`으로 경합을 확인하며 오래된 버전은 `MEAL_VERSION_CHANGED`(409)로 막는다. 변경을 반영하기 전에 상세를 다시 읽도록 앱에서 안내한다. 타인과 없는 기록은 `MEAL_NOT_FOUND`(404)로 구분하지 않는다. DB 실패는 재시도 가능한 `MEALS_UNAVAILABLE`(503)이며 기록·음식·중복 방지 이력을 함께 롤백한다. 요청 키 원문과 입력 원문은 중복 방지 테이블에 남기지 않고 해시와 기록 링크만 보관한다. 기록 삭제 시 링크를 비워 재시도에 의한 복원을 막고, 사용자 DB 행 삭제 시 그 사용자의 기록·음식·요청 이력을 cascade 삭제한다. 세션 폐기와 프로필 동의 철회는 사용자 DB 행 삭제와 다르다.
+
+마이그레이션은 `20261118_01 → 20261119_01 → 20261120_01` 단일 경로다. 중간의 복지 메모 마이그레이션은 PR #58과 같은 파일을 재사용하며 기존 저장 항목을 유지한다. 새 섭취 마이그레이션은 기존 기록을 version=1로 보존하고 순서·스냅샷 컬럼을 nullable로 추가한다. 배포에는 `alembic upgrade head`가 필요하며 운영 DB를 자동 downgrade하지 않는다. 코드·CI 검증과 main 병합·기업 서버 배포·앱 화면 연결은 별도 상태로 관리한다.
+
 ## 7. 미구현 예정 API
 
 다음은 후속 경로다. 현재 서버에서 호출하면 404가 반환된다. 카탈로그 DTO와 표본은 9절에 정의했다. 나머지 기능의 세부 계약은 착수 시 관련 담당자와 맞춘다.
 
 | 영역 | 예정 경로 | 상태 |
 | --- | --- | --- |
-| 섭취 기록 | `POST/GET /api/v1/meals`, `PATCH/DELETE /api/v1/meals/{id}` | 미구현 |
 | 사진 영양 분석 | `POST /api/v1/nutrition/analyses`, `GET /api/v1/nutrition/analyses/{id}`, `POST /api/v1/nutrition/analyses/{id}/confirm` | 미구현 |
 | 복지 | `GET /api/v1/welfare`, `GET /api/v1/welfare/{service_id}`, `POST /api/v1/welfare/recommendations` | DTO 계약 제공·실제 조회 후속 |
 | 복지 RAG | `POST /api/v1/welfare/ask` | 검색·답변 생성 후속, 맞춤 목록 추천과 별도 |

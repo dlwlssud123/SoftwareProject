@@ -3,52 +3,29 @@
 from typing import Annotated
 from uuid import UUID
 
-from agetech_data.nutrition.foods import FoodRecord as DataFoodRecord
-from agetech_data.nutrition.portion import meal_total, portion_nutrients
 from fastapi import APIRouter, Query, Request, Response
 from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.auth import DbSession
 from app.core.errors import AppError
-from app.jobs.import_public_data import FOOD_PROVIDER
-from app.models import DataImportRun, Food, FoodRevision
+from app.models import Food, FoodRevision
 from app.schemas.catalog import NutrientAmounts, Page, PageQuery
 from app.schemas.common import ErrorResponse, build_meta
 from app.schemas.nutrition import (
     FoodDetailResponse,
     FoodListResponse,
     FoodRecord,
-    FoodSource,
-    NutritionCalculation,
     NutritionCalculationRequest,
     NutritionCalculationResponse,
 )
+from app.services.food_nutrition import active_foods, calculate_portions, source_record
 
 router = APIRouter(
     tags=["nutrition"],
     responses={code: {"model": ErrorResponse} for code in (404, 422, 503)},
 )
 NO_STORE = {"Cache-Control": "no-store"}
-
-
-def active_foods():
-    return (
-        select(Food, FoodRevision, DataImportRun.completed_at)
-        .join(FoodRevision, Food.active_revision_id == FoodRevision.id)
-        .join(DataImportRun, FoodRevision.import_run_id == DataImportRun.id)
-        .where(Food.provider == FOOD_PROVIDER)
-    )
-
-
-def source_record(food, revision, imported_at):
-    return FoodSource(
-        provider=food.provider,
-        food_code=food.food_code,
-        revision_id=revision.id,
-        raw_sha256=revision.raw_sha256,
-        imported_at=imported_at,
-    )
 
 
 def food_record(food, revision, imported_at):
@@ -131,39 +108,10 @@ def calculate_nutrition(
 ):
     response.headers.update(NO_STORE)
     try:
-        rows = db.execute(
-            active_foods().where(Food.id.in_({item.food_id for item in body.items}))
-        ).all()
+        calculation = calculate_portions(db, body.items)
     except SQLAlchemyError:
         raise unavailable() from None
-    by_id = {row[0].id: row for row in rows}
-    portions, items = [], []
-    for item in body.items:
-        row = by_id.get(item.food_id)
-        if row is None:
-            raise AppError(
-                404, "FOOD_NOT_FOUND", "식품을 다시 선택해 주세요.", headers=NO_STORE
-            )
-        food, revision, imported_at = row
-        if revision.id != item.revision_id:
-            raise AppError(
-                409,
-                "FOOD_REVISION_CHANGED",
-                "식품 정보가 갱신되었습니다. 다시 선택해 주세요.",
-                headers=NO_STORE,
-            )
-        portion = portion_nutrients(
-            DataFoodRecord(**revision.normalized), item.amount, item.unit
-        )
-        portions.append(portion)
-        items.append(
-            {
-                **portion.to_dict(),
-                "food_id": food.id,
-                "source": source_record(food, revision, imported_at),
-            }
-        )
     return NutritionCalculationResponse(
-        data=NutritionCalculation(items=items, total=meal_total(portions)),
+        data=calculation,
         meta=build_meta(request),
     )
