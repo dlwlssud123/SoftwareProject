@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
-from test_public_data_import import corrections, snapshot
+from test_public_data_import import snapshot
 
 from app.core.database import get_db
 from app.jobs.import_public_data import apply_import, prepare_import
@@ -37,13 +37,12 @@ def foods_db(pg_connection, client, tmp_path):
     ]
     with Session(pg_connection, expire_on_commit=False) as db:
         client.app.dependency_overrides[get_db] = lambda: db
-        path = snapshot(tmp_path, dataset="foods", rows=rows)
-        correction_path = corrections(tmp_path)
-        apply_import(
-            db, prepare_import("foods", path, corrections_path=correction_path)
-        )
+        path = snapshot(tmp_path, dataset="nutrition", rows=rows)
+        plan = prepare_import("nutrition", nutrition_path=path)
+        assert plan.counts["foods"] == len(rows)
+        apply_import(db, plan)
         db.commit()
-        yield client, db, rows, path, correction_path
+        yield client, db, rows, path
 
 
 def choice(client, name, amount=100, unit="g"):
@@ -57,7 +56,7 @@ def choice(client, name, amount=100, unit="g"):
 
 
 def test_food_catalog_returns_active_sources_nulls_zero_and_literal_search(foods_db):
-    client, db, _, _, _ = foods_db
+    client, db, _, _ = foods_db
     listed = client.get("/api/v1/foods?limit=1").json()["data"]
     assert listed["total"] == 3
     assert len(listed["items"]) == 1
@@ -82,7 +81,7 @@ def test_food_catalog_returns_active_sources_nulls_zero_and_literal_search(foods
 
 
 def test_portions_reuse_source_servings_and_mark_missing_totals(foods_db):
-    client, _, _, _, _ = foods_db
+    client, _, _, _ = foods_db
     response = client.post(
         "/api/v1/nutrition/calculate",
         json={
@@ -109,7 +108,7 @@ def test_portions_reuse_source_servings_and_mark_missing_totals(foods_db):
 
 
 def test_mixed_units_are_explicit_approximations_and_no_serving_is_invented(foods_db):
-    client, _, _, _, _ = foods_db
+    client, _, _, _ = foods_db
     data = client.post(
         "/api/v1/nutrition/calculate",
         json={
@@ -137,7 +136,7 @@ def test_mixed_units_are_explicit_approximations_and_no_serving_is_invented(food
 
 
 def test_all_unconvertible_keeps_totals_null(foods_db):
-    client, _, _, _, _ = foods_db
+    client, _, _, _ = foods_db
     data = client.post(
         "/api/v1/nutrition/calculate",
         json={
@@ -152,11 +151,11 @@ def test_all_unconvertible_keeps_totals_null(foods_db):
 
 
 def test_reimport_rejects_stale_selection_instead_of_silently_recalculating(foods_db):
-    client, db, rows, path, correction_path = foods_db
+    client, db, rows, path = foods_db
     old = choice(client, "쌀밥")
     rows[0]["AMT_NUM1"] = "200"
-    snapshot(path.parent, dataset="foods", rows=rows)
-    apply_import(db, prepare_import("foods", path, corrections_path=correction_path))
+    snapshot(path.parent, dataset="nutrition", rows=rows)
+    apply_import(db, prepare_import("nutrition", nutrition_path=path))
     db.commit()
     response = client.post("/api/v1/nutrition/calculate", json={"items": [old]})
     assert response.status_code == 409
@@ -174,7 +173,7 @@ def test_reimport_rejects_stale_selection_instead_of_silently_recalculating(food
 
 
 def test_unknown_and_unsupported_provider_cannot_be_calculated(foods_db):
-    client, db, _, _, _ = foods_db
+    client, db, _, _ = foods_db
     item = choice(client, "쌀밥")
     food = db.scalar(select(Food).where(Food.food_code == "RICE"))
     food.provider = "unsupported"
