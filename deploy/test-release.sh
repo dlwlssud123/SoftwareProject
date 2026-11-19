@@ -4,6 +4,9 @@ set -euo pipefail
 image=${1:?Pass the tested backend image}
 revision=${2:?Pass its commit SHA}
 scripts=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+# Compose prioritizes exported variables over --env-file. The API test lane's
+# host DB URL must not replace this disposable deployment's generated DB URL.
+unset DATABASE_URL POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD API_IMAGE
 root=${RELEASE_TEST_DIR:-$(mktemp -d)}/server
 export VALUEFLOW_PROJECT="valueflow-release-test-$$"
 export DEPLOY_WAIT_SECONDS=35
