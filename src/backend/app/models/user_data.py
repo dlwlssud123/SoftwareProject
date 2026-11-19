@@ -3,6 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -158,3 +159,15 @@ class MealPlanEntry(Base):
     recipe_revision_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("recipe_revisions.id")
     )
+
+
+class ShoppingCheck(Base):
+    __tablename__ = "shopping_checks"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    plan_date: Mapped[date] = mapped_column(primary_key=True)
+    item_key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    source_hash: Mapped[str] = mapped_column(String(64))
+    checked: Mapped[bool] = mapped_column(Boolean)

@@ -32,5 +32,6 @@ from app.models.user_data import (  # noqa: F401
     RecommendationRun,
     SavedRecipe,
     SavedWelfareService,
+    ShoppingCheck,
 )
 from app.models.welfare import WelfareNotice, WelfareRevision, WelfareService  # noqa: F401

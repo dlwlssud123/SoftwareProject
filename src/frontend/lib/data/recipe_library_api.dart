@@ -1,4 +1,5 @@
 import '../core/network/api_client.dart';
+import '../models/shopping_list.dart';
 import 'guest_session.dart';
 
 enum MealSlot {
@@ -47,6 +48,33 @@ class RecipeLibraryApi {
   static const _saved = '/api/v1/saved-recipes';
   final ApiClient _client;
   final GuestSession _session;
+
+  Future<ShoppingListData> shopping(DateTime date) => _session.request(
+    (token) => _client.get(
+      '/api/v1/shopping-lists/${_date(date)}',
+      token: token,
+      parse: (body) => _read(body, ShoppingListData.fromJson),
+    ),
+  );
+
+  Future<void> setShoppingChecked(
+    DateTime date,
+    ShoppingItem item,
+    bool checked,
+  ) => _session.request(
+    (token) => _client.patch<void>(
+      '/api/v1/shopping-lists/${_date(date)}/items/${Uri.encodeComponent(item.key)}',
+      token: token,
+      body: {'source_hash': item.sourceHash, 'checked': checked},
+      parse: (body) => _read(body, (data) {
+        if (data['item_key'] != item.key ||
+            data['source_hash'] != item.sourceHash ||
+            data['checked'] != checked) {
+          throw const FormatException('Unexpected shopping state');
+        }
+      }),
+    ),
+  );
 
   Future<Map<MealSlot, PlanEntry>> plan(DateTime date) => _session.request(
     (token) => _client.get(

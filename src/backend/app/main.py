@@ -15,6 +15,7 @@ from app.api.meals import router as meals_router
 from app.api.profile import router as profile_router
 from app.api.recipes import router as recipes_router
 from app.api.saved_recipes import router as saved_recipes_router
+from app.api.shopping import router as shopping_router
 from app.core.config import get_settings
 from app.core.database import engine
 from app.core.errors import error_response, register_error_handlers
@@ -62,6 +63,8 @@ def create_app() -> FastAPI:
             )
 
         response.headers["X-Request-ID"] = request.state.request_id
+        if request.url.path.startswith("/api/v1/shopping-lists/"):
+            response.headers["Cache-Control"] = "no-store"
         if request.url.path == "/api/v1/meals" or request.url.path.startswith(
             "/api/v1/meals/"
         ):
@@ -89,6 +92,7 @@ def create_app() -> FastAPI:
     app.include_router(recipes_router, prefix="/api/v1")
     app.include_router(meal_router, prefix="/api/v1")
     app.include_router(meals_router, prefix="/api/v1")
+    app.include_router(shopping_router, prefix="/api/v1")
     app.include_router(meal_plans_router, prefix="/api/v1")
     app.include_router(saved_recipes_router, prefix="/api/v1")
 

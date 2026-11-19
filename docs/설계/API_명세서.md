@@ -236,6 +236,23 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 마이그레이션은 `20261118_01 → 20261119_01 → 20261120_01` 단일 경로다. 중간의 복지 메모 마이그레이션은 PR #58과 같은 파일을 재사용하며 기존 저장 항목을 유지한다. 새 섭취 마이그레이션은 기존 기록을 version=1로 보존하고 순서·스냅샷 컬럼을 nullable로 추가한다. 배포에는 `alembic upgrade head`가 필요하며 운영 DB를 자동 downgrade하지 않는다. 코드·CI 검증과 main 병합·기업 서버 배포·앱 화면 연결은 별도 상태로 관리한다.
 
+## 식단표 기반 장보기
+
+| 메서드·경로 | 요청·응답 |
+| --- | --- |
+| `GET /api/v1/shopping-lists/{plan_date}` | Bearer 세션, `YYYY-MM-DD`. `{plan_date,planned_meals,items,warnings}` |
+| `PATCH /api/v1/shopping-lists/{plan_date}/items/{item_key}` | `{source_hash,checked}`. `checked`는 JSON boolean, `item_key/source_hash`는 조회한 64자리 해시. 성공 `{item_key,source_hash,checked}` |
+
+해당 사용자의 날짜별 식단표에 저장된 **레시피 판본**의 재료를 모은다. 메뉴마다 원문 전체 분량을 한 번씩 사용하며 인분을 자동으로 나누거나 늘리지 않는다. 같은 레시피를 두 끼에 담으면 두 번 반영한다. 레시피가 갱신돼도 저장 판본을 조용히 교체하지 않고 `sources[].is_active=false`와 주의 문구를 반환한다. 재료가 없는 메뉴도 `planned_meals/warnings`에 남긴다.
+
+`items[]`는 `item_key/source_hash/name/amount/unit/amount_text/combined/checked/shopping_search_url/sources`다. 같은 원문 재료명과 명확한 단위끼리만 합산한다. g·kg·mg는 g, mL·ml·cc·L는 mL로 모으고 **g와 mL는 합치지 않는다**. 개수·계량 단위는 같은 단위끼리 더하며 g·mL로 추정 환산하지 않는다. 준비 형태가 다른 원문 이름도 유지한다. 분수는 정확히 계산하고 소수로 끝나지 않으면 `amount_text`에 `2/3`처럼 표시한다. ‘약간’·범위·복합 분량 등은 `combined=false`, `amount/unit=null`과 원문 분량으로 남긴다.
+
+`sources[]`에는 식단 항목 UUID·끼니·레시피 ID/이름/판본·재료 UUID·구획·원문 재료명/분량·활성 여부가 있다. `item_key`는 이름·단위 그룹이고 `source_hash`는 구성 메뉴·재료·분량·원천 상태를 식별한다. 필요 재료가 달라지면 기존 체크는 미확인으로 표시한다. 낡은 목록으로 체크하면 `SHOPPING_LIST_CHANGED`(409), 본인의 해당 날짜 목록에 없는 항목은 `SHOPPING_ITEM_NOT_FOUND`(404)다. 다른 사용자의 체크는 읽거나 변경하지 않는다.
+
+체크만 `shopping_checks`에 저장하며 식단·체크 변경은 사용자 행 잠금으로 직렬화한다. 마지막 메뉴나 하루 식단표 전체를 지우면 해당 날짜 체크도 지운다. 사용자 행 삭제 시 cascade 삭제한다. DB 실패는 재시도 가능한 `SHOPPING_UNAVAILABLE`(503), 모든 응답은 `Cache-Control: no-store`다. 마이그레이션 `20261120_02`는 `20261120_01` 다음에 체크 테이블만 추가하고 기존 식단·섭취 기록을 유지한다. downgrade는 체크를 제거하므로 운영 자동 복구에 사용하지 않는다.
+
+외부 주소는 HTTPS `www.coupang.com/np/search?q=...`로 생성하며 **공개 재료명만** 인코딩한다. 프로필·건강·소득·위치를 넣지 않는다. 앱은 호스트·경로·검색어를 검증하고 사용자 선택으로 외부 페이지를 연다. 가격·재고·배송비·구매는 외부 페이지에서 확인하며 자동 주문·가격 수집·제휴 링크는 구현하지 않는다. 앱 진입은 **내 식단 → 이 날의 장보기 목록**, 개별 재료 검색은 레시피 상세에서도 제공한다. HTTP·위젯 시험과 main 병합·기업 서버 배포·실기기 종단 확인은 별도 상태다.
+
 ## 7. 미구현 예정 API
 
 다음은 후속 경로다. 현재 서버에서 호출하면 404가 반환된다. 카탈로그 DTO와 표본은 9절에 정의했다. 나머지 기능의 세부 계약은 착수 시 관련 담당자와 맞춘다.

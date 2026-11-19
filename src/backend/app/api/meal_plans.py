@@ -1,8 +1,6 @@
 from datetime import date
-from typing import Annotated
 
 from fastapi import APIRouter, Request, Response
-from pydantic import BeforeValidator
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
@@ -10,32 +8,24 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.auth import CurrentAuth, DbSession
 from app.core.errors import AppError
 from app.jobs.import_public_data import RECIPE_PROVIDER
-from app.models import MealPlanEntry, Recipe, RecipeRevision
+from app.models import MealPlanEntry, Recipe, RecipeRevision, ShoppingCheck
 from app.schemas.common import ErrorResponse, build_meta
 from app.schemas.meal_plan import (
     DayMealPlan,
     MealPlanResponse,
     MealPlanSave,
     MealSlot,
+    PlanDate,
     PlannedMeal,
     PlannedMealResponse,
 )
+from app.services.meal_plan_storage import lock_plan_owner
 
 router = APIRouter(
     prefix="/meal-plans",
     tags=["meal-plans"],
     responses={code: {"model": ErrorResponse} for code in (401, 422, 503)},
 )
-
-
-def _iso_date(value: str) -> date:
-    parsed = date.fromisoformat(value)
-    if value != parsed.isoformat():
-        raise ValueError("Use YYYY-MM-DD")
-    return parsed
-
-
-PlanDate = Annotated[date, BeforeValidator(_iso_date)]
 
 
 def _unavailable() -> AppError:
@@ -107,6 +97,7 @@ def save_meal(
     db: DbSession,
 ):
     try:
+        lock_plan_owner(db, auth.user.id)
         active = db.execute(
             select(RecipeRevision.id, RecipeRevision.name)
             .join(Recipe, Recipe.active_revision_id == RecipeRevision.id)
@@ -142,6 +133,9 @@ def save_meal(
             )
         )
         db.commit()
+    except AppError:
+        db.rollback()
+        raise
     except SQLAlchemyError:
         db.rollback()
         raise _unavailable() from None
@@ -167,8 +161,27 @@ def _delete_entries(
     if meal_slot is not None:
         statement = statement.where(MealPlanEntry.meal_slot == meal_slot)
     try:
+        lock_plan_owner(db, auth.user.id)
         db.execute(statement)
+        remaining = db.scalar(
+            select(MealPlanEntry.id)
+            .where(
+                MealPlanEntry.user_id == auth.user.id,
+                MealPlanEntry.plan_date == plan_date,
+            )
+            .limit(1)
+        )
+        if remaining is None:
+            db.execute(
+                delete(ShoppingCheck).where(
+                    ShoppingCheck.user_id == auth.user.id,
+                    ShoppingCheck.plan_date == plan_date,
+                )
+            )
         db.commit()
+    except AppError:
+        db.rollback()
+        raise
     except SQLAlchemyError:
         db.rollback()
         raise _unavailable() from None

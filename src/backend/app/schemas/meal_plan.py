@@ -1,11 +1,22 @@
 from datetime import date
 from enum import StrEnum
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import BeforeValidator, Field
 
 from app.schemas.catalog import ContractModel
 from app.schemas.common import SuccessResponse
+
+
+def _iso_date(value: str) -> date:
+    parsed = date.fromisoformat(value)
+    if value != parsed.isoformat():
+        raise ValueError("Use YYYY-MM-DD")
+    return parsed
+
+
+PlanDate = Annotated[date, BeforeValidator(_iso_date)]
 
 
 class MealSlot(StrEnum):
