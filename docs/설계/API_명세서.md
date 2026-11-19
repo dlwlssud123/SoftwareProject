@@ -9,7 +9,7 @@
 - 실행 안내: [백엔드 README](../../src/backend/README.md)
 - 기계 판독용 명세: [openapi.json](./openapi.json)
 
-상태 확인, 게스트 세션 발급·조회·갱신·폐기, 관리자 권한 확인, 레시피 DB 목록·상세, 식단 추천과 동의 기반 프로필 CRUD를 구현했다. 복지 목록·상세와 복지 추천은 [예정 계약](./catalog.openapi.json) 및 [요청·응답 표본](./api_examples.json)을 제공한다. 기업 서버 주소와 HTTPS 경로는 배포 시 확정한다.
+상태 확인, 게스트·카카오 인증, 관리자 권한 확인, 레시피·복지 DB 목록·상세, 식단·복지 후보 추천, 프로필 CRUD, 하루 식단표와 레시피·복지 저장을 구현했다. [요청·응답 표본](./api_examples.json)을 제공하며 실행 계약은 `openapi.json`을 따른다. 코드 구현·main 병합·기업 서버 배포 여부는 별도로 확인한다.
 
 ## 1. 공통 규칙
 
@@ -155,7 +155,7 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 | `/redoc` | HTML | ReDoc 문서 |
 | `/openapi.json` | JSON | 서버가 생성하는 현재 OpenAPI 명세 |
 
-`openapi.json`은 실행 코드의 `app.openapi()`에서 생성한 스냅샷이다. `catalog.openapi.json`은 모든 경로에 `x-implementation-status: planned`를 붙인 별도 인계 문서다. 실행 서버에 예정 경로를 추가하지 않는다. `src/backend`에서 `python -m app.jobs.export_api_contract`로 둘을 재생성한다. 표본 갱신은 `PYTHONPATH=../data` 설정 후 같은 명령에 `--welfare-snapshot <실제 수집 JSON 경로>`를 전달한다. 실제/예정 스냅샷과 DTO 표본은 테스트에서 대조한다.
+`openapi.json`은 실행 코드의 `app.openapi()`에서 생성한 스냅샷이다. `catalog.openapi.json`은 미구현 카탈로그 경로의 별도 인계 문서이며, 복지 구현 후 현재 `paths`는 비어 있다. 실행 서버에 예정 경로를 추가하지 않는다. `src/backend`에서 `PYTHONPATH=../data`를 설정하고 `python -m app.jobs.export_api_contract`로 둘을 재생성한다. 표본 갱신은 같은 명령에 `--welfare-snapshot <실제 수집 JSON 경로>`를 전달한다. 실제/예정 스냅샷과 DTO 표본은 테스트에서 대조한다.
 
 ### 카카오 로그인과 게스트 연결
 
@@ -258,6 +258,50 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 체크만 `shopping_checks`에 저장하며 식단·체크 변경은 사용자 행 잠금으로 직렬화한다. 마지막 메뉴나 하루 식단표 전체를 지우면 해당 날짜 체크도 지운다. 사용자 행 삭제 시 cascade 삭제한다. DB 실패는 재시도 가능한 `SHOPPING_UNAVAILABLE`(503), 모든 응답은 `Cache-Control: no-store`다. 마이그레이션 `20261120_02`는 `20261120_01` 다음에 체크 테이블만 추가하고 기존 식단·섭취 기록을 유지한다. downgrade는 체크를 제거하므로 운영 자동 복구에 사용하지 않는다.
 
 외부 주소는 HTTPS `www.coupang.com/np/search?q=...`로 생성하며 **공개 재료명만** 인코딩한다. 프로필·건강·소득·위치를 넣지 않는다. 앱은 호스트·경로·검색어를 검증하고 사용자 선택으로 외부 페이지를 연다. 가격·재고·배송비·구매는 외부 페이지에서 확인하며 자동 주문·가격 수집·제휴 링크는 구현하지 않는다. 앱 진입은 **내 식단 → 이 날의 장보기 목록**, 개별 재료 검색은 레시피 상세에서도 제공한다. HTTP·위젯 시험과 main 병합·기업 서버 배포·실기기 종단 확인은 별도 상태다.
+### 복지 조회·추천과 저장
+
+복지 조회·추천 경로는 9절의 DTO로 실제 DB에 연결한다. `GET /api/v1/welfare`는 게시 중인 서비스의 활성 판본 중 상세 준비 완료·품질 보류가 아닌 자료만 반환한다. 검색은 제목·요약·지원 대상의 문자 그대로 부분 검색이며 `%`·`_`를 검색 와일드카드로 해석하지 않는다. 지역을 생략하면 전체 지역을 조회한다. 지역을 주면 데이터 모듈 `services_for`의 줄임말·시군구 해석과 내 시군구 → 내 시도 전체 → 전국 순서를 따른다. 기록된 사업 종료일이 지난 항목은 목록·추천에서 제외한다. 지역 해석 실패 시 전국 사업 또는 시도 전체까지 안내하며 추천 응답의 `warnings`에 이유를 넣는다.
+
+`POST /api/v1/welfare/recommendations`는 같은 지역 범위 안에서 지원 대상 원문의 연령 하한 표현 및 독거·1인 가구 관련 문구를 정렬 단서로만 사용한다(`welfare-candidates-v1`). 조건에 해당한다는 이유로 자격을 확정하거나, 문구가 없다는 이유로 사업을 제외하지 않는다. 응답은 공식 출처·확인 시각·현재 활성 `revision_id`, 원문 기반 이유, `application_status=unknown`, 세부 자격·신청 여부 확인 안내를 제공한다. 요청의 연령·가구 정보는 저장하지 않으며 응답은 `Cache-Control: no-store`다. 이 경로는 생성형 답변/RAG API가 아니다.
+
+아래 저장 경로에는 Bearer 세션이 필요하다. 사용자 ID는 인증 정보에서 결정하며 정상 응답은 `Cache-Control: no-store`다. 기본 저장/해제는 기존 `saved_welfare_services`를 사용한다. 진행 메모는 Alembic `20261119_01`의 nullable 두 컬럼을 추가한 뒤 사용하며 기존 저장 행은 유지한다.
+
+| 메서드 | 경로 (`/api/v1` 접두사) | 동작 |
+| --- | --- | --- |
+| GET | `/saved-welfare?limit=20&offset=0&q=검색어` | 최신 저장순 `{items: [{service_id, title}], limit, offset, total}` |
+| GET | `/saved-welfare/{service_id}` | `{saved: boolean}` |
+| PUT | `/saved-welfare/{service_id}` | 게시 중인 사업 저장, 반복해도 한 건 |
+| DELETE | `/saved-welfare/{service_id}` | 본인 저장 해제, 반복해도 204 |
+| GET | `/saved-welfare/{service_id}/note` | 본인 저장 항목의 `{service_id, note, updated_at}` |
+| PATCH | `/saved-welfare/{service_id}/note` | `{note: string 또는 null}`로 본인 메모 수정/비우기 |
+
+철회·품질 보류된 사업은 신규 저장할 수 없다(404). 이미 저장한 사업은 목록에서 `title=null`로 유지해 해제할 수 있다. 공식 신청 안내·문의처는 상세 API로 제공한다. 메모는 사용자의 개인 기록이며 실제 신청 제출이나 공식 접수/자격 판정과 구분한다.
+
+메모는 먼저 본인 목록에 저장한 사업에서만 조회·수정할 수 있다. 미저장·다른 사용자의 항목은 동일하게 404를 반환하며 메모를 쓰면서 자동 저장하지 않는다. `note`는 필수 필드이고 최대 2,000자다. 앞뒤 공백을 제거하고 `null`·빈 문자열·공백만 보내면 메모만 비운다. 수정 시각은 서버의 시간대가 포함된 시각이며, 동시 수정은 마지막 반영 내용이 남는다. 메모는 평문으로 표시하고 공개 복지 상세·저장 목록 요약·공유 문구에는 포함하지 않는다. 원천이 철회돼도 본인 기존 메모는 조회·수정할 수 있으며, 저장 해제 시 해당 메모도 함께 삭제된다. 반복 저장(PUT)은 기존 메모를 덮어쓰지 않는다.
+
+### 급식소·제철·생활 가이드 조회
+
+공개 조회 API이며 공통 성공 응답과 `limit`(1~100)·`offset`(0~10000)·선택 `q`(1~100자)를 사용한다. 목록에 `items/total/limit/offset`을 제공한다. 검색은 문자 그대로의 부분 검색으로 `%`·`_`를 와일드카드로 해석하지 않는다. 게시 해제된 자료의 상세는 404, UUID 형식·월·페이지 입력 오류는 422, DB 연결 실패는 재시도 가능한 `CONTENT_UNAVAILABLE`(503)다.
+
+| 메서드·경로 (`/api/v1` 접두사) | 입력·응답 |
+| --- | --- |
+| `GET /meal-facilities` | 선택 `region/district`, `district`는 `region`과 함께. 지역 생략 시 전체 지역, 선택 시 내 시군구 → 같은 시도 다른 시군구 순. 이름·주소 검색. `warnings`로 지역 해석 결과 안내 |
+| `GET /meal-facilities/{facility_id}` | 목록의 UUID `id`. 이름·지역·주소·좌표(없으면 null)·대상·운영 시간·연락처·출처·확인일·주의사항 |
+| `GET /seasonal-foods` | 선택 `month`(1~12), 생략 시 KST 현재 월. 이름 검색, 상세 본문을 제외한 요약과 이미지·쇼핑 검색 링크 |
+| `GET /seasonal-foods/{food_id}` | 목록의 UUID `id`. 요약 + 원천 상세 글(`detail`)·재료명(`terms`)·원천 관련 레시피 이름 |
+| `GET /seasonal-foods/{food_id}/recipes` | 실제 DB 레시피 연결. 기존 `RecipeRecord` 페이지 구조, 이름 검색·페이지 조회 |
+| `GET /life-guides` | 제목 검색·페이지 조회. `id/slug/title/source_reference/checked_on` |
+| `GET /life-guides/{slug}` | 가이드 요약 + 배열 순서대로 `steps`(단계 객체, `text` 등). 게시된 가이드만 조회 |
+
+급식소는 원천 품질 표시와 조회 시점의 운영 종료일을 확인해 종료·미운영 시설을 제외한다. 시작 전 시설과 오래된 자료는 `cautions/quality_flags`에 안내한다. 원천 `reference_date`(자료 기준일)와 `checked_on`(원천 확인일)을 구분하며, 이용 자격·당일 운영·식사 제공 여부를 확정하지 않는다. 좌표 조회나 사용자 위치 저장은 이번 API 범위에 포함하지 않는다.
+
+제철 식재료는 `is_published=true`이고 상세가 `ok`인 항목만 제공한다. `content_sha256`·`provider/source_id/source_url/checked_on`으로 원천을 식별한다. 목록은 전체 상세 본문을 보내지 않고 상세 조회 시 읽어온다. `official_related_recipes`는 원천의 레시피 이름이며 앱에서 바로 조회 가능한 레시피 ID라는 뜻이 아니다. 앱 연결에는 `/recipes` 조회를 사용한다. 이 조회는 연결 당시 판본과 현재 활성 레시피 판본이 같은 자료만 제공하고, 연결 재적재 전의 낡은 판본은 숨긴다. `shopping_search_url`은 재료명으로 이동하는 외부 쿠팡 검색 주소이며 가격·재고·주문 API가 아니다.
+
+### 관리자 수집 작업 현황
+
+`GET /api/v1/admin/data-jobs`는 관리자 Bearer 세션이 필요하다. 공통 페이지·선택 `status`(`queued/running/succeeded/failed/cancelled`)·선택 `q`(오류 단계 코드 검색)를 지원한다. `kind=public_data_daily`이면서 `user_id=null`인 공통 작업만 최신 생성순으로 반환한다. 응답 항목은 `id/kind/status/attempts/next_run_at/created_at/started_at/finished_at/error_code`다. 개인 사진·AI 작업, 원천 인증 정보, DB 연결 문자열과 전체 실행 로그는 포함하지 않는다.
+
+관리자 미인증은 401, 일반 사용자 접근은 403, DB 오류는 재시도 가능한 `DATA_JOBS_UNAVAILABLE`(503)이며 응답은 `Cache-Control: no-store`다. 이 조회는 작업 전체 상태와 첫 실패 단계를 보여 주는 읽기 전용 API다. 단계별 건수·건너뜀 사유·RAG 검증은 실행기의 상태 파일로 별도 확인하며, 여기서 수집을 시작하거나 재시도·예약 등록하지 않는다. 성공 상태 하나만으로 모든 RAG 단계가 실행됐다고 판단하지 않는다.
 
 ## 7. 미구현 예정 API
 
@@ -266,10 +310,9 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 | 영역 | 예정 경로 | 상태 |
 | --- | --- | --- |
 | 사진 영양 분석 | `POST /api/v1/nutrition/analyses`, `GET /api/v1/nutrition/analyses/{id}`, `POST /api/v1/nutrition/analyses/{id}/confirm` | 미구현 |
-| 복지 | `GET /api/v1/welfare`, `GET /api/v1/welfare/{service_id}`, `POST /api/v1/welfare/recommendations` | DTO 계약 제공·실제 조회 후속 |
 | 복지 RAG | `POST /api/v1/welfare/ask` | 검색·답변 생성 후속, 맞춤 목록 추천과 별도 |
 | 도우미 | `POST /api/v1/assistant/messages` | 미구현 |
-| 관리자 운영 | `/api/v1/admin/*` | `/admin/me` 권한 확인 구현. 검수·게시·재시도는 후속 |
+| 관리자 운영 | `/api/v1/admin/*` | `/admin/me`·`/admin/data-jobs` 조회 구현. 검수·게시·재시도는 후속 |
 
 이 표는 예정 경로의 요약이며 전체 기능의 확정 계약은 아니다. 신규 기능의 채택 상태는 최종 기획서, 기능별 계획은 구현계획서를 따른다.
 
@@ -369,4 +412,4 @@ DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세와 �
 - HTTP 오류는 `error.code`로 분기하고 `error.message`를 표시한다. 입력 오류는 `error.fields`, 서버가 재시도 가능하다고 표시한 오류는 `error.retryable`을 읽는다. JSON 본문이 없는 네트워크·프록시 오류는 앱의 기본 안내로 처리한다.
 - React는 관리자 요청에 `Authorization: Bearer <access_token>`을 보내고 `data.role`을 확인한다. 401은 세션 재확인, 403은 권한 부족 상태로 표시한다. Flutter와 React 모두 토큰·프로필을 요청 및 응답 로그에서 제외한다.
 
-현재 Flutter 화면은 `DemoRepository`의 번들 JSON과 기기 내 규칙으로 식단·복지를 추천한다. 서버 전환은 연결된 레시피 목록·상세와 세션·프로필부터 진행한다. 식단 추천은 실행 API에서 확인할 수 있다. 복지 목록·상세·추천은 [예정 OpenAPI](./catalog.openapi.json)와 [JSON 표본](./api_examples.json)으로 화면을 먼저 맞추고, 실제 서버 연결은 해당 기능이 구현된 뒤 검증한다. [Flutter 통신 PR #6](https://github.com/dlwlssud123/SoftwareProject/pull/6)의 오류 파서는 화면 연동 시 `error.message`를 읽도록 맞춘다.
+Flutter의 레시피 목록·상세·식단 추천·세션·프로필·식단표·레시피 저장은 서버 연결을 제공한다. 복지 화면은 아직 번들 자료를 사용한다. 복지 목록·상세·후보 추천·저장 서버 API는 이번 작업 브랜치에 구현했으며, 앱 DTO 연결과 기업 서버 재배포 후 실제 자료로 검증해야 한다. 오류 파서는 `error.message`를 읽는다.
