@@ -503,6 +503,235 @@
         ]
       }
     },
+    "/api/v1/foods": {
+      "get": {
+        "tags": [
+          "nutrition"
+        ],
+        "summary": "List Foods",
+        "operationId": "list_foods_api_v1_foods_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_Page_FoodRecord__"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/foods/{food_id}": {
+      "get": {
+        "tags": [
+          "nutrition"
+        ],
+        "summary": "Get Food",
+        "operationId": "get_food_api_v1_foods__food_id__get",
+        "parameters": [
+          {
+            "name": "food_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Food Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_FoodRecord_"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/nutrition/calculate": {
+      "post": {
+        "tags": [
+          "nutrition"
+        ],
+        "summary": "Calculate Nutrition",
+        "operationId": "calculate_nutrition_api_v1_nutrition_calculate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NutritionCalculationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_NutritionCalculation_"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/me": {
       "get": {
         "tags": [
@@ -1706,6 +1935,137 @@
         ],
         "title": "AllergenEvidence"
       },
+      "CalculatedPortion": {
+        "properties": {
+          "food_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Food Id"
+          },
+          "source": {
+            "$ref": "#/components/schemas/FoodSource"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "computed",
+              "approx_ml",
+              "unconvertible",
+              "invalid"
+            ],
+            "title": "Status"
+          },
+          "food_code": {
+            "type": "string",
+            "title": "Food Code"
+          },
+          "food_name": {
+            "type": "string",
+            "title": "Food Name"
+          },
+          "input": {
+            "$ref": "#/components/schemas/PortionInput"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "amount_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Unit"
+          },
+          "serving": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ServingReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "basis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FoodBasis"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "factor": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Factor"
+          },
+          "approx_ml": {
+            "type": "boolean",
+            "title": "Approx Ml"
+          },
+          "nutrients": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NutrientAmounts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "food_id",
+          "source",
+          "status",
+          "food_code",
+          "food_name",
+          "input",
+          "amount",
+          "amount_unit",
+          "serving",
+          "basis",
+          "factor",
+          "approx_ml",
+          "nutrients",
+          "missing",
+          "note"
+        ],
+        "title": "CalculatedPortion"
+      },
       "ComputedNutrition": {
         "properties": {
           "basis": {
@@ -1920,6 +2280,42 @@
         ],
         "title": "ErrorResponse"
       },
+      "ExcludedPortion": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "food_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Food Code"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "index",
+          "food_code",
+          "status",
+          "note"
+        ],
+        "title": "ExcludedPortion"
+      },
       "FieldError": {
         "properties": {
           "field": {
@@ -1937,6 +2333,212 @@
           "reason"
         ],
         "title": "FieldError"
+      },
+      "FoodBasis": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "amount",
+          "unit",
+          "text"
+        ],
+        "title": "FoodBasis"
+      },
+      "FoodPortionRequest": {
+        "properties": {
+          "food_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Food Id"
+          },
+          "revision_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Revision Id"
+          },
+          "amount": {
+            "type": "number",
+            "maximum": 10000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "g",
+              "kg",
+              "mL",
+              "ml",
+              "cc",
+              "L",
+              "인분",
+              "그릇",
+              "공기",
+              "접시",
+              "대접",
+              "회분",
+              "개",
+              "조각"
+            ],
+            "title": "Unit"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "food_id",
+          "revision_id",
+          "amount",
+          "unit"
+        ],
+        "title": "FoodPortionRequest"
+      },
+      "FoodRecord": {
+        "properties": {
+          "food_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Food Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "basis": {
+            "$ref": "#/components/schemas/FoodBasis"
+          },
+          "nutrients": {
+            "$ref": "#/components/schemas/NutrientAmounts"
+          },
+          "serving_ref_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serving Ref Text"
+          },
+          "dish_serving_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dish Serving Text"
+          },
+          "quality_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Quality Flags"
+          },
+          "source": {
+            "$ref": "#/components/schemas/FoodSource"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "food_id",
+          "name",
+          "category",
+          "basis",
+          "nutrients",
+          "serving_ref_text",
+          "dish_serving_text",
+          "quality_flags",
+          "source"
+        ],
+        "title": "FoodRecord"
+      },
+      "FoodSource": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "food_code": {
+            "type": "string",
+            "title": "Food Code"
+          },
+          "revision_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Revision Id"
+          },
+          "raw_sha256": {
+            "type": "string",
+            "title": "Raw Sha256"
+          },
+          "imported_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Imported At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "provider",
+          "food_code",
+          "revision_id",
+          "raw_sha256",
+          "imported_at"
+        ],
+        "title": "FoodSource"
       },
       "GuestRequest": {
         "properties": {},
@@ -2260,6 +2862,52 @@
         ],
         "title": "NutrientDensity"
       },
+      "NutritionCalculation": {
+        "properties": {
+          "calculation_version": {
+            "type": "string",
+            "const": "food-portion-v1",
+            "title": "Calculation Version",
+            "default": "food-portion-v1"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CalculatedPortion"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "$ref": "#/components/schemas/NutritionTotal"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "NutritionCalculation"
+      },
+      "NutritionCalculationRequest": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FoodPortionRequest"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "NutritionCalculationRequest"
+      },
       "NutritionNotice": {
         "properties": {
           "code": {
@@ -2296,6 +2944,91 @@
           "items"
         ],
         "title": "NutritionNotice"
+      },
+      "NutritionTotal": {
+        "properties": {
+          "items": {
+            "type": "integer",
+            "title": "Items"
+          },
+          "items_calculated": {
+            "type": "integer",
+            "title": "Items Calculated"
+          },
+          "excluded": {
+            "items": {
+              "$ref": "#/components/schemas/ExcludedPortion"
+            },
+            "type": "array",
+            "title": "Excluded"
+          },
+          "complete": {
+            "type": "boolean",
+            "title": "Complete"
+          },
+          "approx_ml_items": {
+            "type": "integer",
+            "title": "Approx Ml Items"
+          },
+          "nutrients": {
+            "$ref": "#/components/schemas/NutrientAmounts"
+          },
+          "missing_items": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Missing Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "items_calculated",
+          "excluded",
+          "complete",
+          "approx_ml_items",
+          "nutrients",
+          "missing_items"
+        ],
+        "title": "NutritionTotal"
+      },
+      "Page_FoodRecord_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FoodRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Offset"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "limit",
+          "offset",
+          "total"
+        ],
+        "title": "Page[FoodRecord]"
       },
       "Page_RecipeRecord_": {
         "properties": {
@@ -2402,6 +3135,25 @@
           "is_active"
         ],
         "title": "PlannedMeal"
+      },
+      "PortionInput": {
+        "properties": {
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "amount",
+          "unit"
+        ],
+        "title": "PortionInput"
       },
       "Preferences": {
         "properties": {
@@ -3493,6 +4245,30 @@
         ],
         "title": "SeasonalMatch"
       },
+      "ServingReference": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "field",
+          "label",
+          "text"
+        ],
+        "title": "ServingReference"
+      },
       "SessionData": {
         "properties": {
           "user_id": {
@@ -3556,6 +4332,22 @@
         ],
         "title": "SuccessResponse[DayMealPlan]"
       },
+      "SuccessResponse_FoodRecord_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FoodRecord"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[FoodRecord]"
+      },
       "SuccessResponse_HealthData_": {
         "properties": {
           "data": {
@@ -3587,6 +4379,38 @@
           "meta"
         ],
         "title": "SuccessResponse[IdentityData]"
+      },
+      "SuccessResponse_NutritionCalculation_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/NutritionCalculation"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[NutritionCalculation]"
+      },
+      "SuccessResponse_Page_FoodRecord__": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Page_FoodRecord_"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[Page[FoodRecord]]"
       },
       "SuccessResponse_Page_RecipeRecord__": {
         "properties": {
