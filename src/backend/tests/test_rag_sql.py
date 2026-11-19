@@ -232,13 +232,23 @@ def test_source_view_rejects_old_chunks_after_same_raw_is_revalidated(
 
 
 def test_migration_downgrade_drops_rag_objects_and_upgrade_restores_them(rag_db):
+    schema = rag_db.scalar(text("SELECT current_schema()"))
+
+    # After dropping test objects, unqualified names could resolve to the
+    # developer DB's public objects because the vector extension needs public.
     def objects():
         return rag_db.execute(
             text(
-                "SELECT to_regclass('rag_index_version') IS NOT NULL, "
-                "to_regclass('rag_chunk') IS NOT NULL, to_regclass('rag_source_active') IS NOT NULL, "
-                "to_regprocedure('rag_rollback_index(text)') IS NOT NULL"
-            )
+                "SELECT to_regclass(:versions) IS NOT NULL, "
+                "to_regclass(:chunks) IS NOT NULL, to_regclass(:sources) IS NOT NULL, "
+                "to_regprocedure(:rollback) IS NOT NULL"
+            ),
+            {
+                "versions": f"{schema}.rag_index_version",
+                "chunks": f"{schema}.rag_chunk",
+                "sources": f"{schema}.rag_source_active",
+                "rollback": f"{schema}.rag_rollback_index(text)",
+            },
         ).one()
 
     config = Config(str(ALEMBIC_INI))

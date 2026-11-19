@@ -1,0 +1,30 @@
+FROM ghcr.io/astral-sh/uv:0.13.7 AS uv
+
+FROM python:3.12-slim-bookworm AS dependencies
+COPY --from=uv /uv /usr/local/bin/uv
+ENV UV_PYTHON_DOWNLOADS=never UV_LINK_MODE=copy
+WORKDIR /opt/valueflow
+COPY pyproject.toml README.md ./
+WORKDIR /opt/valueflow/src/backend
+COPY src/backend/pyproject.toml src/backend/uv.lock ./
+RUN uv sync --locked --no-dev --no-install-project --no-install-package agetech
+
+FROM python:3.12-slim-bookworm AS runtime
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/opt/valueflow/src/data \
+    PATH=/opt/valueflow/src/backend/.venv/bin:$PATH
+WORKDIR /opt/valueflow/src/backend
+RUN groupadd --gid 10001 valueflow \
+    && useradd --uid 10001 --gid valueflow --no-create-home valueflow
+COPY --from=dependencies /opt/valueflow/src/backend/.venv ./.venv
+COPY src/backend/app ./app
+COPY src/backend/alembic ./alembic
+COPY src/backend/alembic.ini ./alembic.ini
+COPY src/data/agetech_data /opt/valueflow/src/data/agetech_data
+COPY src/frontend/assets/data/recipe_corrections.json /opt/valueflow/src/frontend/assets/data/recipe_corrections.json
+USER 10001:10001
+EXPOSE 8000
+HEALTHCHECK --interval=10s --timeout=10s --start-period=15s --retries=6 \
+    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready', timeout=8).close()"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers"]

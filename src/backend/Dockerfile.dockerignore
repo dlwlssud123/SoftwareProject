@@ -1,0 +1,26 @@
+# Build from the repository root; only runtime code and dependency locks are sent.
+**
+!pyproject.toml
+!README.md
+!src/
+!src/backend/
+!src/backend/Dockerfile
+!src/backend/pyproject.toml
+!src/backend/uv.lock
+!src/backend/app/
+!src/backend/app/**
+!src/backend/alembic/
+!src/backend/alembic/**
+!src/backend/alembic.ini
+!src/data/
+!src/data/agetech_data/
+!src/data/agetech_data/**
+!src/frontend/
+!src/frontend/assets/
+!src/frontend/assets/data/
+!src/frontend/assets/data/recipe_corrections.json
+**/__pycache__/
+**/*.pyc
+**/.env*
+**/*.key
+**/*.pem

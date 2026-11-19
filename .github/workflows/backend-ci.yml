@@ -1,0 +1,185 @@
+name: Backend CI and image
+
+on:
+  pull_request:
+    paths:
+      - src/backend/**
+      - pyproject.toml
+      - src/data/**
+      - src/frontend/assets/data/recipe_corrections.json
+      - deploy/**
+      - .github/workflows/backend-ci.yml
+  push:
+    branches: [main]
+    paths:
+      - src/backend/**
+      - pyproject.toml
+      - src/data/**
+      - src/frontend/assets/data/recipe_corrections.json
+      - deploy/**
+      - .github/workflows/backend-ci.yml
+  workflow_dispatch:
+
+concurrency:
+  group: backend-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.7-pg16-bookworm
+        env:
+          POSTGRES_USER: valueflow_ci
+          POSTGRES_DB: valueflow_ci
+          # Job-local database; trust is never used in deploy/compose.yaml.
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 127.0.0.1:5432:5432
+        options: >-
+          --health-cmd "pg_isready -U valueflow_ci -d valueflow_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+    env:
+      DATABASE_URL: postgresql+psycopg://valueflow_ci@127.0.0.1:5432/valueflow_ci
+      RUN_DB_TESTS: "1"
+      CORS_ORIGINS: '[]'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+        with:
+          version: "0.13.7"
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: src/backend/uv.lock
+      - name: Install locked dependencies
+        working-directory: src/backend
+        run: uv sync --locked
+      - name: Lint and format
+        working-directory: src/backend
+        run: |
+          uv run --locked ruff check app tests
+          uv run --locked ruff format --check app tests
+      - name: Test API and real PostgreSQL migrations/imports
+        working-directory: src/backend
+        run: uv run --locked pytest -q
+      - name: Test deployment helpers
+        run: uv run --project src/backend --locked pytest -q deploy/test_*.py
+      - name: Build runtime image
+        run: docker build --file src/backend/Dockerfile --label "org.opencontainers.image.revision=$GITHUB_SHA" --tag valueflow-backend:ci .
+      - name: Check deployment shell syntax and real rollback
+        shell: bash
+        run: |
+          for script in deploy/*.sh; do bash -n "$script"; done
+          bash deploy/test-release.sh valueflow-backend:ci "$GITHUB_SHA"
+      - name: Verify image with real database
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --network host -e DATABASE_URL valueflow-backend:ci alembic upgrade head
+          docker run --detach --name valueflow-ci-api --network host -e DATABASE_URL valueflow-backend:ci
+          trap 'docker rm --force valueflow-ci-api >/dev/null 2>&1 || true' EXIT
+          for _ in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/api/v1/health/ready >/dev/null; then
+              curl --fail --silent http://127.0.0.1:8000/api/v1/health/live
+              exit 0
+            fi
+            sleep 2
+          done
+          echo 'API readiness failed within 60 seconds' >&2
+          exit 1
+
+  publish:
+    needs: checks
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.publish.outputs.image }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build and publish commit tag
+        id: publish
+        shell: bash
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY,,}-backend:sha-${GITHUB_SHA}"
+          docker build --file src/backend/Dockerfile --label "org.opencontainers.image.revision=$GITHUB_SHA" --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" --tag "$image" .
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+          docker push "$image"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          printf '### Backend image\n%s\n' "$image" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: publish
+    if: github.ref == 'refs/heads/main' && vars.VALUEFLOW_CD_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    environment: development
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: valueflow-development-server
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Prepare verified release bundle
+        shell: bash
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE: ${{ needs.publish.outputs.image }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+          docker pull "$IMAGE"
+          test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$IMAGE")" = "$GITHUB_SHA"
+          mkdir release
+          docker save "$IMAGE" | gzip -1 > release/image.tar.gz
+          cp deploy/release.sh deploy/compose.yaml release/
+          cp -R deploy/initdb release/initdb
+      - name: Transfer, back up, migrate and verify
+        shell: bash
+        env:
+          SSH_KEY: ${{ secrets.VALUEFLOW_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VALUEFLOW_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ vars.VALUEFLOW_DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.VALUEFLOW_DEPLOY_PORT }}
+          DEPLOY_USER: ${{ vars.VALUEFLOW_DEPLOY_USER }}
+          DEPLOY_DIR: ${{ vars.VALUEFLOW_DEPLOY_DIR }}
+          IMAGE: ${{ needs.publish.outputs.image }}
+        run: |
+          set -euo pipefail
+          umask 077
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ && "$DEPLOY_USER" =~ ^[a-zA-Z0-9_-]+$ ]]
+          [[ "$DEPLOY_PORT" =~ ^[0-9]{1,5}$ && "$DEPLOY_DIR" =~ ^/[a-zA-Z0-9_./-]+$ ]]
+          [[ "$DEPLOY_DIR" != / && "$DEPLOY_DIR" != *..* && -n "$SSH_KEY" && -n "$KNOWN_HOSTS" ]]
+          key="$RUNNER_TEMP/valueflow-key"
+          hosts="$RUNNER_TEMP/valueflow-hosts"
+          printf '%s\n' "$SSH_KEY" > "$key"
+          printf '%s\n' "$KNOWN_HOSTS" > "$hosts"
+          trap 'rm -f -- "$key" "$hosts"' EXIT
+          ssh_opts=(-i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$hosts" -o ConnectTimeout=15)
+          target="$DEPLOY_USER@$DEPLOY_HOST"
+          stage="$DEPLOY_DIR/.incoming/$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          ssh "${ssh_opts[@]}" -p "$DEPLOY_PORT" "$target" "mkdir -p -- '$stage'"
+          scp "${ssh_opts[@]}" -P "$DEPLOY_PORT" -r release/. "$target:$stage/"
+          ssh "${ssh_opts[@]}" -p "$DEPLOY_PORT" "$target" "bash '$stage/release.sh' '$DEPLOY_DIR' '$stage/image.tar.gz' '$IMAGE' '$GITHUB_SHA'"
+          printf '### Development deployment\nCommit %s passed container and DB health checks.\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
