@@ -160,6 +160,14 @@ def test_reimport_rejects_stale_selection_instead_of_silently_recalculating(food
     response = client.post("/api/v1/nutrition/calculate", json={"items": [old]})
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "FOOD_REVISION_CHANGED"
+    assert response.json()["error"]["fields"] == [
+        {"field": "body.items.0.revision_id", "reason": "revision_changed"}
+    ]
+    second = client.post(
+        "/api/v1/nutrition/calculate", json={"items": [choice(client, "우유"), old]}
+    )
+    assert second.status_code == 409
+    assert second.json()["error"]["fields"][0]["field"] == "body.items.1.revision_id"
     assert response.headers["Cache-Control"] == "no-store"
     current = choice(client, "쌀밥")
     assert current["food_id"] == old["food_id"]

@@ -7,6 +7,7 @@ from sqlalchemy import select
 from app.core.errors import AppError
 from app.jobs.import_public_data import FOOD_PROVIDER
 from app.models import DataImportRun, Food, FoodRevision
+from app.schemas.common import FieldError
 from app.schemas.nutrition import FoodSource, NutritionCalculation
 
 NO_STORE = {"Cache-Control": "no-store"}
@@ -43,11 +44,17 @@ def calculate_portions(db, selections, *, lock=False) -> NutritionCalculation:
     rows = db.execute(statement).all()
     by_id = {row[0].id: row for row in rows}
     portions, items = [], []
-    for item in selections:
+    for index, item in enumerate(selections):
         row = by_id.get(item.food_id)
         if row is None:
             raise AppError(
-                404, "FOOD_NOT_FOUND", "식품을 다시 선택해 주세요.", headers=NO_STORE
+                404,
+                "FOOD_NOT_FOUND",
+                "식품을 다시 선택해 주세요.",
+                headers=NO_STORE,
+                fields=[
+                    FieldError(field=f"body.items.{index}.food_id", reason="not_found")
+                ],
             )
         food, revision, imported_at = row
         if revision.id != item.revision_id:
@@ -56,6 +63,12 @@ def calculate_portions(db, selections, *, lock=False) -> NutritionCalculation:
                 "FOOD_REVISION_CHANGED",
                 "식품 정보가 갱신되었습니다. 다시 선택해 주세요.",
                 headers=NO_STORE,
+                fields=[
+                    FieldError(
+                        field=f"body.items.{index}.revision_id",
+                        reason="revision_changed",
+                    )
+                ],
             )
         portion = portion_nutrients(
             DataFoodRecord(**revision.normalized), item.amount, item.unit

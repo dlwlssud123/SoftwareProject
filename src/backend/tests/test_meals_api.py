@@ -264,6 +264,9 @@ def test_unrecordable_quantities_are_atomic_and_do_not_consume_retry_keys(
     response = save(env, body=body, key=key)
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "PORTION_NOT_RECORDABLE"
+    assert response.json()["error"]["fields"] == [
+        {"field": "body.items.1.amount", "reason": "unrecordable"}
+    ]
     assert (
         count(env.db, MealLog)
         == count(env.db, MealLogItem)

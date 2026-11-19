@@ -18,7 +18,7 @@ from app.core.auth import CurrentAuth, DbSession
 from app.core.errors import AppError
 from app.models import Food, FoodRevision, MealCreateRequest, MealLog, MealLogItem
 from app.schemas.catalog import NutrientAmounts, Page
-from app.schemas.common import ErrorResponse, build_meta
+from app.schemas.common import ErrorResponse, FieldError, build_meta
 from app.schemas.meal_record import (
     MealCreate,
     MealCreateResponse,
@@ -138,7 +138,7 @@ def record(meal, items):
 
 def replace_items(db, meal, selections):
     calculation = calculate_portions(db, selections, lock=True)
-    for portion in calculation.items:
+    for index, portion in enumerate(calculation.items):
         amount = Decimal(str(portion.amount)) if portion.amount is not None else None
         if (
             portion.status not in ("computed", "approx_ml")
@@ -151,6 +151,11 @@ def replace_items(db, meal, selections):
                 "PORTION_NOT_RECORDABLE",
                 "분량을 g 또는 mL로 다시 확인해 주세요.",
                 headers=NO_STORE,
+                fields=[
+                    FieldError(
+                        field=f"body.items.{index}.amount", reason="unrecordable"
+                    )
+                ],
             )
     db.execute(delete(MealLogItem).where(MealLogItem.meal_log_id == meal.id))
     for order_no, portion in enumerate(calculation.items, 1):

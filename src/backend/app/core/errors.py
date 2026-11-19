@@ -20,6 +20,7 @@ class AppError(Exception):
         *,
         retryable: bool = False,
         headers: dict[str, str] | None = None,
+        fields: list[FieldError] | None = None,
     ):
         super().__init__(message)
         self.status_code = status_code
@@ -27,6 +28,7 @@ class AppError(Exception):
         self.message = message
         self.retryable = retryable
         self.headers = headers
+        self.fields = fields
 
 
 def error_response(
@@ -69,6 +71,7 @@ def register_error_handlers(app: FastAPI) -> None:
             message=exc.message,
             retryable=exc.retryable,
             headers=exc.headers,
+            fields=exc.fields,
         )
 
     @app.exception_handler(RequestValidationError)
