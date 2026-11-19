@@ -1,6 +1,6 @@
 # ValueFlow 공통 백엔드
 
-Python 3.12·FastAPI 기반이다. 환경설정, DB 세션, 공통 응답·오류, 요청 ID, 상태 확인과 레시피·식품·복지 원천 테이블·적재 CLI를 구현했다. 게스트 세션 발급·갱신·폐기, 관리자 권한 확인, 레시피 DB 목록·상세 조회와 동의 기반 개인 프로필을 제공한다. 복지 조회와 추천 API는 DTO와 표본을 제공한다.
+Python 3.12·FastAPI 기반이다. 환경설정, DB 세션, 공통 응답·오류, 요청 ID, 상태 확인과 레시피·식품·복지 원천 테이블·적재 CLI를 구현했다. 게스트·카카오 세션, 관리자 권한 확인, 레시피·복지 DB 조회, 식단·복지 후보 추천, 동의 기반 프로필, 하루 식단표·레시피/복지 저장을 제공한다.
 
 API 계약은 [API 명세서](../../docs/설계/API_명세서.md), 자동 생성 스냅샷은 [OpenAPI JSON](../../docs/설계/openapi.json)을 따른다.
 
@@ -52,7 +52,19 @@ DB는 `pgvector/pgvector:0.8.7-pg16-bookworm` 이미지를 사용하며 로컬 `
 | `GET /api/v1/recipes` | 활성 레시피 목록, 검색·분류·조리방법·알레르기 제외와 페이지 조회 |
 | `GET /api/v1/recipes/{recipe_id}` | 원천 ID로 활성 레시피 상세 조회 |
 | `GET/PATCH/DELETE /api/v1/profile` | 본인 프로필 조회·동의 후 저장·철회 또는 삭제 |
+| `GET /api/v1/welfare` | 게시된 활성 복지 목록, 검색·지역·중앙/지자체 필터와 페이지 조회 |
+| `GET /api/v1/welfare/{service_id}` | 원천 ID로 상세·신청 안내·문의처·판본·확인 시각 조회 |
+| `POST /api/v1/welfare/recommendations` | 지역 범위와 연령·독거 관련 원문 단서에 따른 후보 정렬, 자격 확정 아님 |
+| `GET /api/v1/saved-welfare` | 본인이 저장한 복지 목록 |
+| `GET/PUT/DELETE /api/v1/saved-welfare/{service_id}` | 본인 저장 상태·저장·해제, 반복 요청 시 중복 없음 |
 | `/docs` | Swagger UI |
+| `GET /api/v1/meal-facilities` | 게시된 급식소 목록, 지역 우선순위·검색·페이지·이용 전 확인 안내 |
+| `GET /api/v1/meal-facilities/{facility_id}` | 급식소 UUID 상세, 출처·자료 기준일·원천 확인일 |
+| `GET /api/v1/seasonal-foods` | 월별 제철 식재료 요약, 월 생략 시 한국 시간의 현재 월 |
+| `GET /api/v1/seasonal-foods/{food_id}` | 제철 식재료 UUID 상세와 외부 쇼핑 검색 링크 |
+| `GET /api/v1/seasonal-foods/{food_id}/recipes` | 현재 활성 판본과 일치하는 연결 레시피 목록 |
+| `GET /api/v1/life-guides`, `GET /api/v1/life-guides/{slug}` | 게시된 생활 가이드 요약·단계별 상세 |
+| `GET /api/v1/admin/data-jobs` | 관리자 전용 공공데이터 갱신 작업 현황, 개인 작업 제외 |
 | `/openapi.json` | OpenAPI 명세 |
 
 ```powershell
@@ -88,7 +100,7 @@ DB에서 사용자를 삭제하면 세션·프로필·기록·저장·식단표�
 
 ## API 계약 인계
 
-[API 명세서 8~9절](../../docs/설계/API_명세서.md)에 세션·권한·DTO 규칙을 정리했다. [catalog.openapi.json](../../docs/설계/catalog.openapi.json)은 미구현 카탈로그 경로의 별도 계약이고 [api_examples.json](../../docs/설계/api_examples.json)은 실제 공개 원천을 검증한 표본이다. 실행 `/openapi.json`에는 구현된 경로만 포함한다.
+[API 명세서 8~9절](../../docs/설계/API_명세서.md)에 세션·권한·DTO 규칙을 정리했다. [catalog.openapi.json](../../docs/설계/catalog.openapi.json)은 미구현 카탈로그 경로의 별도 계약이며 복지 경로 구현 후 현재 `paths`는 비어 있다. [api_examples.json](../../docs/설계/api_examples.json)은 실제 공개 원천을 검증한 표본이다. 실행 `/openapi.json`에는 구현된 경로만 포함한다.
 
 ```powershell
 uv run --locked python -m app.jobs.export_api_contract
@@ -117,7 +129,9 @@ Remove-Item Env:RUN_DB_TESTS
 
 ## 기업 서버 배포 경계
 
-현재 Compose는 로컬 DB 개발용이다. 기업 서버 배포용 API 이미지·worker·운영 설정은 아직 구성하지 않았다. API도 Compose 서비스로 실행할 때 DB 주소는 `127.0.0.1` 대신 서비스 이름 `db`를 사용한다. 로컬 개발 DB 볼륨과 기업 서버 DB는 별개이며, 서버에서도 Alembic upgrade 후 같은 입력 스냅샷으로 적재·대조 검증한다.
+`src/backend/compose.yaml`은 로컬 DB 개발용이고, 기업 서버의 API·DB 이미지는 [deploy 구성](../../deploy/README.md)으로 실행한다. #57 병합 후 GitHub Actions의 검사·이미지 게시·첫 서버 배포를 확인했다. 관련 main 변경은 활성화된 배포 워크플로로 반영한다. 무거운 임베딩 worker와 데이터 정기 적재 예약은 별도다. API 컨테이너의 DB 주소는 서비스 이름 `db`를 사용한다. 로컬 개발 DB 볼륨과 기업 서버 DB는 별개이며, 서버에서도 Alembic upgrade 후 같은 입력 스냅샷으로 적재·대조 검증한다.
+
+복지·시설·제철·가이드 공개 조회와 관리자 수집 현황, 복지 저장·진행 메모는 이번 작업 브랜치의 신규 API다. 메모에는 `20261119_01` 마이그레이션이 필요하다. 사용자별 최대 2,000자 평문 메모이며 저장 해제 시 같이 삭제한다. 상세 계약은 [API 명세](../../docs/설계/API_명세서.md)의 복지 저장 부분을 따른다. 코드·테스트·PR 공유와 기업 서버 실제 자료 적재·앱 화면 연결은 구분한다.
 
 ## 실행 검증 기록
 
