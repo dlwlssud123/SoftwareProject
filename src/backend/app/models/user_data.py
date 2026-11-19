@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     Numeric,
     String,
     UniqueConstraint,
@@ -21,13 +22,17 @@ from app.core.base import Base
 
 class MealLog(Base):
     __tablename__ = "meal_logs"
-    __table_args__ = (Index("ix_meal_logs_user_eaten", "user_id", "eaten_at"),)
+    __table_args__ = (
+        Index("ix_meal_logs_user_eaten", "user_id", "eaten_at"),
+        CheckConstraint("version > 0", name="ck_meal_log_version"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE")
     )
     eaten_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    version: Mapped[int] = mapped_column(Integer, server_default="1")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -41,6 +46,8 @@ class MealLogItem(Base):
             name="ck_meal_log_item_portion",
         ),
         CheckConstraint("amount_unit IN ('g', 'mL')", name="ck_meal_log_item_unit"),
+        CheckConstraint("order_no IS NULL OR order_no > 0", name="ck_meal_item_order"),
+        UniqueConstraint("meal_log_id", "order_no", name="uq_meal_item_order"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -52,6 +59,23 @@ class MealLogItem(Base):
     amount_unit: Mapped[str] = mapped_column(String(2))
     nutrients: Mapped[dict] = mapped_column(JSONB)
     calculation_version: Mapped[str] = mapped_column(String(64))
+    order_no: Mapped[int | None] = mapped_column(Integer)
+    portion_snapshot: Mapped[dict | None] = mapped_column(JSONB)
+
+
+class MealCreateRequest(Base):
+    """Keep only hashes and a nullable link so a deleted meal cannot be recreated by retry."""
+
+    __tablename__ = "meal_create_requests"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    key_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    request_hash: Mapped[str] = mapped_column(String(64))
+    meal_log_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("meal_logs.id", ondelete="SET NULL"), index=True
+    )
 
 
 class RecommendationRun(Base):
@@ -109,6 +133,8 @@ class SavedWelfareService(Base):
     saved_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    progress_note: Mapped[str | None] = mapped_column(String(2000))
+    note_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class MealPlanEntry(Base):

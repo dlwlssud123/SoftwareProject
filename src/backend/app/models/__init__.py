@@ -24,6 +24,7 @@ from app.models.recipe_nutrition import (  # noqa: F401
     RecipeIngredientFood,
 )
 from app.models.user_data import (  # noqa: F401
+    MealCreateRequest,
     MealLog,
     MealLogItem,
     MealPlanEntry,
