@@ -1,4 +1,4 @@
 # Exact scanner span of the dummy URL in test_config.py, which verifies unsupported-driver error redaction.
 mysql://user:private-password@localhost
-# Dummy URL rejected by deploy/test_seed_bundle.py; no real account or credential.
-https://user:password@example.org/data
+# Exact authority span of the dummy URL rejected by deploy/test_seed_bundle.py.
+https://user:password@example.org
