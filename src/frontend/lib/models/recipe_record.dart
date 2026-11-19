@@ -89,6 +89,8 @@ class RecipeIngredientItem {
   final String nameRaw;
   final String? amountText;
   String get displayName => nameRaw.trim().isEmpty ? name : nameRaw;
+  Uri get shoppingUrl =>
+      Uri.https('www.coupang.com', '/np/search', {'q': displayName});
 
   factory RecipeIngredientItem.fromJson(Map<String, dynamic> json) =>
       RecipeIngredientItem(

@@ -482,6 +482,16 @@ class _IngredientGroups extends StatelessWidget {
                       ],
                     ),
                   ),
+                  OutlinedButton.icon(
+                    key: Key('recipe-shopping-${group.value[i].orderNo}'),
+                    onPressed: () =>
+                        openLink(context, group.value[i].shoppingUrl),
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('쿠팡에서 재료 찾기'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(48, 48),
+                    ),
+                  ),
                 ],
               ],
             ),
