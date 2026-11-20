@@ -189,8 +189,18 @@ def link_kakao(
 
 @router.post("/refresh", response_model=SuccessResponse[SessionData])
 def refresh(request: Request, db: DbSession, auth: CurrentAuth):
-    now = datetime.now(UTC)
     try:
+        # Use the same identity-first lock as account reset/disable. Otherwise a
+        # replacement committed while their session UPDATE waits can escape it.
+        owner = db.scalar(
+            select(User)
+            .where(User.id == auth.user.id, User.disabled_at.is_(None))
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if owner is None:
+            raise unauthenticated()
+        now = datetime.now(UTC)
         # A conditional UPDATE serializes competing refreshes: exactly one wins.
         consumed = db.execute(
             update(AuthSession)

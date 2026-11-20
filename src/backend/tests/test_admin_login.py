@@ -2,13 +2,13 @@ import hashlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from threading import Barrier, BoundedSemaphore
+from threading import Barrier, BoundedSemaphore, Event
 from unittest.mock import Mock
 
 import pytest
 from alembic.config import Config
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select, text
+from sqlalchemy import event, func, select, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
@@ -340,3 +340,63 @@ def test_concurrent_attempts_cannot_exceed_a_peer_bucket(environment):
     assert sorted(statuses) == [401, 429]
     db.expire_all()
     assert db.get(AdminLoginBucket, key).attempts == 30
+
+
+@pytest.mark.parametrize("operation", ["disable", "reset"])
+def test_refresh_identity_lock_serializes_account_revocation(environment, operation):
+    client, db, user_id, connection = environment
+    original = headers(login(client))
+    schema = connection.scalar(text("SELECT current_schema()"))
+    connection.commit()
+    consuming, resume = Event(), Event()
+
+    def refreshed():
+        app = create_app()
+
+        def own_db():
+            with connection.engine.connect() as other:
+                other.execute(text(f'SET search_path TO "{schema}"'))
+                other.commit()
+
+                def pause_before_consuming(
+                    conn, cursor, statement, params, context, many
+                ):
+                    if statement.startswith("UPDATE sessions"):
+                        consuming.set()
+                        assert resume.wait(timeout=10)
+
+                event.listen(other, "before_cursor_execute", pause_before_consuming)
+                try:
+                    with Session(other, expire_on_commit=False) as session:
+                        yield session
+                finally:
+                    event.remove(other, "before_cursor_execute", pause_before_consuming)
+                    other.rollback()
+                    other.execute(text("SET search_path TO public"))
+                    other.commit()
+
+        app.dependency_overrides[get_db] = own_db
+        with TestClient(app) as http:
+            return http.post("/api/v1/auth/refresh", headers=original)
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pending = pool.submit(refreshed)
+        try:
+            assert consuming.wait(timeout=10)
+            # CLI must not reach its session UPDATE until refresh releases the
+            # identity lock. NOWAIT proves the lock, without elapsed-time claims.
+            with pytest.raises(OperationalError) as error:
+                db.execute(
+                    select(User).where(User.id == user_id).with_for_update(nowait=True)
+                )
+            assert error.value.orig.sqlstate == "55P03"
+            db.rollback()
+        finally:
+            resume.set()
+        replacement = headers(pending.result(timeout=10))
+    if operation == "disable":
+        disable(db, "operator")
+    else:
+        provision(db, "operator", "a different deterministic phrase", replace=True)
+    assert client.get("/api/v1/admin/me", headers=replacement).status_code == 401
+    assert client.post("/api/v1/auth/refresh", headers=replacement).status_code == 401
