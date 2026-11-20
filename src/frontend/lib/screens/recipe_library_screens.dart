@@ -9,6 +9,7 @@ import '../widgets/async_state_view.dart';
 import '../widgets/common.dart';
 import '../widgets/recipe_actions.dart';
 import 'server_recipe_screens.dart';
+import 'shopping_list_screen.dart';
 
 class MealPlanScreen extends StatefulWidget {
   const MealPlanScreen({
@@ -122,6 +123,21 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               builder: (context) => ListView(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                 children: [
+                  FilledButton.icon(
+                    key: const Key('plan-shopping-start'),
+                    onPressed: _busy
+                        ? null
+                        : () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => ShoppingListScreen(
+                                library: widget.library,
+                                date: _date,
+                              ),
+                            ),
+                          ),
+                    icon: const Icon(Icons.shopping_basket_outlined),
+                    label: const Text('이 날의 장보기 목록'),
+                  ),
                   for (final slot in MealSlot.values) ...[
                     SectionTitle(slot.label),
                     if (snapshot.data?[slot] case final entry?) ...[

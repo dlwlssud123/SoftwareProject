@@ -12,6 +12,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    func,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -39,6 +40,17 @@ def _all_or_none(columns: tuple[str, ...]) -> str:
 
 class LifeGuide(Base):
     __tablename__ = "life_guides"
+    __table_args__ = (
+        CheckConstraint("version > 0", name="ck_life_guide_version"),
+        CheckConstraint(
+            "review_status IN ('draft', 'review', 'approved', 'rejected')",
+            name="ck_life_guide_review_status",
+        ),
+        CheckConstraint(
+            "NOT is_published OR review_status = 'approved'",
+            name="ck_life_guide_published_review",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     slug: Mapped[str] = mapped_column(String(128), unique=True)
@@ -47,6 +59,41 @@ class LifeGuide(Base):
     source_reference: Mapped[str] = mapped_column(Text)
     checked_on: Mapped[date]
     is_published: Mapped[bool] = mapped_column(server_default="false")
+    version: Mapped[int] = mapped_column(server_default="1")
+    review_status: Mapped[str] = mapped_column(String(16), server_default="draft")
+    review_note: Mapped[str | None] = mapped_column(Text)
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", name="fk_life_guide_reviewer", ondelete="SET NULL")
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class GuideAuditEvent(Base):
+    __tablename__ = "guide_audit_events"
+    __table_args__ = (
+        Index("ix_guide_audit_target_created", "guide_id", "created_at"),
+        CheckConstraint(
+            "action IN ('create', 'edit', 'submit', 'approve', 'reject', 'publish', 'unpublish')",
+            name="ck_guide_audit_action",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    # No cascading guide FK: an eventual archive/delete must retain the audit trail.
+    guide_id: Mapped[uuid.UUID]
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", name="fk_guide_audit_actor", ondelete="SET NULL")
+    )
+    action: Mapped[str] = mapped_column(String(16))
+    before_state: Mapped[dict | None] = mapped_column(JSONB)
+    after_state: Mapped[dict] = mapped_column(JSONB)
+    request_id: Mapped[uuid.UUID]
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
 
 class MealFacility(Base):

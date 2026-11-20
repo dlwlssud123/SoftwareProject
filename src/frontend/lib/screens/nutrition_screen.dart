@@ -6,17 +6,22 @@ import '../models/recommendations.dart' show nutrientLabel;
 import '../services/settings.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../data/intake_api.dart';
+import '../models/intake.dart';
+import 'intake_screens.dart';
 
 class NutritionScreen extends StatefulWidget {
   const NutritionScreen({
     required this.repository,
     required this.settings,
     this.document = false,
+    this.intakeApi,
     super.key,
   });
   final DemoRepository repository;
   final AppSettings settings;
   final bool document;
+  final IntakeApi? intakeApi;
   @override
   State<NutritionScreen> createState() => _NutritionScreenState();
 }
@@ -24,6 +29,19 @@ class NutritionScreen extends StatefulWidget {
 class _NutritionScreenState extends State<NutritionScreen> {
   XFile? photo;
   bool example = false, analyzed = false, picking = false;
+
+  Future<void> _record(IntakeApi api) async {
+    final saved = await Navigator.of(context).push<SavedIntake>(
+      MaterialPageRoute(builder: (_) => IntakeEditor(api: api)),
+    );
+    if (saved == null || !mounted) return;
+    showMessage(context, '식사를 저장했어요.');
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => IntakeDetailScreen(api: api, id: saved.id),
+      ),
+    );
+  }
 
   Future<void> pick(ImageSource source) async {
     if (picking) return;
@@ -61,6 +79,28 @@ class _NutritionScreenState extends State<NutritionScreen> {
     final content = ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
       children: [
+        if (!widget.document && widget.intakeApi != null) ...[
+          const SectionTitle('음식과 양으로 영양 확인'),
+          FeatureTile(
+            key: const Key('intake-start'),
+            title: '먹은 음식 직접 입력',
+            subtitle: '음식과 먹은 양을 골라 실제 식사를 기록해요',
+            icon: Icons.restaurant_outlined,
+            onTap: () => _record(widget.intakeApi!),
+          ),
+          FeatureTile(
+            key: const Key('intake-history'),
+            title: '저장한 식사',
+            subtitle: '음식·양·시간 확인과 수정·삭제',
+            icon: Icons.receipt_long_outlined,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => IntakeHistoryScreen(api: widget.intakeApi!),
+              ),
+            ),
+          ),
+          const SectionTitle('사진 기능 체험'),
+        ],
         if (hasPhoto)
           Container(
             height: previewHeight,

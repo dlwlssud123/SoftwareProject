@@ -44,13 +44,18 @@ class ApiClient {
     String path, {
     Object? body,
     String? token,
+    String? idempotencyKey,
     bool followRedirects = true,
     required T Function(Object? json) parse,
   }) => _send(
     () => _dio.post<Object?>(
       path,
       data: body,
-      options: _options(token, followRedirects: followRedirects),
+      options: _options(
+        token,
+        followRedirects: followRedirects,
+        idempotencyKey: idempotencyKey,
+      ),
     ),
     parse,
   );
@@ -80,9 +85,16 @@ class ApiClient {
     parse,
   );
 
-  Options _options(String? token, {bool followRedirects = true}) => Options(
+  Options _options(
+    String? token, {
+    bool followRedirects = true,
+    String? idempotencyKey,
+  }) => Options(
     followRedirects: followRedirects && token == null,
-    headers: {if (token != null) 'Authorization': 'Bearer $token'},
+    headers: {
+      if (token != null) 'Authorization': 'Bearer $token',
+      'Idempotency-Key': ?idempotencyKey,
+    },
   );
 
   Future<T> _send<T>(

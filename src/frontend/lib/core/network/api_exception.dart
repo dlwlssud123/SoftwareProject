@@ -13,12 +13,16 @@ class ApiException implements Exception {
     this.message, {
     this.statusCode,
     this._retryable,
+    this.code,
+    this.fields = const [],
   });
 
   final ApiErrorType type;
   final String message;
   final int? statusCode;
   final bool? _retryable;
+  final String? code;
+  final List<String> fields;
 
   /// 잠시 후 다시 시도하면 해결될 수 있는 오류인지.
   bool get canRetry =>
@@ -56,6 +60,16 @@ class ApiException implements Exception {
           message is String && message.trim().isNotEmpty ? message : fallback,
           statusCode: status,
           retryable: retryable is bool ? retryable : null,
+          code: details is Map && details['code'] is String
+              ? details['code'] as String
+              : null,
+          fields: details is Map && details['fields'] is List
+              ? [
+                  for (final field in details['fields'] as List)
+                    if (field is Map && field['field'] is String)
+                      field['field'] as String,
+                ]
+              : const [],
         );
       case DioExceptionType.badCertificate:
       case DioExceptionType.unknown:

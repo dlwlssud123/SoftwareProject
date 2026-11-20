@@ -12,9 +12,6 @@ from app.schemas.catalog import (
     RecipeRecommendationRequest,
     RecipeRecommendationResponse,
     RecipeRecord,
-    WelfareDetailResponse,
-    WelfareListQuery,
-    WelfareListResponse,
     WelfareRecommendationRequest,
     WelfareRecommendationResponse,
     WelfareRecord,
@@ -22,16 +19,7 @@ from app.schemas.catalog import (
 from app.schemas.common import ErrorDetail, ErrorResponse, ResponseMeta, SuccessResponse
 
 ROOT = Path(__file__).resolve().parents[4]
-PLANNED = (
-    ("/api/v1/welfare", "get", WelfareListQuery, WelfareListResponse),
-    ("/api/v1/welfare/{service_id}", "get", None, WelfareDetailResponse),
-    (
-        "/api/v1/welfare/recommendations",
-        "post",
-        WelfareRecommendationRequest,
-        WelfareRecommendationResponse,
-    ),
-)
+PLANNED = ()
 
 
 def handoff_schema() -> dict:
@@ -115,7 +103,7 @@ def handoff_schema() -> dict:
             "description": "앱·관리자 DTO 선행 개발용. 실제 서버 명세는 openapi.json.",
         },
         "paths": paths,
-        "components": {"schemas": schemas["$defs"]},
+        "components": {"schemas": schemas.get("$defs", {})},
     }
 
 
