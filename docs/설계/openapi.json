@@ -3035,6 +3035,57 @@
         }
       }
     },
+    "/api/v1/meal-facilities/nearby": {
+      "post": {
+        "tags": [
+          "content"
+        ],
+        "summary": "Search Nearby Facilities",
+        "operationId": "search_nearby_facilities_api_v1_meal_facilities_nearby_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FacilityNearbyQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_NearbyFacilityPage_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/meal-facilities/{facility_id}": {
       "get": {
         "tags": [
@@ -6664,6 +6715,89 @@
         ],
         "title": "ExcludedPortion"
       },
+      "FacilityNearbyQuery": {
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "default": 20
+          },
+          "offset": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Offset",
+            "default": 0
+          },
+          "q": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
+          "district": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "District"
+          },
+          "latitude": {
+            "type": "number",
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Latitude"
+          },
+          "longitude": {
+            "type": "number",
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Longitude"
+          },
+          "radius_km": {
+            "type": "number",
+            "maximum": 50.0,
+            "minimum": 0.5,
+            "title": "Radius Km",
+            "default": 5.0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "latitude",
+          "longitude"
+        ],
+        "title": "FacilityNearbyQuery"
+      },
       "FacilityPage": {
         "properties": {
           "items": {
@@ -7995,6 +8129,237 @@
           "expected_version"
         ],
         "title": "MealUpdate"
+      },
+      "NearbyFacilityPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NearbyFacilityRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Offset"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "limit",
+          "offset",
+          "total"
+        ],
+        "title": "NearbyFacilityPage"
+      },
+      "NearbyFacilityRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "sido": {
+            "type": "string",
+            "title": "Sido"
+          },
+          "sigungu": {
+            "type": "string",
+            "title": "Sigungu"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "latitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude"
+          },
+          "eligibility_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligibility Text"
+          },
+          "hours_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hours Text"
+          },
+          "contact_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Text"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url"
+          },
+          "checked_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Checked On"
+          },
+          "reference_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Date"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "quality_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Quality Flags"
+          },
+          "cautions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cautions"
+          },
+          "match": {
+            "type": "string",
+            "enum": [
+              "district",
+              "nearby",
+              "district_no_coords"
+            ],
+            "title": "Match"
+          },
+          "distance_km": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance Km"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "sido",
+          "sigungu",
+          "address",
+          "latitude",
+          "longitude",
+          "eligibility_text",
+          "hours_text",
+          "contact_text",
+          "source_url",
+          "checked_on",
+          "reference_date",
+          "provider",
+          "source_id",
+          "quality_flags",
+          "cautions",
+          "match"
+        ],
+        "title": "NearbyFacilityRecord"
       },
       "NutrientAmounts": {
         "properties": {
@@ -10718,6 +11083,22 @@
           "meta"
         ],
         "title": "SuccessResponse[MealRecord]"
+      },
+      "SuccessResponse_NearbyFacilityPage_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/NearbyFacilityPage"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[NearbyFacilityPage]"
       },
       "SuccessResponse_NutritionCalculation_": {
         "properties": {
