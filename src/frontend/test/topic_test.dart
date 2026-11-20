@@ -23,7 +23,6 @@ import 'package:valueflow/theme.dart';
 const own = '00000000-0000-4000-8000-000000000001';
 const other = '00000000-0000-4000-8000-000000000002';
 const root = '/api/v1/content-topic-requests';
-const _tokens = {own: 'owner', other: 'other'};
 String identifier(int value) =>
     '00000000-0000-4000-8000-${value.toString().padLeft(12, '0')}';
 
@@ -76,14 +75,22 @@ class _Account extends Account {
     change(own);
   }
   void change(String? user) {
-    session = user == null
-        ? null
-        : ServiceSession(
-            userId: user,
-            token: _tokens[user]!,
-            expiresAt: DateTime.utc(2030),
-            kakaoLinked: true,
-          );
+    session = switch (user) {
+      own => ServiceSession(
+        userId: own,
+        token: 'owner',
+        expiresAt: DateTime.utc(2030),
+        kakaoLinked: true,
+      ),
+      other => ServiceSession(
+        userId: other,
+        token: 'other',
+        expiresAt: DateTime.utc(2030),
+        kakaoLinked: true,
+      ),
+      null => null,
+      _ => throw ArgumentError.value(user, 'user'),
+    };
     entered = user != null;
     notifyListeners();
   }
