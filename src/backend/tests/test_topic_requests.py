@@ -102,6 +102,7 @@ def test_fingerprint_ignores_submission_id_but_preserves_kind_and_normalized_top
     "method,path,body",
     [
         ("POST", BASE, proposal()),
+        ("POST", f"{BASE}/withdraw-submission", proposal()),
         ("GET", BASE, None),
         ("GET", f"{BASE}/{uuid4()}", None),
         ("DELETE", f"{BASE}/{uuid4()}", None),
@@ -391,6 +392,7 @@ def test_audit_failure_rolls_back_creation_review_and_withdrawal(env, monkeypatc
     monkeypatch.setattr(topic_requests, "_audit", Mock(side_effect=failure))
     for method, path, body in [
         ("POST", BASE, proposal()),
+        ("POST", f"{BASE}/withdraw-submission", proposal()),
         ("PUT", f"{ADMIN}/{row['id']}", {"expected_version": 1, "status": "reviewing"}),
         ("DELETE", f"{BASE}/{row['id']}", None),
     ]:
@@ -580,3 +582,131 @@ def test_withdrawal_cannot_be_overwritten_by_a_competing_review(env):
         and final["topic"] is None
         and final["reply"] is None
     )
+
+
+def test_cancel_before_submit_blocks_a_late_post_without_using_submission_quota(env):
+    body = proposal()
+    cancelled = data(
+        env.client.post(f"{BASE}/withdraw-submission", headers=env.own, json=body)
+    )
+    assert cancelled["status"] == "withdrawn" and cancelled["topic"] is None
+    assert (
+        data(env.client.post(f"{BASE}/withdraw-submission", headers=env.own, json=body))
+        == cancelled
+    )
+    late = data(env.client.post(BASE, headers=env.own, json=body))
+    assert late["replayed"] is True and late["request"] == cancelled
+    receipt = env.db.get(ContentTopicRequest, UUID(cancelled["id"]))
+    assert receipt.was_submitted is False and receipt.topic is None
+    assert env.db.scalar(select(func.count()).select_from(TopicRequestAudit)) == 1
+    for _ in range(5):
+        create(env)
+    data(env.client.post(BASE, headers=env.own, json=proposal()), 429)
+
+
+def test_cancel_by_submission_clears_an_existing_request_and_rejects_a_different_body(
+    env,
+):
+    body = proposal()
+    row = data(env.client.post(BASE, headers=env.own, json=body), 201)["request"]
+    data(
+        env.client.post(
+            f"{BASE}/withdraw-submission",
+            headers=env.own,
+            json={**body, "topic": "다른 주제"},
+        ),
+        409,
+    )
+    assert (
+        data(env.client.get(f"{BASE}/{row['id']}", headers=env.own))["status"]
+        == "received"
+    )
+    cancelled = data(
+        env.client.post(f"{BASE}/withdraw-submission", headers=env.own, json=body)
+    )
+    assert cancelled["id"] == row["id"] and cancelled["status"] == "withdrawn"
+    assert env.db.get(ContentTopicRequest, UUID(row["id"])).was_submitted is True
+
+
+def test_cancel_receipts_have_a_separate_bounded_quota(env):
+    first = proposal()
+    data(env.client.post(f"{BASE}/withdraw-submission", headers=env.own, json=first))
+    for _ in range(19):
+        data(
+            env.client.post(
+                f"{BASE}/withdraw-submission", headers=env.own, json=proposal()
+            )
+        )
+    response = env.client.post(
+        f"{BASE}/withdraw-submission", headers=env.own, json=proposal()
+    )
+    assert data(response, 429)["code"] == "TOPIC_CANCEL_LIMIT"
+    assert 0 < int(response.headers["Retry-After"]) <= 86400
+    data(env.client.post(f"{BASE}/withdraw-submission", headers=env.own, json=first))
+    create(env)
+
+
+def test_cancel_and_initial_send_are_serialized_by_submission(env):
+    body = proposal(kind="video")
+    responses = parallel(
+        env,
+        [
+            lambda http: http.post(BASE, headers=env.own, json=body),
+            lambda http: http.post(
+                f"{BASE}/withdraw-submission", headers=env.own, json=body
+            ),
+        ],
+    )
+    assert responses[0].status_code in (200, 201) and responses[1].status_code == 200
+    rows = data(
+        env.client.get(
+            BASE, headers=env.own, params={"submission_id": body["submission_id"]}
+        )
+    )["items"]
+    assert (
+        len(rows) == 1 and rows[0]["status"] == "withdrawn" and rows[0]["topic"] is None
+    )
+
+
+def test_moderator_can_cancel_their_own_request_during_review_without_a_lock_cycle(env):
+    body = proposal(kind="video")
+    row = data(env.client.post(BASE, headers=env.own, json=body), 201)["request"]
+    env.db.get(User, env.owner).role = "admin"
+    env.db.commit()
+    responses = parallel(
+        env,
+        [
+            lambda http: http.post(
+                f"{BASE}/withdraw-submission", headers=env.own, json=body
+            ),
+            lambda http: http.put(
+                f"{ADMIN}/{row['id']}",
+                headers=env.own,
+                json={
+                    "expected_version": 1,
+                    "status": "completed",
+                    "reply": "확인했어요.",
+                },
+            ),
+        ],
+    )
+    assert responses[0].status_code == 200 and responses[1].status_code in (200, 404)
+    assert (
+        data(env.client.get(f"{BASE}/{row['id']}", headers=env.own))["status"]
+        == "withdrawn"
+    )
+
+
+def test_cancellation_migration_backfills_existing_submissions(env):
+    row = create(env)
+    config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
+    config.attributes["connection"] = env.connection
+    command.downgrade(config, "20261120_05")
+    env.connection.commit()
+    command.upgrade(config, "head")
+    env.connection.commit()
+    command.check(config)
+    env.connection.rollback()
+    env.db.expire_all()
+    stored = env.db.get(ContentTopicRequest, UUID(row["id"]))
+    assert stored.was_submitted is True and stored.topic == row["topic"]

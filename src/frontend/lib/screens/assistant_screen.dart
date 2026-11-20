@@ -1,23 +1,27 @@
 import 'package:flutter/material.dart';
 import '../data/demo_repository.dart';
 import '../data/welfare_api.dart';
+import '../data/topic_api.dart';
 import '../services/settings.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'profile_form.dart';
 import 'nutrition_screen.dart';
 import 'welfare_screens.dart';
+import 'topic_screens.dart';
 
 class AssistantScreen extends StatelessWidget {
   const AssistantScreen({
     required this.repository,
     required this.settings,
     this.welfareApi,
+    this.topicApi,
     super.key,
   });
   final DemoRepository repository;
   final AppSettings settings;
   final WelfareApi? welfareApi;
+  final TopicApi? topicApi;
   void chat(BuildContext context) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => ConversationScreen(settings: settings),
@@ -133,10 +137,19 @@ class AssistantScreen extends StatelessWidget {
           ),
           ServiceButton(
             title: '생활 도우미',
-            subtitle: '앱 사용법 물어보기',
+            subtitle: topicApi == null ? '앱 사용법 물어보기' : '생활 안내 보기 · 필요한 주제 요청',
             icon: Icons.lightbulb_outline_rounded,
             background: const Color(0xFFFFF3E4),
-            onTap: () => chat(context),
+            onTap: () => topicApi == null
+                ? chat(context)
+                : Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => GuideCatalogScreen(
+                        api: topicApi!,
+                        settings: settings,
+                      ),
+                    ),
+                  ),
           ),
         ],
       ),

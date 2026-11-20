@@ -47,3 +47,47 @@ def test_failure_is_returned_without_reporting_success(monkeypatch, tmp_path):
 
     monkeypatch.setattr(runner.subprocess, "run", lambda *args, **kwargs: Result())
     assert runner.main(["test.py"]) == 7
+
+
+def test_flutter_selection_runs_the_sdk_directly_and_keeps_other_runtimes(
+    tmp_path, monkeypatch
+):
+    frontend = tmp_path / "src/frontend"
+    test = frontend / "test/startup_test.dart"
+    test.parent.mkdir(parents=True)
+    test.touch()
+    python = tmp_path / "test_api.py"
+    python.touch()
+    sdk = tmp_path / "flutter-sdk"
+    launcher = sdk / "bin/flutter"
+    dart = (
+        sdk
+        / "bin/cache/dart-sdk/bin"
+        / ("dart.exe" if runner.os.name == "nt" else "dart")
+    )
+    snapshot = sdk / "bin/cache/flutter_tools.snapshot"
+    dart.parent.mkdir(parents=True)
+    for path in (launcher, dart, snapshot):
+        path.touch()
+    monkeypatch.setattr(runner.shutil, "which", lambda name: str(launcher))
+    commands = runner.commands([str(test.relative_to(tmp_path)), python.name], tmp_path)
+    assert len(commands) == 2
+    assert commands[0][1][-1] == python.name
+    assert commands[1] == (
+        frontend,
+        [
+            str(dart),
+            str(snapshot),
+            "--no-version-check",
+            "--suppress-analytics",
+            "test",
+            "--no-pub",
+            str(test.relative_to(frontend)),
+        ],
+    )
+    dart.unlink()
+    with pytest.raises(ValueError, match="initialize"):
+        runner.commands([str(test.relative_to(tmp_path))], tmp_path)
+    monkeypatch.setattr(runner.shutil, "which", lambda name: None)
+    with pytest.raises(ValueError, match="PATH"):
+        runner.commands([str(test.relative_to(tmp_path))], tmp_path)
