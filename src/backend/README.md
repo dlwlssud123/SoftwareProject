@@ -55,6 +55,7 @@ DB는 `pgvector/pgvector:0.8.7-pg16-bookworm` 이미지를 사용하며 로컬 `
 | `POST /api/v1/auth/refresh` | 기존 토큰을 폐기하고 같은 사용자 새 세션 발급 |
 | `DELETE /api/v1/auth/session` | 현재 세션 폐기 |
 | `GET /api/v1/admin/me` | 관리자 세션이면 200, 일반 사용자이면 403 |
+| `POST /api/v1/admin/login` | 운영자가 발급한 전용 아이디·비밀번호로 관리자 세션 발급 |
 | `GET /api/v1/recipes` | 활성 레시피 목록, 검색·분류·조리방법·알레르기 제외와 페이지 조회 |
 | `GET /api/v1/recipes/{recipe_id}` | 원천 ID로 활성 레시피 상세 조회 |
 | `GET/PATCH/DELETE /api/v1/profile` | 본인 프로필 조회·동의 후 저장·철회 또는 삭제 |
@@ -84,7 +85,23 @@ docker compose exec -T db psql -U valueflow_dev -d valueflow -c "SELECT extversi
 
 DB 사용자·이름을 바꿨으면 마지막 명령의 인자도 바꾼다. 서버 종료는 실행 터미널에서 `Ctrl+C`, DB 종료는 `docker compose stop db`를 사용한다. 데이터 볼륨은 유지한다.
 
-세션 기본 만료는 7일이며 `.env`의 `SESSION_TTL_SECONDS`로 조정한다. 토큰은 발급·갱신 응답에서만 반환하고 DB에는 해시만 저장한다. 앱의 보안 저장소에 보관하고 로그에 출력하지 않는다. 관리자는 기본 생성하지 않으며 운영자가 `python -m app.jobs.set_user_role <사용자-UUID> --role admin`으로 지정한다. `--role user`로 해제한다. 카카오 로그인과 게스트 계정 연결을 제공한다. 관리자 수집 현황과 생활 가이드 운영 API가 있으며 관리자 전용 아이디·비밀번호 로그인은 후속 작업이다.
+일반 세션 기본 만료는 7일이며 `.env`의 `SESSION_TTL_SECONDS`로 조정한다. 토큰은 발급·갱신 응답에서만 반환하고 DB에는 해시만 저장한다. 앱의 보안 저장소에 보관하고 로그에 출력하지 않는다. 앱은 카카오 로그인·게스트 연결을, 관리자 웹은 별도 전용 아이디·비밀번호 로그인을 사용한다. 기존 운영자용 `set_user_role` CLI도 유지하지만 공개 권한 변경 API는 없다.
+
+## 관리자 전용 계정
+
+`20261120_04`까지 마이그레이션한 DB에서 운영자가 다음 명령을 실행한다. 비밀번호는 명령 인자·환경변수·문서에 넣지 않고 대화형 프롬프트에서 입력한다. 기본 계정은 생성하지 않는다.
+
+```bash
+python -m app.jobs.provision_admin operator
+python -m app.jobs.provision_admin operator --reset-password
+python -m app.jobs.provision_admin operator --disable
+```
+
+첫 명령은 별도의 관리자 사용자를 만들고 비밀번호(15~128자)를 두 번 확인한다. 같은 아이디를 덮어쓰려면 `--reset-password`가 필요하다. 재설정·비활성화는 기존 세션을 폐기한다. 비활성 사용자·일반 사용자로 강등된 계정을 자동으로 활성화하거나 승격하지 않는다. Docker Compose에서는 로그인한 서버 터미널의 `docker compose run --rm --no-deps api python -m app.jobs.provision_admin operator`로 같은 프롬프트를 사용할 수 있다. 실제 운영 계정 생성은 운영자가 직접 수행하며 이번 개발에서 실행하지 않았다.
+
+비밀번호는 고유 salt와 Python 표준 scrypt(N=65536, r=8, p=2)로 해시한다. 이는 [OWASP의 64MiB scrypt 설정](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#scrypt)을 따른다. API 프로세스당 동시 해시 2개, peer별 5분/30회, 계정별 연속 실패 5회 후 15분 잠금을 적용한다. 입력·hash·salt·세션을 로그/일반 오류로 출력하지 않는다. 제한 peer는 ASGI 연결 주소이며 전달 헤더를 직접 신뢰하지 않는다. 프록시를 공유하면 제한도 공유할 수 있다.
+
+새 관리자 로그인의 절대 재인증 기한은 기본 1시간(`ADMIN_SESSION_TTL_SECONDS`, 300~28800초)이고 `/auth/refresh`로 늘릴 수 없다. 기존 일반 세션은 새 nullable 기한이 null이므로 이전 만료 정책을 유지한다. 웹은 로그인 후 `/admin/me`를 확인하고 메모리에만 세션을 두며, 만료·401/403·로그아웃 때 이전 내용을 제거한다. 운영 웹의 HTTPS API 주소·CORS origin·계정 생성·배포는 별도 확인해야 한다. 관리자 웹 코드는 기존 민찬 담당 `src/admin`에 연결했다.
 
 가이드는 `20261120_03` 마이그레이션 뒤 관리자 세션으로 초안을 작성하고 `submit → approve → publish` 순서로 공개한다. 반려에는 이유가 필요하며 수정하면 비공개 초안으로 돌아간다. 수정·검수·게시에는 최신 `expected_version`이 필요하고 감사 메타데이터를 같은 트랜잭션에 기록한다. 내용·검수 의견·토큰은 감사에 복제하지 않는다. 기존 공개 가이드는 마이그레이션 후에도 공개하며 검수자/검수 시각을 임의로 만들지 않는다. 상세 요청·오류·충돌·보관 규칙은 [API 명세서](../../docs/설계/API_명세서.md)를 따른다. 이 구현은 민찬 담당 `src/admin`의 웹 화면 연결·기업 서버 배포 완료를 의미하지 않는다.
 

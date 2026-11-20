@@ -38,6 +38,7 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-[]}
       KAKAO_APP_ID: ${KAKAO_APP_ID:?Set the numeric Kakao app ID in deploy/.env}
       SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-604800}
+      ADMIN_SESSION_TTL_SECONDS: ${ADMIN_SESSION_TTL_SECONDS:-3600}
     ports:
       - "127.0.0.1:${API_PORT:-18081}:8000"
     depends_on:

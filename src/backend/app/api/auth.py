@@ -204,7 +204,9 @@ def refresh(request: Request, db: DbSession, auth: CurrentAuth):
         ).scalar_one_or_none()
         if consumed is None:
             raise unauthenticated()
-        session, token = new_session(auth.user.id, now)
+        session, token = new_session(
+            auth.user.id, now, reauthenticate_at=auth.session.reauthenticate_at
+        )
         db.add(session)
         linked = _linked_identity(db, auth.user) is not None
         db.commit()

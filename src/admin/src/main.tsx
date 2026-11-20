@@ -7,7 +7,7 @@ import AccessBoundary from './components/AccessBoundary'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AccessBoundary>
-      <App />
+      {(connection) => <App key={`${connection.session.userId}:${connection.session.expiresAt}`} connection={connection} />}
     </AccessBoundary>
   </StrictMode>,
 )

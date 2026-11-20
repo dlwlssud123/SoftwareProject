@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import StatePreview from './components/StatePreview'
+import Collections from './components/Collections'
+import StatusMessage from './components/StatusMessage'
+import type { AdminConnection } from './components/AccessBoundary'
 
 const pages = {
   overview: {
@@ -9,7 +11,7 @@ const pages = {
   },
   collections: {
     title: '수집 상태',
-    description: '수집 작업과 처리 결과를 표시할 예정입니다.',
+    description: '실제 수집 작업·처리 결과·실패 단계를 확인합니다.',
   },
   contents: {
     title: '콘텐츠 검수',
@@ -28,8 +30,9 @@ function readPage(): PageKey {
   return Object.hasOwn(pages, key) ? (key as PageKey) : 'overview'
 }
 
-export default function App() {
+export default function App({ connection }: { connection: AdminConnection }) {
   const [page, setPage] = useState<PageKey>(readPage)
+  const [leaving, setLeaving] = useState(false)
 
   useEffect(() => {
     const update = () => setPage(readPage())
@@ -66,12 +69,15 @@ export default function App() {
             <span className="eyebrow">VALUEFLOW ADMIN</span>
             <h2>{pages[page].title}</h2>
           </div>
-          <span className="badge">개발 중</span>
+          <button className="secondary-button" disabled={leaving} onClick={async () => {
+            setLeaving(true)
+            try { await connection.logout() } finally { setLeaving(false) }
+          }}>{leaving ? '로그아웃 중…' : '로그아웃'}</button>
         </header>
 
         <p className="notice">
-          기본 화면 구성 단계입니다. 실제 운영 데이터와 연결되지 않았으며,
-          관리자 인증·권한은 서버 담당자와 협의 후 적용합니다.
+          서버에서 확인한 관리자 세션으로 접속했습니다. 수집 현황은 실제 API를 사용합니다.
+          콘텐츠 검수·품질 검토의 화면 연결은 아직 준비 중입니다.
         </p>
 
         {page === 'overview' ? (
@@ -86,11 +92,11 @@ export default function App() {
                 </a>
               ))}
           </div>
-        ) : (
+        ) : page === 'collections' ? <Collections connection={connection} /> : (
           <section className="card">
             <h3>{pages[page].title}</h3>
             <p>{pages[page].description}</p>
-            <StatePreview />
+            <StatusMessage status="disconnected" />
           </section>
         )}
       </main>
