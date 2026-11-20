@@ -134,6 +134,19 @@ def test_database_failure_has_no_proposal_or_connection_details(client, path):
     assert "private-connection-detail" not in response.text
 
 
+def test_http_validation_does_not_echo_a_private_proposal(client):
+    identity = SimpleNamespace(id=uuid4(), role="user")
+    client.app.dependency_overrides[current_auth] = lambda: AuthContext(
+        identity, SimpleNamespace()
+    )
+    db = Mock()
+    client.app.dependency_overrides[get_db] = lambda: db
+    response = client.post(BASE, json=proposal(topic="private-proposal-marker\x00"))
+    data(response, 422)
+    assert "private-proposal-marker" not in response.text
+    db.scalar.assert_not_called()
+
+
 @pytest.fixture
 def env(pg_connection, client):
     with Session(pg_connection, expire_on_commit=False) as db:
@@ -243,6 +256,18 @@ def test_retries_are_idempotent_and_cannot_change_payload_or_restore_withdrawal(
     assert data(env.client.get(ADMIN, headers=env.admin))["total"] == 0
     stored = env.db.get(ContentTopicRequest, UUID(row["id"]))
     assert stored.topic is None and stored.reply is None
+
+
+def test_the_same_submission_uuid_is_isolated_between_owners(env):
+    body = proposal()
+    first = data(env.client.post(BASE, headers=env.own, json=body), 201)
+    second = data(env.client.post(BASE, headers=env.other_headers, json=body), 201)
+    assert first["request"]["id"] != second["request"]["id"]
+    assert first["replayed"] is False and second["replayed"] is False
+    own = data(env.client.get(BASE, headers=env.own))["items"]
+    other = data(env.client.get(BASE, headers=env.other_headers))["items"]
+    assert [item["id"] for item in own] == [first["request"]["id"]]
+    assert [item["id"] for item in other] == [second["request"]["id"]]
 
 
 def test_rolling_quota_counts_withdrawn_requests_but_not_replays(env):
