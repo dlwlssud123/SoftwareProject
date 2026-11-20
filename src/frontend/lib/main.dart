@@ -14,6 +14,7 @@ import 'services/account.dart';
 import 'data/auth_api.dart';
 import 'data/profile_api.dart';
 import 'data/intake_api.dart';
+import 'data/welfare_api.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,6 +71,7 @@ Future<void> main() async {
       settings: settings,
       recipeApi: recipeApi,
       account: account,
+      welfareApi: account == null ? null : WelfareApi(ApiClient(), account),
       intakeApi: account == null
           ? null
           : IntakeApi(
