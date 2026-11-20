@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     database_url: SecretStr
     cors_origins: list[str] = Field(default_factory=list)
     session_ttl_seconds: int = Field(default=604800, ge=300, le=2592000)
+    admin_session_ttl_seconds: int = Field(default=3600, ge=300, le=28800)
     kakao_app_id: int | None = Field(default=None, gt=0)
 
     @field_validator("database_url")

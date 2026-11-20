@@ -1,10 +1,11 @@
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from alembic.config import Config
-from sqlalchemy import delete, func, inspect, select
+from sqlalchemy import delete, func, inspect, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from test_public_data_import import corrections, snapshot
@@ -76,13 +77,18 @@ def test_storage_upgrade_preserves_source_data_and_cascades_only_owned_rows(
                     user_id=user_id, preferences={}, consented_at=now, updated_at=now
                 )
             )
-            db.add(
-                AuthSession(
-                    user_id=user_id,
-                    token_hash=str(index) * 64,
-                    created_at=now,
-                    expires_at=now + timedelta(days=1),
-                )
+            # Insert the historical shape before the reauthentication column existed.
+            db.execute(
+                text(
+                    "INSERT INTO sessions (id, user_id, token_hash, created_at, expires_at) VALUES (:id, :user_id, :hash, :created_at, :expires_at)"
+                ),
+                {
+                    "id": uuid4(),
+                    "user_id": user_id,
+                    "hash": str(index) * 64,
+                    "created_at": now,
+                    "expires_at": now + timedelta(days=1),
+                },
             )
         recipe = db.scalar(select(Recipe))
         recipe_id, recipe_revision_id = recipe.id, recipe.active_revision_id
