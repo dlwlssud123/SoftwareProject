@@ -91,6 +91,7 @@ function TopicEditor({ id, api, guides, onDirty, onFailure, onSaved, onClose }: 
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [blocked, setBlocked] = useState(false)
+  const [unavailable, setUnavailable] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [refresh, setRefresh] = useState(0)
@@ -99,12 +100,19 @@ function TopicEditor({ id, api, guides, onDirty, onFailure, onSaved, onClose }: 
   const [auditError, setAuditError] = useState('')
   const [auditRefresh, setAuditRefresh] = useState(0)
   const operation = useRef<AbortController | null>(null)
+  const gone = useRef(false)
   const failure = useRef(onFailure)
   const saved = useRef(onSaved)
   useEffect(() => { failure.current = onFailure }, [onFailure])
   useEffect(() => { saved.current = onSaved }, [onSaved])
   const forget = useCallback(() => {
-    setRow(null); setReply(''); setGuideId(''); setDirty(false); setAudit(null)
+    // A late successful snapshot cannot undo an observed withdrawal/deletion.
+    if (gone.current) return
+    gone.current = true
+    operation.current?.abort()
+    setUnavailable(true); setBusy(false); setLoading(false); setBlocked(true)
+    setRow(null); setReply(''); setGuideId(''); setDirty(false); setAudit(null); setAuditError(''); setNotice('')
+    setError('사용자가 취소했거나 조회할 수 없는 요청입니다. 목록을 다시 확인해 주세요.')
     saved.current()
   }, [])
   useEffect(() => { onDirty(dirty); return () => onDirty(false) }, [dirty, onDirty])
@@ -115,8 +123,8 @@ function TopicEditor({ id, api, guides, onDirty, onFailure, onSaved, onClose }: 
   }
   useEffect(() => {
     const controller = new AbortController()
-    api.get(id, controller.signal).then((value) => { if (!controller.signal.aborted) { apply(value); setLoading(false) } }).catch((cause: unknown) => {
-      if (!controller.signal.aborted) {
+    api.get(id, controller.signal).then((value) => { if (!controller.signal.aborted && !gone.current) { apply(value); setLoading(false) } }).catch((cause: unknown) => {
+      if (!controller.signal.aborted && !gone.current) {
         failure.current(cause); setError(message(cause)); setLoading(false); setBlocked(true)
         if (cause instanceof ApiError && cause.status === 404) forget()
       }
@@ -126,8 +134,8 @@ function TopicEditor({ id, api, guides, onDirty, onFailure, onSaved, onClose }: 
   useEffect(() => {
     if (!row) return
     const controller = new AbortController()
-    api.audit(id, auditOffset, controller.signal).then((value) => { if (!controller.signal.aborted) { setAudit(value); setAuditError('') } }).catch((cause: unknown) => {
-      if (!controller.signal.aborted) {
+    api.audit(id, auditOffset, controller.signal).then((value) => { if (!controller.signal.aborted && !gone.current) { setAudit(value); setAuditError('') } }).catch((cause: unknown) => {
+      if (!controller.signal.aborted && !gone.current) {
         failure.current(cause); setAudit(null); setAuditError(message(cause))
         if (cause instanceof ApiError && cause.status === 404) forget()
       }
@@ -135,20 +143,20 @@ function TopicEditor({ id, api, guides, onDirty, onFailure, onSaved, onClose }: 
     return () => controller.abort()
   }, [api, id, row, auditOffset, refresh, auditRefresh, forget])
   function latest() {
-    if (busy || (dirty && !window.confirm('저장하지 않은 답변을 버리고 최신 내용을 불러올까요?'))) return
+    if (gone.current || busy || (dirty && !window.confirm('저장하지 않은 답변을 버리고 최신 내용을 불러올까요?'))) return
     setLoading(true); setError(''); setNotice(''); setAudit(null); setAuditError(''); setRefresh((value) => value + 1)
   }
   async function submit(event: FormEvent) {
     event.preventDefault()
-    if (!row || operation.current || blocked) return
+    if (!row || operation.current || blocked || gone.current) return
     if ((status !== 'reviewing' && !reply.trim()) || [...reply].length > 1000 || reply.includes('\0')) { setError('완료·보류 답변을 1~1,000자로 작성해 주세요.'); return }
     if (status === 'completed' && row.kind === 'life_guide' && !guideId) { setError('승인·게시한 생활 가이드를 연결해 주세요.'); return }
     const controller = new AbortController(); operation.current = controller; setBusy(true); setError(''); setNotice(''); setDirty(true)
     try {
       const value = await api.review(row.id, row.version, { status, reply: reply.trim() || null, guide_id: status === 'completed' && row.kind === 'life_guide' ? guideId : null }, controller.signal)
-      if (!controller.signal.aborted) { apply(value); setAudit(null); setAuditOffset(0); setNotice('처리 내용을 저장했습니다. 사용자가 앱에서 답변을 확인할 수 있습니다.'); onSaved() }
+      if (!controller.signal.aborted && !gone.current) { apply(value); setAudit(null); setAuditOffset(0); setNotice('처리 내용을 저장했습니다. 사용자가 앱에서 답변을 확인할 수 있습니다.'); onSaved() }
     } catch (cause: unknown) {
-      if (!controller.signal.aborted) {
+      if (!controller.signal.aborted && !gone.current) {
         failure.current(cause)
         const uncertain = !(cause instanceof ApiError) || cause.status === 0 || cause.status >= 500
         setBlocked(uncertain || (cause instanceof ApiError && [404, 409].includes(cause.status)))
@@ -166,7 +174,7 @@ function TopicEditor({ id, api, guides, onDirty, onFailure, onSaved, onClose }: 
     {loading ? <StatusMessage status="loading" /> : <>
       {row && <><h4>{row.topic}</h4><p>{kinds[row.kind]} · {labels[row.status]} · 판본 {row.version}</p><p>접수 {time.format(new Date(row.created_at))} · 최근 변경 {time.format(new Date(row.updated_at))}</p></>}
       {error && <p role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
-      <button className="secondary-button" disabled={busy} onClick={latest}>최신 요청 불러오기</button>
+      <button className="secondary-button" disabled={busy || unavailable} onClick={latest}>최신 요청 불러오기</button>
       {row && <form className="guide-form" onSubmit={submit}><fieldset disabled={busy || blocked}>
         <label>변경할 처리 상태<select value={status} onChange={(event) => { setStatus(event.target.value as TopicDecision['status']); setDirty(true) }}>{options.map((value) => <option key={value} value={value}>{labels[value]}</option>)}</select></label>
         {(row.status === 'completed' || row.status === 'declined') && <p>완료와 보류를 서로 바꾸려면 먼저 검토 중으로 저장해 주세요.</p>}

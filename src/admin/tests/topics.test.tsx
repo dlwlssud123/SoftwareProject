@@ -208,3 +208,49 @@ it('닫은 상세의 늦은 응답은 이전 원문과 답변을 되살리지 �
   expect(screen.queryByLabelText('운영자 답변')).toBeNull()
   expect(screen.queryByRole('heading', { name: '요청 상세·답변' })).toBeNull()
 })
+
+it('감사 조회가 취소를 확인한 뒤 늦은 상세 성공 응답이 원문을 복원하지 않는다', async () => {
+  const { show, send, behavior } = fixture(); show(); await open()
+  await screen.findByText(/서버 요청 번호/)
+  const original = send.getMockImplementation()!
+  const old = { ...initial() }
+  let complete: (value: Response) => void = () => {}
+  send.mockImplementation((url, options) => {
+    const path = new URL(url.toString()).pathname
+    if (path === `${root}/${requestId}`) return new Promise((resolve) => { complete = resolve })
+    if (path.endsWith('/audit')) return Promise.resolve(envelope(null, 404))
+    return original(url, options)
+  })
+  behavior.gone = true
+  fireEvent.click(screen.getByRole('button', { name: '최신 요청 불러오기' }))
+  await screen.findByText('사용자가 취소했거나 조회할 수 없는 요청입니다. 목록을 다시 확인해 주세요.')
+  await act(async () => complete(envelope(old)))
+  expect(screen.queryByLabelText('운영자 답변')).toBeNull()
+  expect(screen.queryByText(old.topic)).toBeNull()
+  expect((screen.getByRole('button', { name: '최신 요청 불러오기' }) as HTMLButtonElement).disabled).toBe(true)
+})
+
+it('저장 응답을 기다리던 중 확인한 취소도 늦은 PUT 성공으로 되돌릴 수 없다', async () => {
+  const { show, send, behavior } = fixture()
+  const original = send.getMockImplementation()!
+  let cancelSeen = false
+  let complete: (value: Response) => void = () => {}
+  send.mockImplementation((url, options) => {
+    const path = new URL(url.toString()).pathname
+    if (options?.method === 'PUT') return new Promise((resolve) => { complete = resolve })
+    if (path.endsWith('/audit')) return Promise.resolve(envelope(null, cancelSeen ? 404 : 503))
+    return original(url, options)
+  })
+  show(); await open()
+  await screen.findByRole('button', { name: '처리 이력 다시 확인' })
+  fireEvent.change(screen.getByLabelText('운영자 답변'), { target: { value: '저장 중 답변' } })
+  fireEvent.click(screen.getByRole('button', { name: '처리 내용 저장' }))
+  await screen.findByRole('button', { name: '답변 저장 중…' })
+  cancelSeen = true; behavior.gone = true
+  fireEvent.click(screen.getByRole('button', { name: '처리 이력 다시 확인' }))
+  await screen.findByText('사용자가 취소했거나 조회할 수 없는 요청입니다. 목록을 다시 확인해 주세요.')
+  await act(async () => complete(envelope({ ...initial(), status: 'reviewing', reply: '저장 중 답변', version: 2 })))
+  expect(screen.queryByLabelText('운영자 답변')).toBeNull()
+  expect(screen.queryByText('큰 글씨 안내 요청')).toBeNull()
+  expect(screen.queryByText(/처리 내용을 저장했습니다/)).toBeNull()
+})
