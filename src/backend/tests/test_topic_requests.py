@@ -268,6 +268,27 @@ def test_the_same_submission_uuid_is_isolated_between_owners(env):
     other = data(env.client.get(BASE, headers=env.other_headers))["items"]
     assert [item["id"] for item in own] == [first["request"]["id"]]
     assert [item["id"] for item in other] == [second["request"]["id"]]
+    queried = data(
+        env.client.get(
+            BASE, headers=env.own, params={"submission_id": body["submission_id"]}
+        )
+    )
+    assert queried["total"] == 1 and queried["items"][0]["id"] == first["request"]["id"]
+    missing = data(
+        env.client.get(BASE, headers=env.own, params={"submission_id": str(uuid4())})
+    )
+    assert missing["items"] == [] and missing["total"] == 0
+    assert env.db.scalar(select(func.count()).select_from(ContentTopicRequest)) == 2
+    data(env.client.delete(f"{BASE}/{first['request']['id']}", headers=env.own))
+    queried = data(
+        env.client.get(
+            BASE, headers=env.own, params={"submission_id": body["submission_id"]}
+        )
+    )
+    assert (
+        queried["items"][0]["status"] == "withdrawn"
+        and queried["items"][0]["topic"] is None
+    )
 
 
 def test_rolling_quota_counts_withdrawn_requests_but_not_replays(env):

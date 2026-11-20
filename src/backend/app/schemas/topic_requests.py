@@ -39,6 +39,7 @@ class TopicCreate(ContractModel):
 class TopicQuery(PageQuery):
     kind: TopicKind | None = None
     status: TopicState | None = None
+    submission_id: UUID4 | None = None
 
 
 class TopicReview(ContractModel):

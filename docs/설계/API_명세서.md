@@ -343,7 +343,7 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 | 경로 | 동작 |
 | --- | --- |
 | `POST /content-topic-requests` | `submission_id`(클라이언트 생성 UUID v4), `kind`(`life_guide`/`video`), `topic`(공백 제거 후 1~60자 한 줄). 새 접수 201, 동일 전송 재시도 200. `data.request`, `data.replayed` 반환 |
-| `GET /content-topic-requests` | 본인 목록. 공통 `limit/offset/q`와 선택 `kind/status`. 생성 시각 내림차순·ID 정렬 |
+| `GET /content-topic-requests` | 본인 목록. 공통 `limit/offset/q`와 선택 `kind/status/submission_id`. 생성 시각 내림차순·ID 정렬. 전송 UUID 조회는 자료를 생성하지 않음 |
 | `GET /content-topic-requests/{request_id}` | 본인 요청·처리 상태·답변·현재 게시된 연결 가이드 |
 | `DELETE /content-topic-requests/{request_id}` | 본인 취소. 원문·답변·연결을 지우고 `withdrawn` 반환. 반복 취소는 같은 결과 |
 | `GET /admin/content-topic-requests`, `GET /admin/content-topic-requests/{request_id}` | 관리자 처리함·상세. 취소된 요청 제외. 사용자 ID·프로필은 응답에 포함하지 않음 |
@@ -352,7 +352,7 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 상태는 `received → reviewing → completed/declined`이며 검토 없이 바로 완료·보류할 수도 있다. 완료·보류를 다른 결정으로 바꾸려면 먼저 `reviewing`으로 되돌린다. 같은 최종 상태의 답변 보완은 허용한다. 생활 가이드 요청 완료에는 승인 후 게시된 `guide_id`가 반드시 필요하며, 영상 요청에는 가이드를 연결하지 않는다. 이 API는 영상 제작이나 게시를 자동 실행하지 않는다. 연결 가이드가 나중에 비공개로 바뀌면 본인 응답의 `guide`는 null이며 비공개 내용은 공개하지 않는다.
 
-`submission_id`는 같은 계정에서 같은 주제 전송을 재시도하는 동안 유지한다. 같은 번호로 종류·내용을 바꾸면 `TOPIC_SUBMISSION_CHANGED`(409)다. 취소 후에도 원문 없는 접수 번호·입력 해시를 남겨 늦은 재전송이 취소한 요청을 되살리지 못하게 한다. 새 요청은 새 번호를 사용한다. 재시도는 추가 접수로 세지 않고, 취소를 포함한 새 접수는 계정별 최근 24시간 최대 5건이다. 초과 시 `TOPIC_REQUEST_LIMIT`(429)와 `Retry-After`(초)를 반환한다.
+`submission_id`는 같은 계정에서 같은 주제 전송을 재시도하는 동안 유지한다. 같은 번호로 종류·내용을 바꾸면 `TOPIC_SUBMISSION_CHANGED`(409)다. 응답을 못 받았으면 목록을 `submission_id`만으로 조회해 해당 계정의 접수 기록(0~1건)을 확인할 수 있다. 이 조회는 새로 접수하지 않으므로 기록이 확인되면 해당 요청 ID에 DELETE를 보낼 수 있다. 조회 시점에 결과가 없다는 사실은 아직 처리 중인 POST의 취소 완료를 뜻하지 않으므로 앱은 전송 번호와 미확인 상태를 보존해야 한다. 취소 후에도 원문 없는 접수 번호·입력 해시를 남겨 늦은 재전송이 취소한 요청을 되살리지 못하게 한다. 새 요청은 새 번호를 사용한다. 재시도는 추가 접수로 세지 않고, 취소를 포함한 새 접수는 계정별 최근 24시간 최대 5건이다. 초과 시 `TOPIC_REQUEST_LIMIT`(429)와 `Retry-After`(초)를 반환한다.
 
 요청 수정·취소·감사 저장은 한 트랜잭션이고, 관리자 판본 충돌은 `TOPIC_VERSION_CHANGED`(409)다. 가이드 누락/비게시/잘못된 종류는 422 또는 `TOPIC_GUIDE_UNAVAILABLE`(409), DB 실패는 재시도 가능한 `TOPIC_REQUEST_UNAVAILABLE`(503)다. 취소된 요청은 관리자 처리함·상세·감사에서도 숨긴다. 감사에는 주제·답변·프로필·인증 값이 복제되지 않는다. 계정 삭제는 요청과 감사 자료를 함께 삭제하고 관리자 계정만 삭제하면 처리 이력을 보존하며 행위자 FK를 null로 바꾼다. 프로필 동의 철회는 기존 계약대로 프로필만 삭제하며, 주제 취소는 별도 DELETE로 수행한다.
 

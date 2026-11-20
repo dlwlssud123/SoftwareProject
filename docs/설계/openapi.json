@@ -1917,6 +1917,23 @@
               ],
               "title": "Status"
             }
+          },
+          {
+            "name": "submission_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid4"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Submission Id"
+            }
           }
         ],
         "responses": {
@@ -2313,6 +2330,23 @@
                 }
               ],
               "title": "Status"
+            }
+          },
+          {
+            "name": "submission_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid4"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Submission Id"
             }
           }
         ],

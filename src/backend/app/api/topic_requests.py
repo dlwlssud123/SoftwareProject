@@ -246,6 +246,8 @@ def _list(db, query, *, owner=None, admin=False):
         stmt = stmt.where(table.kind == query.kind)
     if query.status:
         stmt = stmt.where(table.status == query.status)
+    if query.submission_id is not None:
+        stmt = stmt.where(table.submission_id == query.submission_id)
     if query.q:
         stmt = stmt.where(table.topic.icontains(query.q, autoescape=True))
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))
