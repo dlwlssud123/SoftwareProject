@@ -2,5 +2,5 @@
 mysql://user:private-password@localhost
 # Exact authority span of the dummy URL rejected by deploy/test_seed_bundle.py.
 https://user:password@example.org
-# Exact reserved-domain fixture rejected before sending admin login credentials.
-https://user:fixture@example.test
+# Exact scanner span, including JS punctuation, of the approved invalid-URL fixture.
+https://user:fixture@example.test',
