@@ -23,12 +23,14 @@ import 'package:valueflow/theme.dart';
 const own = '00000000-0000-4000-8000-000000000001';
 const other = '00000000-0000-4000-8000-000000000002';
 const root = '/api/v1/content-topic-requests';
+const _tokens = {own: 'owner', other: 'other'};
 String identifier(int value) =>
     '00000000-0000-4000-8000-${value.toString().padLeft(12, '0')}';
 
 class _Storage implements FlutterSecureStorage {
   final values = <String, String>{};
   bool failWrite = false, failDelete = false, failRead = false;
+  Completer<void>? pauseDelete, deleteStarted;
   @override
   dynamic noSuchMethod(Invocation invocation) {
     final key = invocation.namedArguments[#key] as String;
@@ -47,6 +49,13 @@ class _Storage implements FlutterSecureStorage {
     if (invocation.memberName == #delete) {
       if (failDelete) {
         return Future<void>.error(PlatformException(code: 'delete'));
+      }
+      final pause = pauseDelete;
+      if (pause != null) {
+        if (deleteStarted?.isCompleted == false) deleteStarted!.complete();
+        return pause.future.then((_) {
+          values.remove(key);
+        });
       }
       values.remove(key);
       return Future<void>.value();
@@ -71,7 +80,7 @@ class _Account extends Account {
         ? null
         : ServiceSession(
             userId: user,
-            token: 'fixture-$user',
+            token: _tokens[user]!,
             expiresAt: DateTime.utc(2030),
             kakaoLinked: true,
           );
@@ -123,8 +132,11 @@ class _Server {
             return;
           }
           final path = options.path;
-          final user = (options.headers['Authorization'] as String?)
-              ?.replaceFirst('Bearer fixture-', '');
+          final user = switch (options.headers['Authorization']) {
+            'Bearer owner' => own,
+            'Bearer other' => other,
+            _ => null,
+          };
           final private = path.startsWith(root);
           if (private && (expire || user == null)) {
             fail(401, '다시 로그인해 주세요.');
@@ -416,6 +428,22 @@ void main() {
     );
   });
 
+  test('이전 접수의 느린 기기 정리가 다음 전송 번호를 지우지 않는다', () async {
+    final server = _Server();
+    final first = await server.api.prepare(TopicKind.video, '먼저 보낸 요청');
+    server.storage.pauseDelete = Completer<void>();
+    server.storage.deleteStarted = Completer<void>();
+    final submitted = server.api.submit(first);
+    await server.storage.deleteStarted!.future;
+    final nextTask = server.api.prepare(TopicKind.lifeGuide, '다음 요청');
+    server.storage.pauseDelete!.complete();
+    await submitted;
+    final next = await nextTask;
+    expect(next.submissionId, isNot(first.submissionId));
+    expect((await server.api.pending())!.submissionId, next.submissionId);
+    expect(server.sends, 1);
+  });
+
   test('다른 계정으로 바뀐 뒤 도착한 내역 응답을 거절한다', () async {
     final server = _Server()..pauseHistory = Completer<void>();
     final response = server.api.history();
@@ -638,14 +666,18 @@ void main() {
 
   testWidgets('접수된 요청 상세에서 취소하면 원문과 답변이 사라진다', (tester) async {
     final server = _Server();
-    final pending = await server.api.prepare(TopicKind.video, '취소할 내용');
-    final row = await tester.runAsync(() => server.api.submit(pending));
+    final row = server.makeRecord(own, {
+      'submission_id': identifier(7),
+      'kind': 'video',
+      'topic': '취소할 내용',
+    });
+    server.records['$own:${identifier(7)}'] = row;
     await tester.pumpWidget(
       page(
         TopicDetailScreen(
           api: server.api,
           settings: AppSettings(voice: false),
-          id: row!.id,
+          id: row['id'] as String,
         ),
       ),
     );
@@ -703,6 +735,33 @@ void main() {
     await tester.tap(find.text('필요한 안내 요청 · 내역'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('topic-input')), findsOneWidget);
+    expect(server.sends, 0);
+  });
+
+  testWidgets('다른 화면의 미확인 요청을 취소해도 새로 쓰던 글은 남는다', (tester) async {
+    final server = _Server();
+    await tester.pumpWidget(page(_requests(server)));
+    await tester.pumpAndSettle();
+    await server.api.prepare(TopicKind.video, '다른 화면에서 보낸 요청');
+    await tester.enterText(find.byKey(const Key('topic-input')), '새로 쓰던 글');
+    await tester.ensureVisible(find.byKey(const Key('send-topic')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('send-topic')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('보내던 요청 확인'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('보내던 요청 확인'));
+    await tester.pumpAndSettle();
+    expect(find.text('다른 화면에서 보낸 요청'), findsOneWidget);
+    await tester.ensureVisible(find.text('보내던 요청 취소'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('보내던 요청 취소'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '요청 취소'));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('새로 쓰던 글'), findsOneWidget);
     expect(server.sends, 0);
   });
 }

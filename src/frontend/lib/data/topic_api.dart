@@ -25,6 +25,7 @@ class TopicApi {
   Future<TopicRecord>? _mutation;
   String? _mutationScope;
   String? _mutationOwner;
+  Future<void> _receiptTail = Future.value();
   Listenable get identity => _account;
   String? get owner => _account.session?.userId;
 
@@ -98,7 +99,23 @@ class TopicApi {
   );
 
   Future<PendingTopic?> pending() => _private((_, user) => _pending(user));
-  Future<PendingTopic?> _pending(String user) async {
+  Future<T> _receipt<T>(String user, Future<T> Function() action) {
+    final task = _receiptTail.then((_) async {
+      _check(user);
+      final result = await action();
+      _check(user);
+      return result;
+    });
+    _receiptTail = task.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return task;
+  }
+
+  Future<PendingTopic?> _pending(String user) =>
+      _receipt(user, () => _readPending(user));
+  Future<PendingTopic?> _readPending(String user) async {
     try {
       final raw = await _storage.read(key: '$_scope:$user');
       _check(user);
@@ -169,15 +186,16 @@ class TopicApi {
     String user,
     TopicKind kind,
     String topic,
-  ) async {
-    final existing = await _pending(user);
+  ) => _receipt(user, () async {
+    final existing = await _readPending(user);
     if (existing != null) {
       if (existing.kind == kind && existing.topic == topic) {
         return existing;
       }
       // A failed device cleanup must not block a later, distinct request once
       // the server has confirmed the previous submission.
-      if (await lookup(existing) == null) {
+      if (await _private((token, _) => _findSubmission(existing, token)) ==
+          null) {
         throw const ApiException(
           ApiErrorType.badResponse,
           '이전 요청을 먼저 확인하거나 취소해 주세요.',
@@ -200,37 +218,53 @@ class TopicApi {
     }
     _check(user);
     return pending;
-  }
-
-  Future<void> _clear(PendingTopic pending) async {
-    _check(pending.owner);
-    try {
-      final current = await _pending(pending.owner);
-      if (current?.submissionId == pending.submissionId) {
-        await _storage.delete(key: '$_scope:${pending.owner}');
-      }
-      _check(pending.owner);
-    } on ApiException {
-      rethrow;
-    } on Object {
-      throw const ApiException(
-        ApiErrorType.badResponse,
-        '확인한 요청을 기기에서 정리하지 못했어요.',
-      );
-    }
-  }
-
-  Future<void> clearBrokenPendingAfterReview() => _private((_, user) async {
-    try {
-      await _storage.delete(key: '$_scope:$user');
-    } on Object {
-      throw const ApiException(
-        ApiErrorType.badResponse,
-        '이전 전송 정보를 정리하지 못했어요. 다시 시도해 주세요.',
-      );
-    }
-    _check(user);
   });
+
+  Future<void> _clear(PendingTopic pending) =>
+      _receipt(pending.owner, () async {
+        _check(pending.owner);
+        try {
+          final current = await _readPending(pending.owner);
+          if (current?.submissionId == pending.submissionId) {
+            await _storage.delete(key: '$_scope:${pending.owner}');
+          }
+          _check(pending.owner);
+        } on ApiException {
+          rethrow;
+        } on Object {
+          throw const ApiException(
+            ApiErrorType.badResponse,
+            '확인한 요청을 기기에서 정리하지 못했어요.',
+          );
+        }
+      });
+
+  Future<void> clearBrokenPendingAfterReview() => _private(
+    (_, user) => _receipt(user, () async {
+      PendingTopic? current;
+      try {
+        current = await _readPending(user);
+      } on ApiException {
+        _check(user);
+      }
+      if (current != null) {
+        throw const ApiException(
+          ApiErrorType.badResponse,
+          '다른 화면에서 요청을 준비했어요. 다시 확인해 주세요.',
+          code: 'TOPIC_PENDING',
+        );
+      }
+      try {
+        await _storage.delete(key: '$_scope:$user');
+      } on Object {
+        throw const ApiException(
+          ApiErrorType.badResponse,
+          '이전 전송 정보를 정리하지 못했어요. 다시 시도해 주세요.',
+        );
+      }
+      _check(user);
+    }),
+  );
 
   Future<TopicRecord> _mutate(
     String verb,
@@ -310,6 +344,21 @@ class TopicApi {
     user,
   ) async {
     _check(pending.owner);
+    final result = await _findSubmission(pending, token);
+    _check(user);
+    if (result == null) return null;
+    try {
+      await _clear(pending);
+    } on ApiException {
+      /* A known server record is enough to stop showing an uncertain send. */
+    }
+    return result;
+  });
+
+  Future<TopicRecord?> _findSubmission(
+    PendingTopic pending,
+    String token,
+  ) async {
     final page = await _client.get(
       _root,
       token: token,
@@ -323,13 +372,7 @@ class TopicApi {
         '이전 요청의 처리 결과를 확인하지 못했어요.',
       );
     }
-    _check(user);
     if (page.items.isEmpty) return null;
-    try {
-      await _clear(pending);
-    } on ApiException {
-      /* A known server record is enough to stop showing an uncertain send. */
-    }
     return page.items.single;
-  });
+  }
 }
