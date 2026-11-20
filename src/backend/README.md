@@ -71,6 +71,9 @@ DB는 `pgvector/pgvector:0.8.7-pg16-bookworm` 이미지를 사용하며 로컬 `
 | `GET /api/v1/seasonal-foods/{food_id}/recipes` | 현재 활성 판본과 일치하는 연결 레시피 목록 |
 | `GET /api/v1/life-guides`, `GET /api/v1/life-guides/{slug}` | 게시된 생활 가이드 요약·단계별 상세 |
 | `GET /api/v1/admin/data-jobs` | 관리자 전용 공공데이터 갱신 작업 현황, 개인 작업 제외 |
+| `/api/v1/admin/life-guides` | 관리자 가이드 목록·초안 작성·버전 확인 수정 |
+| `POST /api/v1/admin/life-guides/{guide_id}/actions` | 검수 요청·승인/반려·게시·비공개 처리 |
+| `GET /api/v1/admin/life-guides/{guide_id}/audit` | 가이드 변경 감사 메타데이터 조회 |
 | `/openapi.json` | OpenAPI 명세 |
 
 ```powershell
@@ -81,7 +84,9 @@ docker compose exec -T db psql -U valueflow_dev -d valueflow -c "SELECT extversi
 
 DB 사용자·이름을 바꿨으면 마지막 명령의 인자도 바꾼다. 서버 종료는 실행 터미널에서 `Ctrl+C`, DB 종료는 `docker compose stop db`를 사용한다. 데이터 볼륨은 유지한다.
 
-세션 기본 만료는 7일이며 `.env`의 `SESSION_TTL_SECONDS`로 조정한다. 토큰은 발급·갱신 응답에서만 반환하고 DB에는 해시만 저장한다. 앱의 보안 저장소에 보관하고 로그에 출력하지 않는다. 관리자는 기본 생성하지 않으며 운영자가 `python -m app.jobs.set_user_role <사용자-UUID> --role admin`으로 지정한다. `--role user`로 해제한다. 카카오 로그인과 게스트 계정 연결을 제공한다. 관리자 운영 기능은 후속이다.
+세션 기본 만료는 7일이며 `.env`의 `SESSION_TTL_SECONDS`로 조정한다. 토큰은 발급·갱신 응답에서만 반환하고 DB에는 해시만 저장한다. 앱의 보안 저장소에 보관하고 로그에 출력하지 않는다. 관리자는 기본 생성하지 않으며 운영자가 `python -m app.jobs.set_user_role <사용자-UUID> --role admin`으로 지정한다. `--role user`로 해제한다. 카카오 로그인과 게스트 계정 연결을 제공한다. 관리자 수집 현황과 생활 가이드 운영 API가 있으며 관리자 전용 아이디·비밀번호 로그인은 후속 작업이다.
+
+가이드는 `20261120_03` 마이그레이션 뒤 관리자 세션으로 초안을 작성하고 `submit → approve → publish` 순서로 공개한다. 반려에는 이유가 필요하며 수정하면 비공개 초안으로 돌아간다. 수정·검수·게시에는 최신 `expected_version`이 필요하고 감사 메타데이터를 같은 트랜잭션에 기록한다. 내용·검수 의견·토큰은 감사에 복제하지 않는다. 기존 공개 가이드는 마이그레이션 후에도 공개하며 검수자/검수 시각을 임의로 만들지 않는다. 상세 요청·오류·충돌·보관 규칙은 [API 명세서](../../docs/설계/API_명세서.md)를 따른다. 이 구현은 민찬 담당 `src/admin`의 웹 화면 연결·기업 서버 배포 완료를 의미하지 않는다.
 
 ## 사용자 기록과 운영 자료 저장 구조
 

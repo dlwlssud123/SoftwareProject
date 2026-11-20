@@ -303,6 +303,29 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 관리자 미인증은 401, 일반 사용자 접근은 403, DB 오류는 재시도 가능한 `DATA_JOBS_UNAVAILABLE`(503)이며 응답은 `Cache-Control: no-store`다. 이 조회는 작업 전체 상태와 첫 실패 단계를 보여 주는 읽기 전용 API다. 단계별 건수·건너뜀 사유·RAG 검증은 실행기의 상태 파일로 별도 확인하며, 여기서 수집을 시작하거나 재시도·예약 등록하지 않는다. 성공 상태 하나만으로 모든 RAG 단계가 실행됐다고 판단하지 않는다.
 
+### 관리자 생활 가이드 작성·검수·게시
+
+아래 경로는 모두 관리자 Bearer 세션이 필요하며 성공·오류 응답에 `Cache-Control: no-store`를 적용한다. 관리자 웹은 민찬 담당의 기존 `src/admin` 구조를 사용한다. 이번 API 구현과 웹 로그인·화면 연결·서버 배포는 별도다.
+
+| 메서드·경로 (`/api/v1` 접두사) | 계약 |
+| --- | --- |
+| `GET /admin/life-guides` | `limit/offset/q`(제목의 문자 그대로 검색), 선택 `review_status`·`is_published`. 요약·판본·검수/게시 상태·검수자/시각·관리 갱신 시각 |
+| `POST /admin/life-guides` | `slug/title/steps/source_reference/checked_on`. 201, 항상 비공개 `draft`, `version=1` |
+| `GET /admin/life-guides/{guide_id}` | UUID로 초안 포함 상세 조회. 요약 + 단계·비공개 검수 의견 |
+| `PUT /admin/life-guides/{guide_id}` | `expected_version`과 `title/steps/source_reference/checked_on` 전체. 수정하면 비공개 초안으로 전환하고 이전 검수 결과를 비운다. `slug`는 변경하지 않는다 |
+| `POST /admin/life-guides/{guide_id}/actions` | `expected_version/action`, 선택 `note`. 상태 전환 후 새 판본·현재 상태 반환 |
+| `GET /admin/life-guides/{guide_id}/audit` | 페이지 조회. 선택 `q`는 작업명 문자 그대로 검색. 작업·행위자 ID·전후 판본/상태·서버 요청 ID·기록 시각 |
+
+새 주소 `slug`는 소문자 영문·숫자·하이픈(최대 128자), 제목은 1~200자, 출처 설명은 1~1,000자다. 단계는 배열 순서대로 1~30개, 각 단계는 `text`(1~3,000자)와 선택 `title`(1~120자)을 받는다. 공백만인 값·알 수 없는 필드는 거부한다. `checked_on`은 한국 날짜 기준 미래일을 허용하지 않는다. 내용은 JSON 텍스트로 전달하며 HTML 실행 기능을 제공하지 않는다.
+
+상태 흐름은 `draft/rejected → submit → review → approve → approved → publish`다. 승인은 바로 게시하지 않는다. `review → reject`에는 1~1,000자의 사유가 필요하며, 승인에도 선택 의견을 남길 수 있다. 의견은 관리자 상세에만 표시한다. `unpublish`는 게시 중인 가이드만 비공개로 전환하고 검수 결과·내용을 보존한다. 재게시에는 승인 상태가 필요하다. 수정은 게시를 내리고 `draft`로 되돌리므로 웹은 수정 전에 공개 중단을 안내해야 한다. 검수/게시에는 기존 자료의 내용도 같은 기준으로 검증한다.
+
+수정·상태 변경은 행 잠금과 정수 `expected_version`으로 충돌을 막는다. 오래된 판본은 `GUIDE_VERSION_CHANGED`(409), 잘못된 상태 전환은 `GUIDE_STATE_CHANGED`(409), 기존 내용이 검증 기준에 맞지 않으면 `GUIDE_CONTENT_INVALID`(409)로 반환하며 최신 상태를 다시 확인해야 한다. 이름이 같은 주소는 `GUIDE_SLUG_EXISTS`(409), 없는 가이드는 `GUIDE_NOT_FOUND`(404), DB 실패는 재시도 가능한 `GUIDE_ADMIN_UNAVAILABLE`(503)다. 성공한 변경마다 판본을 1 올리고 상태 변경과 감사 행을 같은 트랜잭션에 저장한다. 감사 저장 실패 시 가이드 변경도 롤백한다.
+
+감사는 생성·수정·검수 요청·승인·반려·게시·비공개 작업의 메타데이터만 기록한다. 원문 전체·검수 의견·토큰은 복제하지 않는다. 관리자 계정을 삭제하면 행위자/검수자 FK는 null로 바뀌고 감사 이력은 유지한다. 감사 수정·삭제 및 가이드 영구 삭제 API는 제공하지 않는다. 공개 조회 응답에는 검수 의견·관리자 ID·감사 자료를 추가하지 않는다.
+
+마이그레이션 `20261120_03`은 `20261120_02` 다음에 가이드 관리 필드와 `guide_audit_events`를 추가한다. 기존 게시 자료는 `approved`로 옮겨 공개 상태·주소·내용을 유지하며 검수자·검수 시각은 알 수 없으므로 null로 둔다. 기존 행의 `updated_at` 초기값은 관리 필드 도입 시각이며 원천 확인일을 대신하지 않는다. 운영 복구에 자동 downgrade를 사용하지 않는다.
+
 ## 7. 미구현 예정 API
 
 다음은 후속 경로다. 현재 서버에서 호출하면 404가 반환된다. 카탈로그 DTO와 표본은 9절에 정의했다. 나머지 기능의 세부 계약은 착수 시 관련 담당자와 맞춘다.
@@ -312,7 +335,7 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 | 사진 영양 분석 | `POST /api/v1/nutrition/analyses`, `GET /api/v1/nutrition/analyses/{id}`, `POST /api/v1/nutrition/analyses/{id}/confirm` | 미구현 |
 | 복지 RAG | `POST /api/v1/welfare/ask` | 검색·답변 생성 후속, 맞춤 목록 추천과 별도 |
 | 도우미 | `POST /api/v1/assistant/messages` | 미구현 |
-| 관리자 운영 | `/api/v1/admin/*` | `/admin/me`·`/admin/data-jobs` 조회 구현. 검수·게시·재시도는 후속 |
+| 관리자 운영 | `/api/v1/admin/*` | `/admin/me`·`/admin/data-jobs` 조회·생활 가이드 검수/게시/감사 구현. 시설·제철 검수·작업 재시도와 관리자 전용 로그인은 후속 |
 
 이 표는 예정 경로의 요약이며 전체 기능의 확정 계약은 아니다. 신규 기능의 채택 상태는 최종 기획서, 기능별 계획은 구현계획서를 따른다.
 

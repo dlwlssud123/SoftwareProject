@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.admin import router as admin_router
 from app.api.admin_data import router as admin_data_router
+from app.api.admin_guides import router as admin_guides_router
 from app.api.auth import router as auth_router
 from app.api.content import router as content_router
 from app.api.foods import router as foods_router
@@ -67,6 +68,8 @@ def create_app() -> FastAPI:
             )
 
         response.headers["X-Request-ID"] = request.state.request_id
+        if request.url.path.startswith("/api/v1/admin/"):
+            response.headers["Cache-Control"] = "no-store"
         if request.url.path.startswith("/api/v1/shopping-lists/"):
             response.headers["Cache-Control"] = "no-store"
         if request.url.path == "/api/v1/meals" or request.url.path.startswith(
@@ -93,6 +96,7 @@ def create_app() -> FastAPI:
     app.include_router(foods_router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1")
     app.include_router(admin_data_router, prefix="/api/v1")
+    app.include_router(admin_guides_router, prefix="/api/v1")
     app.include_router(content_router, prefix="/api/v1")
     app.include_router(profile_router, prefix="/api/v1")
     app.include_router(recipes_router, prefix="/api/v1")

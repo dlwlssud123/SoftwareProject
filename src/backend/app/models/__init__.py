@@ -2,6 +2,7 @@
 
 from app.models.auth import AuthSession, KakaoIdentity, User  # noqa: F401
 from app.models.content import (  # noqa: F401
+    GuideAuditEvent,
     LifeGuide,
     MealFacility,
     SeasonalFood,

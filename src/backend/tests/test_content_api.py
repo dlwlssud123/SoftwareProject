@@ -287,6 +287,7 @@ def test_catalog_real_postgres_publication_and_stale_recipe_links(
         assert client.get("/api/v1/life-guides").json()["data"]["total"] == 0
         assert client.get("/api/v1/life-guides/first").status_code == 404
         guide.is_published = True
+        guide.review_status = "approved"
         db.commit()
         assert client.get("/api/v1/life-guides/first").status_code == 200
         seasonal = client.get("/api/v1/seasonal-foods", params={"month": 12}).json()[
