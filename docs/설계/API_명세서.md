@@ -9,7 +9,7 @@
 - 실행 안내: [백엔드 README](../../src/backend/README.md)
 - 기계 판독용 명세: [openapi.json](./openapi.json)
 
-상태 확인, 게스트 세션 발급·조회·갱신·폐기, 관리자 권한 확인, 레시피 DB 목록·상세, 식단 추천과 동의 기반 프로필 CRUD를 구현했다. 복지 목록·상세와 복지 추천은 [예정 계약](./catalog.openapi.json) 및 [요청·응답 표본](./api_examples.json)을 제공한다. 기업 서버 주소와 HTTPS 경로는 배포 시 확정한다.
+상태 확인, 게스트·카카오 인증, 관리자 권한 확인, 레시피·복지 DB 목록·상세, 식단·복지 후보 추천, 프로필 CRUD, 하루 식단표와 레시피·복지 저장을 구현했다. [요청·응답 표본](./api_examples.json)을 제공하며 실행 계약은 `openapi.json`을 따른다. 코드 구현·main 병합·기업 서버 배포 여부는 별도로 확인한다.
 
 ## 1. 공통 규칙
 
@@ -155,7 +155,7 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 | `/redoc` | HTML | ReDoc 문서 |
 | `/openapi.json` | JSON | 서버가 생성하는 현재 OpenAPI 명세 |
 
-`openapi.json`은 실행 코드의 `app.openapi()`에서 생성한 스냅샷이다. `catalog.openapi.json`은 모든 경로에 `x-implementation-status: planned`를 붙인 별도 인계 문서다. 실행 서버에 예정 경로를 추가하지 않는다. `src/backend`에서 `python -m app.jobs.export_api_contract`로 둘을 재생성한다. 표본 갱신은 `PYTHONPATH=../data` 설정 후 같은 명령에 `--welfare-snapshot <실제 수집 JSON 경로>`를 전달한다. 실제/예정 스냅샷과 DTO 표본은 테스트에서 대조한다.
+`openapi.json`은 실행 코드의 `app.openapi()`에서 생성한 스냅샷이다. `catalog.openapi.json`은 미구현 카탈로그 경로의 별도 인계 문서이며, 복지 구현 후 현재 `paths`는 비어 있다. 실행 서버에 예정 경로를 추가하지 않는다. `src/backend`에서 `PYTHONPATH=../data`를 설정하고 `python -m app.jobs.export_api_contract`로 둘을 재생성한다. 표본 갱신은 같은 명령에 `--welfare-snapshot <실제 수집 JSON 경로>`를 전달한다. 실제/예정 스냅샷과 DTO 표본은 테스트에서 대조한다.
 
 ### 카카오 로그인과 게스트 연결
 
@@ -192,18 +192,127 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 응답의 `recommendation_id`로 추천 실행을 식별한다. DB에는 계정 ID, 식사 시간, 평가 시각, 규칙 버전, 추천 레시피 판본과 이유·제철 근거를 저장한다. 요청의 건강 상태·알레르기 원문은 추천 이력에 저장하지 않는다. 후보가 없으면 빈 `items`를 반환한다.
 
+## 식품 검색과 분량별 영양 계산
+
+| 메서드·경로 | 요청·응답 |
+| --- | --- |
+| `GET /api/v1/foods` | `q`(식품명 부분 검색)·`limit`(1~100, 기본 20)·`offset`(0~10000). `data.items/total/limit/offset` |
+| `GET /api/v1/foods/{food_id}` | 목록의 UUID. 기준량·영양값·분량 참고량·품질 표시·원천 판본 |
+| `POST /api/v1/nutrition/calculate` | `items` 1~30개: `{food_id, revision_id, amount, unit}`. 분량별 `items`와 계산 가능한 음식의 `total` |
+
+로그인 없이 공개 식품 정보로 계산하는 미리보기이며 섭취 기록을 저장하지 않는다. `food_id`는 내부 UUID, `revision_id`는 검색 응답의 `source.revision_id`를 전달한다. 같은 식품명이라도 식품 코드·기준 단위가 다를 수 있으므로 화면에서 기준량과 출처를 함께 보여 준다. 서버의 활성 식품 판본만 조회하며, 선택 후 데이터가 갱신되면 `FOOD_REVISION_CHANGED`(409)로 재선택을 요청한다. 없는 식품은 `FOOD_NOT_FOUND`(404), DB 오류는 재시도 가능한 `FOODS_UNAVAILABLE`(503)다.
+
+예시 요청(실제 검색 결과의 UUID로 바꾼다):
+
+```json
+{"items":[{"food_id":"00000000-0000-0000-0000-000000000001","revision_id":"00000000-0000-0000-0000-000000000002","amount":150,"unit":"g"}]}
+```
+
+분량은 0보다 크고 10,000 이하의 유한한 JSON 숫자다. `g/kg/mL/ml/cc/L`는 기준 단위로 변환하며, `인분/그릇/공기/접시/대접/회분`은 원천에 g·mL로 표시된 1회분량 근거가 있을 때만 환산한다. `개/조각`은 중량 근거가 없어 `unconvertible`로 반환하고 g·mL 재입력을 안내한다. g↔mL 계산은 기존 데이터 계약의 1mL≈1g 근사이며 `status=approx_ml`, `approx_ml=true`와 주의 문구를 제공한다. 기준량이 불명확하면 `invalid`다. 실제 밀도·한 그릇 중량을 추정해 만들지 않는다.
+
+`calculation_version=food-portion-v1`, 항목별 `source`(제공자·식품 코드·판본·원천 해시·적재 시각), 입력값과 환산 근거를 반환한다. 영양소 결측은 `null`이며 0과 구분한다. `total.complete`는 모든 음식의 분량 계산 성공 여부다. 모든 영양소가 채워졌다는 뜻은 아니므로 `missing_items`(영양소별 결측 음식 수)도 확인한다. 일부 음식만 계산되면 `excluded`에 제외 항목의 배열 위치·이유를 남기며, 전부 제외되면 합계도 `null`이다. 계산 응답은 `Cache-Control: no-store`다. 사진 분석·진단·섭취 확정 기능과 별개다.
+
+## 확정 섭취 기록
+
+모든 `/api/v1/meals` 요청은 서비스 Bearer 세션이 필요하며, 오류·입력 검증 응답까지 `Cache-Control: no-store`를 적용한다. 사용자 ID와 영양 수치를 요청에 넣지 않는다. 서버는 선택한 식품 판본과 분량으로 다시 계산해 저장하고 사용자별로 기록을 격리한다. 식단표·레시피 저장과 별개이며 사진 분석 없이 직접 선택한 음식도 기록할 수 있다.
+
+| 메서드·경로 | 요청·응답 |
+| --- | --- |
+| `POST /api/v1/meals` | 헤더 `Idempotency-Key` 필수(16~128자, 영문·숫자·`_`·`-`, UUID 권장). 본문 `{eaten_at, items}`. 첫 저장 201, 같은 요청 재전송 200. `data={meal,replayed}` |
+| `GET /api/v1/meals` | `limit`(1~50, 기본 20)·`offset`·선택 `day=YYYY-MM-DD`. 최신 섭취순 요약 페이지, `total`은 해당 사용자·날짜 조건의 건수 |
+| `GET /api/v1/meals/{id}` | UUID 기록의 상세. 선택한 음식·분량·영양값·계산 근거 포함 |
+| `PATCH /api/v1/meals/{id}` | `expected_version` 필수, `eaten_at` 또는 `items` 중 하나 이상. 변경 필드에 null 금지. `items`는 음식 목록 전체 교체이며 서버에서 재계산 |
+| `DELETE /api/v1/meals/{id}?version=1` | 상세 응답의 `version` 필수. 성공 204. 이미 없거나 다른 사용자의 기록은 같은 404 |
+
+`eaten_at`은 시간대가 있는 ISO 8601 시각이며 UTC로 정규화해 보관한다. `items`는 계산 미리보기와 같은 `{food_id,revision_id,amount,unit}` 1~30개다. `day` 조회는 한국 시간 자정부터 다음 날 자정까지를 적용한다. 목록 요약에는 `id/eaten_at/created_at/version/total/legacy_snapshot_missing`을 반환하고 음식별 세부 내용은 상세에서 읽는다.
+
+저장 시 계산이 안 되는 항목을 조용히 빼지 않는다. 모든 음식의 분량이 환산 가능해야 하며, 원천 중량이 없는 그릇·개수 단위는 g·mL로 다시 확인한다(`PORTION_NOT_RECORDABLE`, 422). 환산 후 중량은 기존 DB 규격에 맞춰 0.001~9,999,999.999 g·mL, 소수점 셋째 자리까지 표현 가능해야 한다. g↔mL 근사는 명시적으로 표시하며, 영양소 결측은 그대로 null과 `missing_items`로 보관한다. 식품 판본이 바뀌었으면 미리보기와 같은 409로 재선택을 요청한다.
+
+상세의 `items[]`에는 `food_id/revision_id/food_code/name/order_no/amount/amount_unit/nutrients/calculation_version/calculation`을 반환한다. `calculation`은 저장 시점의 입력 분량·환산 근거·근사 여부·원천 판본을 보관한 스냅샷이다. 원천 갱신은 과거 기록의 수치를 바꾸지 않는다. 섭취 시각만 수정할 때도 음식과 당시 영양값은 유지한다. 이전 버전에서 저장한 스냅샷 없는 기록은 기존 수치를 그대로 반환하고 `calculation=null`, `legacy_snapshot_missing=true`로 알린다. 근거를 새로 만들어 채우지 않는다.
+
+같은 사용자의 같은 키·같은 요청은 기록을 하나만 생성한다. 날짜는 UTC 기준으로 비교하므로 같은 시각의 다른 시간대 표기도 같은 요청이다. 같은 키로 다른 내용을 보내면 `IDEMPOTENCY_KEY_REUSED`(409), 기록을 삭제한 뒤 그 생성 요청을 재전송하면 `MEAL_ALREADY_DELETED`(409)다. 수정 후 최초 생성 요청을 재전송하면 같은 기록의 **현재 상태**와 `replayed=true`를 반환한다. 신규 저장에는 새 키, 네트워크 재시도에는 기존 키를 사용한다.
+
+수정·삭제는 `version`으로 경합을 확인하며 오래된 버전은 `MEAL_VERSION_CHANGED`(409)로 막는다. 변경을 반영하기 전에 상세를 다시 읽도록 앱에서 안내한다. 타인과 없는 기록은 `MEAL_NOT_FOUND`(404)로 구분하지 않는다. DB 실패는 재시도 가능한 `MEALS_UNAVAILABLE`(503)이며 기록·음식·중복 방지 이력을 함께 롤백한다. 요청 키 원문과 입력 원문은 중복 방지 테이블에 남기지 않고 해시와 기록 링크만 보관한다. 기록 삭제 시 링크를 비워 재시도에 의한 복원을 막고, 사용자 DB 행 삭제 시 그 사용자의 기록·음식·요청 이력을 cascade 삭제한다. 세션 폐기와 프로필 동의 철회는 사용자 DB 행 삭제와 다르다.
+
+마이그레이션은 `20261118_01 → 20261119_01 → 20261120_01` 단일 경로다. 중간의 복지 메모 마이그레이션은 PR #58과 같은 파일을 재사용하며 기존 저장 항목을 유지한다. 새 섭취 마이그레이션은 기존 기록을 version=1로 보존하고 순서·스냅샷 컬럼을 nullable로 추가한다. 배포에는 `alembic upgrade head`가 필요하며 운영 DB를 자동 downgrade하지 않는다. 코드·CI 검증과 main 병합·기업 서버 배포·앱 화면 연결은 별도 상태로 관리한다.
+
+### 음식별 오류 위치와 앱 연결
+
+식품이 없거나 판본이 바뀐 오류에는 기존 오류 구조의 `error.fields`를 사용한다. `body.items.N.food_id`(`reason=not_found`), `body.items.N.revision_id`(`revision_changed`), 기록할 수 없는 분량은 `body.items.N.amount`(`unrecordable`)로 대상 항목의 0부터 시작하는 배열 위치를 제공한다. 요청 값·개인정보는 포함하지 않는다. 기존 오류 코드·상태와 공통 스키마는 유지하며 앱은 해당 음식만 다시 고르거나 분량을 바꾸도록 표시한다.
+
+앱의 실제 기록 경로는 **영양분석 → 먹은 음식 직접 입력 → 음식 검색/분량 확인 → 영양 확인 → 저장**이다. 검색과 미리보기는 공개 정보로 처리하고, 기록·목록·상세·수정·삭제에는 앱의 현재 계정 세션을 사용한다. 한국 날짜로 기록을 조회하며, 수정은 `expected_version`, 삭제는 `version`을 보내 충돌 시 최신 기록을 확인한다. 생성 요청의 키와 확정 입력은 기기 보안 저장소에 서버·사용자별로 보관해 유실된 응답을 같은 키로 재확인한다. 인증 만료 후 새 게스트로 자동 재전송하지 않는다. 새 API 배포와 실제 휴대폰 확인 전에는 통합 완료로 처리하지 않는다.
+
+## 식단표 기반 장보기
+
+| 메서드·경로 | 요청·응답 |
+| --- | --- |
+| `GET /api/v1/shopping-lists/{plan_date}` | Bearer 세션, `YYYY-MM-DD`. `{plan_date,planned_meals,items,warnings}` |
+| `PATCH /api/v1/shopping-lists/{plan_date}/items/{item_key}` | `{source_hash,checked}`. `checked`는 JSON boolean, `item_key/source_hash`는 조회한 64자리 해시. 성공 `{item_key,source_hash,checked}` |
+
+해당 사용자의 날짜별 식단표에 저장된 **레시피 판본**의 재료를 모은다. 메뉴마다 원문 전체 분량을 한 번씩 사용하며 인분을 자동으로 나누거나 늘리지 않는다. 같은 레시피를 두 끼에 담으면 두 번 반영한다. 레시피가 갱신돼도 저장 판본을 조용히 교체하지 않고 `sources[].is_active=false`와 주의 문구를 반환한다. 재료가 없는 메뉴도 `planned_meals/warnings`에 남긴다.
+
+`items[]`는 `item_key/source_hash/name/amount/unit/amount_text/combined/checked/shopping_search_url/sources`다. 같은 원문 재료명과 명확한 단위끼리만 합산한다. g·kg·mg는 g, mL·ml·cc·L는 mL로 모으고 **g와 mL는 합치지 않는다**. 개수·계량 단위는 같은 단위끼리 더하며 g·mL로 추정 환산하지 않는다. 준비 형태가 다른 원문 이름도 유지한다. 분수는 정확히 계산하고 소수로 끝나지 않으면 `amount_text`에 `2/3`처럼 표시한다. ‘약간’·범위·복합 분량 등은 `combined=false`, `amount/unit=null`과 원문 분량으로 남긴다.
+
+`sources[]`에는 식단 항목 UUID·끼니·레시피 ID/이름/판본·재료 UUID·구획·원문 재료명/분량·활성 여부가 있다. `item_key`는 이름·단위 그룹이고 `source_hash`는 구성 메뉴·재료·분량·원천 상태를 식별한다. 필요 재료가 달라지면 기존 체크는 미확인으로 표시한다. 낡은 목록으로 체크하면 `SHOPPING_LIST_CHANGED`(409), 본인의 해당 날짜 목록에 없는 항목은 `SHOPPING_ITEM_NOT_FOUND`(404)다. 다른 사용자의 체크는 읽거나 변경하지 않는다.
+
+체크만 `shopping_checks`에 저장하며 식단·체크 변경은 사용자 행 잠금으로 직렬화한다. 마지막 메뉴나 하루 식단표 전체를 지우면 해당 날짜 체크도 지운다. 사용자 행 삭제 시 cascade 삭제한다. DB 실패는 재시도 가능한 `SHOPPING_UNAVAILABLE`(503), 모든 응답은 `Cache-Control: no-store`다. 마이그레이션 `20261120_02`는 `20261120_01` 다음에 체크 테이블만 추가하고 기존 식단·섭취 기록을 유지한다. downgrade는 체크를 제거하므로 운영 자동 복구에 사용하지 않는다.
+
+외부 주소는 HTTPS `www.coupang.com/np/search?q=...`로 생성하며 **공개 재료명만** 인코딩한다. 프로필·건강·소득·위치를 넣지 않는다. 앱은 호스트·경로·검색어를 검증하고 사용자 선택으로 외부 페이지를 연다. 가격·재고·배송비·구매는 외부 페이지에서 확인하며 자동 주문·가격 수집·제휴 링크는 구현하지 않는다. 앱 진입은 **내 식단 → 이 날의 장보기 목록**, 개별 재료 검색은 레시피 상세에서도 제공한다. HTTP·위젯 시험과 main 병합·기업 서버 배포·실기기 종단 확인은 별도 상태다.
+### 복지 조회·추천과 저장
+
+복지 조회·추천 경로는 9절의 DTO로 실제 DB에 연결한다. `GET /api/v1/welfare`는 게시 중인 서비스의 활성 판본 중 상세 준비 완료·품질 보류가 아닌 자료만 반환한다. 검색은 제목·요약·지원 대상의 문자 그대로 부분 검색이며 `%`·`_`를 검색 와일드카드로 해석하지 않는다. 지역을 생략하면 전체 지역을 조회한다. 지역을 주면 데이터 모듈 `services_for`의 줄임말·시군구 해석과 내 시군구 → 내 시도 전체 → 전국 순서를 따른다. 기록된 사업 종료일이 지난 항목은 목록·추천에서 제외한다. 지역 해석 실패 시 전국 사업 또는 시도 전체까지 안내하며 추천 응답의 `warnings`에 이유를 넣는다.
+
+`POST /api/v1/welfare/recommendations`는 같은 지역 범위 안에서 지원 대상 원문의 연령 하한 표현 및 독거·1인 가구 관련 문구를 정렬 단서로만 사용한다(`welfare-candidates-v1`). 조건에 해당한다는 이유로 자격을 확정하거나, 문구가 없다는 이유로 사업을 제외하지 않는다. 응답은 공식 출처·확인 시각·현재 활성 `revision_id`, 원문 기반 이유, `application_status=unknown`, 세부 자격·신청 여부 확인 안내를 제공한다. 요청의 연령·가구 정보는 저장하지 않으며 응답은 `Cache-Control: no-store`다. 이 경로는 생성형 답변/RAG API가 아니다.
+
+아래 저장 경로에는 Bearer 세션이 필요하다. 사용자 ID는 인증 정보에서 결정하며 정상 응답은 `Cache-Control: no-store`다. 기본 저장/해제는 기존 `saved_welfare_services`를 사용한다. 진행 메모는 Alembic `20261119_01`의 nullable 두 컬럼을 추가한 뒤 사용하며 기존 저장 행은 유지한다.
+
+| 메서드 | 경로 (`/api/v1` 접두사) | 동작 |
+| --- | --- | --- |
+| GET | `/saved-welfare?limit=20&offset=0&q=검색어` | 최신 저장순 `{items: [{service_id, title}], limit, offset, total}` |
+| GET | `/saved-welfare/{service_id}` | `{saved: boolean}` |
+| PUT | `/saved-welfare/{service_id}` | 게시 중인 사업 저장, 반복해도 한 건 |
+| DELETE | `/saved-welfare/{service_id}` | 본인 저장 해제, 반복해도 204 |
+| GET | `/saved-welfare/{service_id}/note` | 본인 저장 항목의 `{service_id, note, updated_at}` |
+| PATCH | `/saved-welfare/{service_id}/note` | `{note: string 또는 null}`로 본인 메모 수정/비우기 |
+
+철회·품질 보류된 사업은 신규 저장할 수 없다(404). 이미 저장한 사업은 목록에서 `title=null`로 유지해 해제할 수 있다. 공식 신청 안내·문의처는 상세 API로 제공한다. 메모는 사용자의 개인 기록이며 실제 신청 제출이나 공식 접수/자격 판정과 구분한다.
+
+메모는 먼저 본인 목록에 저장한 사업에서만 조회·수정할 수 있다. 미저장·다른 사용자의 항목은 동일하게 404를 반환하며 메모를 쓰면서 자동 저장하지 않는다. `note`는 필수 필드이고 최대 2,000자다. 앞뒤 공백을 제거하고 `null`·빈 문자열·공백만 보내면 메모만 비운다. 수정 시각은 서버의 시간대가 포함된 시각이며, 동시 수정은 마지막 반영 내용이 남는다. 메모는 평문으로 표시하고 공개 복지 상세·저장 목록 요약·공유 문구에는 포함하지 않는다. 원천이 철회돼도 본인 기존 메모는 조회·수정할 수 있으며, 저장 해제 시 해당 메모도 함께 삭제된다. 반복 저장(PUT)은 기존 메모를 덮어쓰지 않는다.
+
+### 급식소·제철·생활 가이드 조회
+
+공개 조회 API이며 공통 성공 응답과 `limit`(1~100)·`offset`(0~10000)·선택 `q`(1~100자)를 사용한다. 목록에 `items/total/limit/offset`을 제공한다. 검색은 문자 그대로의 부분 검색으로 `%`·`_`를 와일드카드로 해석하지 않는다. 게시 해제된 자료의 상세는 404, UUID 형식·월·페이지 입력 오류는 422, DB 연결 실패는 재시도 가능한 `CONTENT_UNAVAILABLE`(503)다.
+
+| 메서드·경로 (`/api/v1` 접두사) | 입력·응답 |
+| --- | --- |
+| `GET /meal-facilities` | 선택 `region/district`, `district`는 `region`과 함께. 지역 생략 시 전체 지역, 선택 시 내 시군구 → 같은 시도 다른 시군구 순. 이름·주소 검색. `warnings`로 지역 해석 결과 안내 |
+| `GET /meal-facilities/{facility_id}` | 목록의 UUID `id`. 이름·지역·주소·좌표(없으면 null)·대상·운영 시간·연락처·출처·확인일·주의사항 |
+| `GET /seasonal-foods` | 선택 `month`(1~12), 생략 시 KST 현재 월. 이름 검색, 상세 본문을 제외한 요약과 이미지·쇼핑 검색 링크 |
+| `GET /seasonal-foods/{food_id}` | 목록의 UUID `id`. 요약 + 원천 상세 글(`detail`)·재료명(`terms`)·원천 관련 레시피 이름 |
+| `GET /seasonal-foods/{food_id}/recipes` | 실제 DB 레시피 연결. 기존 `RecipeRecord` 페이지 구조, 이름 검색·페이지 조회 |
+| `GET /life-guides` | 제목 검색·페이지 조회. `id/slug/title/source_reference/checked_on` |
+| `GET /life-guides/{slug}` | 가이드 요약 + 배열 순서대로 `steps`(단계 객체, `text` 등). 게시된 가이드만 조회 |
+
+급식소는 원천 품질 표시와 조회 시점의 운영 종료일을 확인해 종료·미운영 시설을 제외한다. 시작 전 시설과 오래된 자료는 `cautions/quality_flags`에 안내한다. 원천 `reference_date`(자료 기준일)와 `checked_on`(원천 확인일)을 구분하며, 이용 자격·당일 운영·식사 제공 여부를 확정하지 않는다. 좌표 조회나 사용자 위치 저장은 이번 API 범위에 포함하지 않는다.
+
+제철 식재료는 `is_published=true`이고 상세가 `ok`인 항목만 제공한다. `content_sha256`·`provider/source_id/source_url/checked_on`으로 원천을 식별한다. 목록은 전체 상세 본문을 보내지 않고 상세 조회 시 읽어온다. `official_related_recipes`는 원천의 레시피 이름이며 앱에서 바로 조회 가능한 레시피 ID라는 뜻이 아니다. 앱 연결에는 `/recipes` 조회를 사용한다. 이 조회는 연결 당시 판본과 현재 활성 레시피 판본이 같은 자료만 제공하고, 연결 재적재 전의 낡은 판본은 숨긴다. `shopping_search_url`은 재료명으로 이동하는 외부 쿠팡 검색 주소이며 가격·재고·주문 API가 아니다.
+
+### 관리자 수집 작업 현황
+
+`GET /api/v1/admin/data-jobs`는 관리자 Bearer 세션이 필요하다. 공통 페이지·선택 `status`(`queued/running/succeeded/failed/cancelled`)·선택 `q`(오류 단계 코드 검색)를 지원한다. `kind=public_data_daily`이면서 `user_id=null`인 공통 작업만 최신 생성순으로 반환한다. 응답 항목은 `id/kind/status/attempts/next_run_at/created_at/started_at/finished_at/error_code`다. 개인 사진·AI 작업, 원천 인증 정보, DB 연결 문자열과 전체 실행 로그는 포함하지 않는다.
+
+관리자 미인증은 401, 일반 사용자 접근은 403, DB 오류는 재시도 가능한 `DATA_JOBS_UNAVAILABLE`(503)이며 응답은 `Cache-Control: no-store`다. 이 조회는 작업 전체 상태와 첫 실패 단계를 보여 주는 읽기 전용 API다. 단계별 건수·건너뜀 사유·RAG 검증은 실행기의 상태 파일로 별도 확인하며, 여기서 수집을 시작하거나 재시도·예약 등록하지 않는다. 성공 상태 하나만으로 모든 RAG 단계가 실행됐다고 판단하지 않는다.
+
 ## 7. 미구현 예정 API
 
 다음은 후속 경로다. 현재 서버에서 호출하면 404가 반환된다. 카탈로그 DTO와 표본은 9절에 정의했다. 나머지 기능의 세부 계약은 착수 시 관련 담당자와 맞춘다.
 
 | 영역 | 예정 경로 | 상태 |
 | --- | --- | --- |
-| 섭취 기록 | `POST/GET /api/v1/meals`, `PATCH/DELETE /api/v1/meals/{id}` | 미구현 |
 | 사진 영양 분석 | `POST /api/v1/nutrition/analyses`, `GET /api/v1/nutrition/analyses/{id}`, `POST /api/v1/nutrition/analyses/{id}/confirm` | 미구현 |
-| 복지 | `GET /api/v1/welfare`, `GET /api/v1/welfare/{service_id}`, `POST /api/v1/welfare/recommendations` | DTO 계약 제공·실제 조회 후속 |
 | 복지 RAG | `POST /api/v1/welfare/ask` | 검색·답변 생성 후속, 맞춤 목록 추천과 별도 |
 | 도우미 | `POST /api/v1/assistant/messages` | 미구현 |
-| 관리자 운영 | `/api/v1/admin/*` | `/admin/me` 권한 확인 구현. 검수·게시·재시도는 후속 |
+| 관리자 운영 | `/api/v1/admin/*` | `/admin/me`·`/admin/data-jobs` 조회 구현. 검수·게시·재시도는 후속 |
 
 이 표는 예정 경로의 요약이며 전체 기능의 확정 계약은 아니다. 신규 기능의 채택 상태는 최종 기획서, 기능별 계획은 구현계획서를 따른다.
 
@@ -303,4 +412,4 @@ DTO 구현은 `app/schemas/catalog.py`에 있다. 레시피 목록·상세와 �
 - HTTP 오류는 `error.code`로 분기하고 `error.message`를 표시한다. 입력 오류는 `error.fields`, 서버가 재시도 가능하다고 표시한 오류는 `error.retryable`을 읽는다. JSON 본문이 없는 네트워크·프록시 오류는 앱의 기본 안내로 처리한다.
 - React는 관리자 요청에 `Authorization: Bearer <access_token>`을 보내고 `data.role`을 확인한다. 401은 세션 재확인, 403은 권한 부족 상태로 표시한다. Flutter와 React 모두 토큰·프로필을 요청 및 응답 로그에서 제외한다.
 
-현재 Flutter 화면은 `DemoRepository`의 번들 JSON과 기기 내 규칙으로 식단·복지를 추천한다. 서버 전환은 연결된 레시피 목록·상세와 세션·프로필부터 진행한다. 식단 추천은 실행 API에서 확인할 수 있다. 복지 목록·상세·추천은 [예정 OpenAPI](./catalog.openapi.json)와 [JSON 표본](./api_examples.json)으로 화면을 먼저 맞추고, 실제 서버 연결은 해당 기능이 구현된 뒤 검증한다. [Flutter 통신 PR #6](https://github.com/dlwlssud123/SoftwareProject/pull/6)의 오류 파서는 화면 연동 시 `error.message`를 읽도록 맞춘다.
+Flutter의 레시피 목록·상세·식단 추천·세션·프로필·식단표·레시피 저장은 서버 연결을 제공한다. 복지 화면은 아직 번들 자료를 사용한다. 복지 목록·상세·후보 추천·저장 서버 API는 이번 작업 브랜치에 구현했으며, 앱 DTO 연결과 기업 서버 재배포 후 실제 자료로 검증해야 한다. 오류 파서는 `error.message`를 읽는다.

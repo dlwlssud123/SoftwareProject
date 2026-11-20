@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import '../data/demo_repository.dart';
+import '../data/welfare_api.dart';
 import '../services/settings.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'profile_form.dart';
 import 'nutrition_screen.dart';
+import 'welfare_screens.dart';
 
 class AssistantScreen extends StatelessWidget {
   const AssistantScreen({
     required this.repository,
     required this.settings,
+    this.welfareApi,
     super.key,
   });
   final DemoRepository repository;
   final AppSettings settings;
+  final WelfareApi? welfareApi;
   void chat(BuildContext context) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => ConversationScreen(settings: settings),
@@ -72,17 +76,21 @@ class AssistantScreen extends StatelessWidget {
       ),
       FeatureTile(
         title: '복지 소식 · 맞춤 추천',
-        subtitle: '내 정보로 필요한 복지 찾기',
+        subtitle: welfareApi == null
+            ? '예시로 복지 찾기 체험'
+            : '내 지역의 복지 찾기 · 저장한 복지와 메모',
         icon: Icons.campaign_rounded,
         color: const Color(0xFFCE4149),
         background: const Color(0xFFFFF0F0),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (_) => ProfileForm(
-              repository: repository,
-              settings: settings,
-              welfare: true,
-            ),
+            builder: (_) => welfareApi != null
+                ? WelfareSearchScreen(api: welfareApi!)
+                : ProfileForm(
+                    repository: repository,
+                    settings: settings,
+                    welfare: true,
+                  ),
           ),
         ),
       ),

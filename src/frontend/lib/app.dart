@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'data/demo_repository.dart';
 import 'data/recipe_api.dart';
+import 'data/intake_api.dart';
+import 'data/welfare_api.dart';
 import 'services/settings.dart';
 import 'services/account.dart';
 import 'theme.dart';
@@ -18,6 +20,8 @@ class ValueFlowApp extends StatelessWidget {
     required this.settings,
     this.recipeApi,
     this.account,
+    this.intakeApi,
+    this.welfareApi,
     super.key,
   });
   final DemoRepository repository;
@@ -26,6 +30,8 @@ class ValueFlowApp extends StatelessWidget {
   /// null이면 서버 없이 데모 데이터만 쓴다.
   final RecipeApi? recipeApi;
   final Account? account;
+  final IntakeApi? intakeApi;
+  final WelfareApi? welfareApi;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: settings,
@@ -56,6 +62,8 @@ class ValueFlowApp extends StatelessWidget {
       settings: settings,
       recipeApi: recipeApi,
       account: account,
+      intakeApi: intakeApi,
+      welfareApi: welfareApi,
     );
     final auth = account;
     if (auth == null) return shell();
@@ -73,12 +81,16 @@ class AppShell extends StatefulWidget {
     required this.settings,
     this.recipeApi,
     this.account,
+    this.intakeApi,
+    this.welfareApi,
     super.key,
   });
   final DemoRepository repository;
   final AppSettings settings;
   final RecipeApi? recipeApi;
   final Account? account;
+  final IntakeApi? intakeApi;
+  final WelfareApi? welfareApi;
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -98,8 +110,16 @@ class _AppShellState extends State<AppShell> {
       recipeApi: widget.recipeApi,
       account: widget.account,
     ),
-    NutritionScreen(repository: widget.repository, settings: widget.settings),
-    AssistantScreen(repository: widget.repository, settings: widget.settings),
+    NutritionScreen(
+      repository: widget.repository,
+      settings: widget.settings,
+      intakeApi: widget.intakeApi,
+    ),
+    AssistantScreen(
+      repository: widget.repository,
+      settings: widget.settings,
+      welfareApi: widget.welfareApi,
+    ),
     const ContentScreen(),
   ];
   static const labels = ['식단추천', '영양분석', 'AI 도우미', '놀이터'];
@@ -122,7 +142,7 @@ class _AppShellState extends State<AppShell> {
                 child: NavigatorPopHandler<Object?>(
                   enabled: selected == index,
                   onPopWithResult: (result) =>
-                      navigators[index].currentState!.pop(result),
+                      navigators[index].currentState!.maybePop(result),
                   child: Navigator(
                     key: navigators[index],
                     onGenerateRoute: (_) => MaterialPageRoute<void>(
@@ -175,9 +195,17 @@ class _AppShellState extends State<AppShell> {
                     onTap: () {
                       widget.settings.stop();
                       if (selected == i) {
-                        navigators[i].currentState!.popUntil(
-                          (route) => route.isFirst,
-                        );
+                        final navigator = navigators[i].currentState!;
+                        navigator.popUntil((route) {
+                          if (route.isFirst) return true;
+                          // Respect unsaved/saving forms before returning home.
+                          if (route.popDisposition ==
+                              RoutePopDisposition.doNotPop) {
+                            navigator.maybePop();
+                            return true;
+                          }
+                          return false;
+                        });
                       }
                       setState(() {
                         visitedTabs.add(i);

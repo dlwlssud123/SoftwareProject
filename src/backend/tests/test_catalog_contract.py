@@ -126,7 +126,8 @@ def test_planned_contract_references_resolve_and_do_not_register_routes(client):
     for path, method, _, _ in PLANNED:
         assert schema["paths"][path][method]["x-implementation-status"] == "planned"
         assert path not in runtime["paths"]
-    assert client.get("/api/v1/welfare").status_code == 404
+    for path in ("/api/v1/welfare", "/api/v1/welfare/recommendations"):
+        assert path in runtime["paths"]
 
 
 def test_runtime_openapi_matches_committed_snapshot(client):
