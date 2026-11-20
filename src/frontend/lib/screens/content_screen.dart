@@ -3,15 +3,20 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'playground_games.dart';
+import '../data/topic_api.dart';
+import '../models/topic_request.dart';
+import '../services/settings.dart';
+import 'topic_screens.dart';
 
 class ContentScreen extends StatefulWidget {
-  const ContentScreen({super.key});
+  const ContentScreen({required this.settings, this.topicApi, super.key});
+  final AppSettings settings;
+  final TopicApi? topicApi;
   @override
   State<ContentScreen> createState() => _ContentScreenState();
 }
 
 class _ContentScreenState extends State<ContentScreen> {
-  final requested = <String>[];
   bool showVideos = false;
   static const health = [
     (
@@ -87,39 +92,6 @@ class _ContentScreenState extends State<ContentScreen> {
       color: Color(0xFFFAEACF),
     ),
   ];
-
-  Future<void> requestTheme() async {
-    final controller = TextEditingController();
-    final value = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('어떤 주제를 보고 싶으세요?'),
-        content: TextField(
-          controller: controller,
-          maxLength: 60,
-          decoration: const InputDecoration(hintText: '예: 베란다에서 꽃 키우기'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (controller.text.trim().isNotEmpty) {
-                Navigator.of(ctx).pop(controller.text.trim());
-              }
-            },
-            child: const Text('메모하기'),
-          ),
-        ],
-      ),
-    );
-    // Wait until the closing dialog releases its text field.
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-    controller.dispose();
-    if (value != null && mounted) setState(() => requested.add(value));
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -264,26 +236,25 @@ class _ContentScreenState extends State<ContentScreen> {
                 ),
                 const SizedBox(height: 22),
                 OutlinedButton.icon(
-                  onPressed: requestTheme,
+                  onPressed: widget.topicApi == null
+                      ? null
+                      : () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => TopicRequestsScreen(
+                              api: widget.topicApi!,
+                              settings: widget.settings,
+                              initialKind: TopicKind.video,
+                            ),
+                          ),
+                        ),
                   icon: const Icon(Icons.edit_note_rounded),
-                  label: const Text('보고 싶은 주제 메모하기'),
+                  label: const Text('보고 싶은 주제 요청 · 내역'),
                 ),
-                if (requested.isNotEmpty) ...[
-                  const SectionTitle('메모한 주제'),
-                  for (final request in requested)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(
-                        Icons.bookmark_border_rounded,
-                        color: blue,
-                      ),
-                      title: Text(request),
-                      subtitle: const Text(
-                        '현재 화면에서만 보관해요',
-                        style: TextStyle(fontSize: 14),
-                      ),
-                    ),
-                ],
+                if (widget.topicApi == null)
+                  const Text(
+                    '주제 요청은 서버 연결 후 이용할 수 있어요.',
+                    style: TextStyle(fontSize: 14, color: muted),
+                  ),
                 const SizedBox(height: 12),
                 const Text(
                   '영상은 외부 YouTube 검색으로 연결돼요.',

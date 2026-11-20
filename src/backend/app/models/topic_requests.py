@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -30,6 +31,9 @@ class ContentTopicRequest(Base):
         ),
         CheckConstraint("version > 0", name="ck_topic_version"),
         CheckConstraint(
+            "was_submitted OR status = 'withdrawn'", name="ck_topic_submission_state"
+        ),
+        CheckConstraint(
             "(status = 'withdrawn' AND topic IS NULL AND reply IS NULL AND guide_id IS NULL) OR (status <> 'withdrawn' AND topic IS NOT NULL AND length(btrim(topic)) BETWEEN 1 AND 60)",
             name="ck_topic_content",
         ),
@@ -53,6 +57,7 @@ class ContentTopicRequest(Base):
     )
     submission_id: Mapped[uuid.UUID]
     fingerprint: Mapped[str] = mapped_column(String(64))
+    was_submitted: Mapped[bool] = mapped_column(Boolean, server_default="true")
     kind: Mapped[str] = mapped_column(String(16))
     topic: Mapped[str | None] = mapped_column(String(60))
     status: Mapped[str] = mapped_column(String(16), server_default="received")

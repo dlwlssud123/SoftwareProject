@@ -343,6 +343,7 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 | 경로 | 동작 |
 | --- | --- |
 | `POST /content-topic-requests` | `submission_id`(클라이언트 생성 UUID v4), `kind`(`life_guide`/`video`), `topic`(공백 제거 후 1~60자 한 줄). 새 접수 201, 동일 전송 재시도 200. `data.request`, `data.replayed` 반환 |
+| `POST /content-topic-requests/withdraw-submission` | 접수와 같은 본문으로 전송 번호를 취소하고 200 `TopicRecord` 반환. 접수 전이어도 원문 없는 취소 기록을 만들며, 같은 번호로 늦게 도착한 POST는 취소 상태를 유지 |
 | `GET /content-topic-requests` | 본인 목록. 공통 `limit/offset/q`와 선택 `kind/status/submission_id`. 생성 시각 내림차순·ID 정렬. 전송 UUID 조회는 자료를 생성하지 않음 |
 | `GET /content-topic-requests/{request_id}` | 본인 요청·처리 상태·답변·현재 게시된 연결 가이드 |
 | `DELETE /content-topic-requests/{request_id}` | 본인 취소. 원문·답변·연결을 지우고 `withdrawn` 반환. 반복 취소는 같은 결과 |
@@ -356,7 +357,9 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 요청 수정·취소·감사 저장은 한 트랜잭션이고, 관리자 판본 충돌은 `TOPIC_VERSION_CHANGED`(409)다. 가이드 누락/비게시/잘못된 종류는 422 또는 `TOPIC_GUIDE_UNAVAILABLE`(409), DB 실패는 재시도 가능한 `TOPIC_REQUEST_UNAVAILABLE`(503)다. 취소된 요청은 관리자 처리함·상세·감사에서도 숨긴다. 감사에는 주제·답변·프로필·인증 값이 복제되지 않는다. 계정 삭제는 요청과 감사 자료를 함께 삭제하고 관리자 계정만 삭제하면 처리 이력을 보존하며 행위자 FK를 null로 바꾼다. 프로필 동의 철회는 기존 계약대로 프로필만 삭제하며, 주제 취소는 별도 DELETE로 수행한다.
 
-`20261120_05`는 기존 테이블을 변경하지 않고 `content_topic_requests`, `topic_request_audit`를 추가한다. 기획서의 예정 영상 전용 요청은 이 `kind=video` 계약으로 구체화했다. 기존의 실행 중인 경로를 제거하거나 변경하지 않는다. 앱 임시 메모와 관리자 화면 연결은 후속 PR이며, 현재 접수 완료로 대신 표시하지 않는다.
+조회 결과가 없어도 취소하려면 `withdraw-submission`에 보관한 동일 본문을 보낸다. 접수와 전송 번호 취소는 사용자 행의 `FOR NO KEY UPDATE` 잠금으로 직렬화하며, 감사 행의 외래 키 확인과 잠금 순환을 만들지 않는다. 접수 전 취소 기록은 `was_submitted=false`로 구분하고 원문을 저장하지 않는다. 이 기록은 정상 접수 5건 한도와 별도로 최근 24시간 최대 20건이며, 초과 시 `TOPIC_CANCEL_LIMIT`(429)와 `Retry-After`를 반환한다. 이미 접수되었던 요청은 취소해도 정상 접수 한도에 포함된다. 같은 번호의 취소 재시도는 추가로 세지 않는다.
+
+`20261120_05`는 `content_topic_requests`, `topic_request_audit`를 추가한다. `20261120_06`은 `was_submitted`를 추가하고 기존 행을 true로 유지하며, false 행은 취소 상태만 허용한다. 앱은 AI 도우미의 생활 안내에서 게시된 안내 전체 단계를 읽고, 생활 안내·놀이터 영상에서 주제 접수·답변·취소를 이용한다. 전송 전에 서버·계정별 보안 저장소에 전송 번호와 본문을 보관하고, 불명확한 전송은 같은 번호로 확인·재시도·취소한다. 관리자 처리 화면 연결·실제 배포는 별도다. 기존 경로를 제거하지 않는다.
 
 ## 7. 미구현 예정 API
 

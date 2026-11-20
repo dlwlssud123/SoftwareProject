@@ -141,6 +141,56 @@ def _fingerprint(body):
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+def _lock_owner(db, auth):
+    # NO KEY UPDATE serializes submissions without blocking an audit's FK read.
+    owner = db.scalar(
+        select(User.id)
+        .where(User.id == auth.user.id, User.disabled_at.is_(None))
+        .with_for_update(key_share=True)
+    )
+    if owner is None:
+        raise unauthenticated()
+    return owner
+
+
+def _quota(db, owner, now, *, submitted):
+    count, oldest = db.execute(
+        select(func.count(), func.min(ContentTopicRequest.created_at)).where(
+            ContentTopicRequest.user_id == owner,
+            ContentTopicRequest.was_submitted.is_(submitted),
+            ContentTopicRequest.created_at > now - timedelta(days=1),
+        )
+    ).one()
+    if count < (5 if submitted else 20):
+        return
+    remaining = max(1, math.ceil((oldest + timedelta(days=1) - now).total_seconds()))
+    raise AppError(
+        429,
+        "TOPIC_REQUEST_LIMIT" if submitted else "TOPIC_CANCEL_LIMIT",
+        "주제 요청은 24시간 동안 다섯 번까지 보낼 수 있어요. 잠시 후 다시 시도해 주세요."
+        if submitted
+        else "요청 취소가 많아요. 잠시 후 다시 시도해 주세요.",
+        retryable=True,
+        headers={"Retry-After": str(remaining)},
+    )
+
+
+def _withdraw(db, request, auth, row):
+    if row.status == "withdrawn":
+        return
+    before = _state(row)
+    row.status, row.topic, row.reply, row.guide_id, row.reviewed_by = (
+        "withdrawn",
+        None,
+        None,
+        None,
+        None,
+    )
+    row.version += 1
+    row.updated_at = datetime.now(UTC)
+    _audit(db, request, auth, row, "withdraw", before)
+
+
 @router.post("", status_code=201, response_model=SuccessResponse[TopicCreated])
 def create_topic(
     body: TopicCreate,
@@ -151,13 +201,7 @@ def create_topic(
 ):
     try:
         # Serialize duplicate submissions and the rolling quota per owner. Never trust a client user ID.
-        owner = db.scalar(
-            select(User.id)
-            .where(User.id == auth.user.id, User.disabled_at.is_(None))
-            .with_for_update()
-        )
-        if owner is None:
-            raise unauthenticated()
+        owner = _lock_owner(db, auth)
         fingerprint = _fingerprint(body)
         existing = db.scalar(
             select(ContentTopicRequest).where(
@@ -183,23 +227,7 @@ def create_topic(
             db.commit()
             return result
         now = datetime.now(UTC)
-        count, oldest = db.execute(
-            select(func.count(), func.min(ContentTopicRequest.created_at)).where(
-                ContentTopicRequest.user_id == owner,
-                ContentTopicRequest.created_at > now - timedelta(days=1),
-            )
-        ).one()
-        if count >= 5:
-            remaining = max(
-                1, math.ceil((oldest + timedelta(days=1) - now).total_seconds())
-            )
-            raise AppError(
-                429,
-                "TOPIC_REQUEST_LIMIT",
-                "주제 요청은 24시간 동안 다섯 번까지 보낼 수 있어요. 잠시 후 다시 시도해 주세요.",
-                retryable=True,
-                headers={"Retry-After": str(remaining)},
-            )
+        _quota(db, owner, now, submitted=True)
         row = ContentTopicRequest(
             user_id=owner,
             submission_id=body.submission_id,
@@ -218,6 +246,58 @@ def create_topic(
             data=TopicCreated(request=_record(row, None), replayed=False),
             meta=build_meta(request),
         )
+        db.commit()
+        return result
+    except AppError:
+        db.rollback()
+        raise
+    except SQLAlchemyError:
+        db.rollback()
+        raise _unavailable() from None
+
+
+@router.post("/withdraw-submission", response_model=SuccessResponse[TopicRecord])
+def withdraw_submission(
+    body: TopicCreate, request: Request, auth: CurrentAuth, db: DbSession
+):
+    try:
+        owner = _lock_owner(db, auth)
+        row = db.scalar(
+            select(ContentTopicRequest)
+            .where(
+                ContentTopicRequest.user_id == owner,
+                ContentTopicRequest.submission_id == body.submission_id,
+            )
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if row is None:
+            now = datetime.now(UTC)
+            _quota(db, owner, now, submitted=False)
+            row = ContentTopicRequest(
+                user_id=owner,
+                submission_id=body.submission_id,
+                fingerprint=_fingerprint(body),
+                was_submitted=False,
+                kind=body.kind,
+                topic=None,
+                status="withdrawn",
+                version=1,
+                created_at=now,
+                updated_at=now,
+            )
+            db.add(row)
+            db.flush()
+            _audit(db, request, auth, row, "withdraw", None)
+        else:
+            if row.fingerprint != _fingerprint(body):
+                raise AppError(
+                    409,
+                    "TOPIC_SUBMISSION_CHANGED",
+                    "전송한 내용과 달라요. 내 요청에서 원래 내용을 확인해 주세요.",
+                )
+            _withdraw(db, request, auth, row)
+        result = _result(request, db, row)
         db.commit()
         return result
     except AppError:
@@ -293,18 +373,7 @@ def withdraw_topic(
 ):
     try:
         row = _row(db, request_id, owner=auth.user.id, lock=True)
-        if row.status != "withdrawn":
-            before = _state(row)
-            row.status, row.topic, row.reply, row.guide_id, row.reviewed_by = (
-                "withdrawn",
-                None,
-                None,
-                None,
-                None,
-            )
-            row.version += 1
-            row.updated_at = datetime.now(UTC)
-            _audit(db, request, auth, row, "withdraw", before)
+        _withdraw(db, request, auth, row)
         result = _result(request, db, row)
         db.commit()
         return result

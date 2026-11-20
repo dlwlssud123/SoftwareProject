@@ -153,6 +153,8 @@ src/backend/.venv/Scripts/python.exe -m agetech_data.recipes.correct
 
 행 잠금·판본으로 관리자 처리와 사용자 취소를 직렬화한다. 감사의 전후 값은 상태·판본·연결 ID로 제한하며 감사 실패 시 변경도 롤백한다. 계정 삭제는 본인의 요청·감사를 cascade하고, 관리자 삭제는 행위자 참조만 null로 바꾼다. 연결 가이드의 삭제는 연결 FK만 null로 바꾸고, 비공개 전환 시 본인 응답에는 가이드 내용이 나오지 않는다. 운영 downgrade로 자료를 삭제하지 않는다.
 
+`20261120_06`은 접수 여부를 나타내는 `was_submitted`를 true 기본값으로 추가하여 기존 행과 접수 한도를 보존한다. 접수 응답을 못 받은 앱이 전송 번호로 취소하면 미접수 번호에는 원문 없는 `withdrawn`, `was_submitted=false` 기록을 남긴다. 이 기록은 하루 20건으로 제한하고 정상 접수 5건과 별도로 계산한다. false 행은 취소 상태만 허용하는 제약이 있다. 접수·전송 번호 취소의 사용자 잠금은 `FOR NO KEY UPDATE`를 사용하여 중복·한도를 직렬화하면서 감사 FK 확인의 `KEY SHARE`와 호환된다. 운영 DB에는 승인 후 upgrade를 적용하며 자동 downgrade하지 않는다.
+
 ## 8. 기술 근거
 
 - [PostgreSQL 16 Numeric Types](https://www.postgresql.org/docs/16/datatype-numeric.html): exact numeric 저장과 소수 자릿수 설정.
