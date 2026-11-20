@@ -56,6 +56,8 @@ DB는 `pgvector/pgvector:0.8.7-pg16-bookworm` 이미지를 사용하며 로컬 `
 | `DELETE /api/v1/auth/session` | 현재 세션 폐기 |
 | `GET /api/v1/admin/me` | 관리자 세션이면 200, 일반 사용자이면 403 |
 | `POST /api/v1/admin/login` | 운영자가 발급한 전용 아이디·비밀번호로 관리자 세션 발급 |
+| `/api/v1/content-topic-requests` | 생활 가이드·영상 주제 접수·본인 조회·취소, 동일 전송 번호 재시도 보호 |
+| `/api/v1/admin/content-topic-requests` | 관리자 요청 검토·답변·게시 가이드 연결·감사 조회 |
 | `GET /api/v1/recipes` | 활성 레시피 목록, 검색·분류·조리방법·알레르기 제외와 페이지 조회 |
 | `GET /api/v1/recipes/{recipe_id}` | 원천 ID로 활성 레시피 상세 조회 |
 | `GET/PATCH/DELETE /api/v1/profile` | 본인 프로필 조회·동의 후 저장·철회 또는 삭제 |
@@ -154,6 +156,12 @@ $env:RUN_DB_TESTS = '1'
 .venv/Scripts/python.exe -m pytest -q
 Remove-Item Env:RUN_DB_TESTS
 ```
+
+## 콘텐츠 주제 요청
+
+`/api/v1/content-topic-requests`는 생활 가이드·영상 주제를 본인 계정으로 접수·조회·취소한다. 새 전송에는 UUID v4 `submission_id`를 만들고 통신 실패 재시도에는 같은 번호와 같은 내용을 사용한다. 동일 번호의 다른 내용은 409다. 최근 24시간 계정당 새 요청 5건까지이며 취소도 건수에 포함된다. 취소는 원문과 답변을 지우되 재전송 방지용 메타데이터를 남긴다.
+
+관리자는 `/api/v1/admin/content-topic-requests`에서 판본 확인과 답변을 거쳐 검토·완료·보류한다. 생활 가이드 완료는 승인·게시한 가이드 연결이 필요하고, 영상 요청 처리는 자동 영상 제작을 실행하지 않는다. 마이그레이션 `20261120_05`와 관리자 권한이 필요하다. 앱·웹 연동, 운영 자료·실제 배포는 별도이며 상세 요청/응답·재시도·보관 경계는 [API 명세](../../docs/설계/API_명세서.md)의 콘텐츠 주제 요청 부분을 따른다.
 
 ## 기업 서버 배포 경계
 
