@@ -72,6 +72,9 @@ export function createAdminApi(
         throw new ApiError(response.status,
           response.status === 401 ? (login ? '아이디 또는 비밀번호를 확인해 주세요. 연속 실패 시 잠시 후 시도해 주세요.' : '로그인이 만료됐습니다. 다시 로그인해 주세요.') :
           response.status === 403 ? '관리자 권한이 없습니다.' :
+          response.status === 404 ? '자료를 찾을 수 없습니다. 목록에서 다시 확인해 주세요.' :
+          response.status === 409 ? '주소가 중복되거나 자료의 판본·처리 상태가 변경됐습니다. 최신 내용을 확인해 주세요.' :
+          response.status === 422 ? '입력값의 형식과 길이를 확인해 주세요.' :
           response.status === 429 ? '로그인 시도가 많습니다. 잠시 후 다시 시도해 주세요.' :
           response.status === 503 ? '서버에서 처리할 수 없습니다. 잠시 후 다시 시도해 주세요.' : '요청을 처리하지 못했습니다.',
           [429, 503].includes(response.status))
