@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/demo_repository.dart';
 import '../data/recipe_library_api.dart';
 import '../widgets/recipe_actions.dart';
+import '../widgets/ingredient_shopping_button.dart';
 import '../models/recommendations.dart';
 import '../models/recipe_ingredients.dart';
 import '../services/settings.dart';
@@ -578,16 +579,20 @@ class RecipeDetail extends StatelessWidget {
         ),
         _IngredientList(source: recipe.ingredients),
         if (seasonal.isNotEmpty) ...[
-          const SectionTitle('이달의 식재료'),
-          for (final item in seasonal)
-            if (item.shoppingUrl case final url?)
+          const SectionTitle('제철 재료와 출처'),
+          for (final item in seasonal) ...[
+            Text(
+              '${item.name}${item.month == null ? '' : ' · ${item.month}월 재료'}',
+            ),
+            if (item.sourceUrl case final source?)
               OutlinedButton.icon(
-                onPressed: () => openLink(context, url),
-                icon: const Icon(Icons.open_in_new_rounded),
-                label: Text('${item.name} 쿠팡에서 검색'),
-              )
-            else
-              Text(item.name),
+                onPressed: () => openLink(context, source),
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('공식 제철 자료 보기'),
+              ),
+            if (item.shoppingUrl case final url?)
+              IngredientShoppingButton(name: item.name, url: url),
+          ],
         ],
         SectionTitle(
           '조리 방법',
