@@ -1,5 +1,6 @@
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
+from hashlib import sha256
 from uuid import UUID
 
 import pytest
@@ -12,7 +13,7 @@ from test_content_api import catalog_db as catalog_db
 from test_content_api import facility, sql
 
 from app.core.database import get_db
-from app.models import MealFacility
+from app.models import DataImportRun, MealFacility
 from app.schemas.content import FacilityNearbyQuery
 from app.services.content_catalog import nearby_facilities
 
@@ -184,11 +185,26 @@ def test_postgres_nearby_uses_published_current_rows_and_does_not_store_position
             longitude=Decimal("128.60"),
         )
         unknown = facility(name="같은 구 좌표 없음")
+        # Imported rows require complete provenance; partial normalized data is
+        # deliberately rejected by the database's all-or-none constraint.
+        imported = DataImportRun(
+            fingerprint=sha256(b"nearby-facility-fixture").hexdigest(),
+            parser_version="nearby-test",
+            inputs={},
+            counts={},
+        )
+        db.add(imported)
+        db.flush()
         ended = facility(
             name="종료된 곳",
             latitude=Decimal("35.87"),
             longitude=Decimal("128.60"),
             normalized={"close_date": "2000-01-01"},
+            provider="test:nearby",
+            source_id="closed",
+            content_sha256=sha256(b"closed-facility-fixture").hexdigest(),
+            last_seen_at=datetime.now(UTC),
+            last_seen_run_id=imported.id,
         )
         db.add_all([known, hidden, unknown, ended])
         db.commit()
