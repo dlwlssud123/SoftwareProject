@@ -342,6 +342,13 @@ def test_recommendations_use_own_profile_and_confirmed_history(
         assert evidence["seasonal_food_id"] == str(seasonal.id)
         assert evidence["month"] == now.month
         assert evidence["source_url"] == seasonal.source_url
+        saved_evidence = db.scalar(
+            select(RecommendationItem.seasonal_ingredients).where(
+                RecommendationItem.run_id == UUID(health["recommendation_id"]),
+                RecommendationItem.recipe_revision_id == revision.id,
+            )
+        )
+        assert saved_evidence == [evidence]
         assert "2" not in by_recipe
         seasonal.detail_status = "failed"
         db.commit()

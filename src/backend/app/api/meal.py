@@ -190,7 +190,8 @@ def recommend_meal(
                     recipe_revision_id=item.item.source.revision_id,
                     reasons=item.reasons,
                     seasonal_ingredients=[
-                        match.model_dump() for match in item.seasonal_ingredients
+                        match.model_dump(mode="json")
+                        for match in item.seasonal_ingredients
                     ],
                 )
             )
