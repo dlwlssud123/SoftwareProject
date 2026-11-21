@@ -73,6 +73,12 @@ def create_app() -> FastAPI:
         response.headers["X-Request-ID"] = request.state.request_id
         if request.url.path.rstrip("/") == "/api/v1/meal-facilities/nearby":
             response.headers["Cache-Control"] = "no-store"
+        if (
+            request.url.path.startswith("/api/v1/seasonal-foods/")
+            and request.url.path.rstrip("/").endswith("/recipes")
+            and "exclude_allergens" in request.query_params
+        ):
+            response.headers["Cache-Control"] = "no-store"
         if request.url.path.startswith("/api/v1/admin/"):
             response.headers["Cache-Control"] = "no-store"
         if (

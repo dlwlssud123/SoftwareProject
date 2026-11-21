@@ -341,6 +341,8 @@ class SeasonalMatch(ContractModel):
     name: str
     source_url: str
     shopping_search_url: str
+    seasonal_food_id: UUID | None = None
+    month: int | None = Field(default=None, ge=1, le=12)
 
 
 class RecipeRecommendation(Recommendation[RecipeRecord]):

@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import Field, JsonValue, model_validator
 
-from app.schemas.catalog import ContractModel, Page, PageQuery
+from app.schemas.catalog import Allergen, ContractModel, Page, PageQuery
 
 
 class FacilityQuery(PageQuery):
@@ -59,6 +59,10 @@ class NearbyFacilityPage(Page[NearbyFacilityRecord]):
 
 class SeasonalQuery(PageQuery):
     month: int | None = Field(default=None, ge=1, le=12)
+
+
+class SeasonalRecipeQuery(PageQuery):
+    exclude_allergens: list[Allergen] = Field(default_factory=list, max_length=19)
 
 
 class SeasonalSummary(ContractModel):
