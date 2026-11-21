@@ -30,12 +30,14 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? query,
     String? token,
+    CancelToken? cancelToken,
     required T Function(Object? json) parse,
   }) => _send(
     () => _dio.get<Object?>(
       path,
       queryParameters: query,
       options: _options(token),
+      cancelToken: cancelToken,
     ),
     parse,
   );
@@ -46,11 +48,13 @@ class ApiClient {
     String? token,
     String? idempotencyKey,
     bool followRedirects = true,
+    CancelToken? cancelToken,
     required T Function(Object? json) parse,
   }) => _send(
     () => _dio.post<Object?>(
       path,
       data: body,
+      cancelToken: cancelToken,
       options: _options(
         token,
         followRedirects: followRedirects,

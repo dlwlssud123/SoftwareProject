@@ -17,11 +17,13 @@ void main() {
     final app = tester.widget<ValueFlowApp>(find.byType(ValueFlowApp));
     if (ApiConfig.hasServer) {
       expect(app.account, isNotNull);
+      expect(app.facilityApi, isNotNull);
       expect(app.topicApi, isNotNull);
       expect(app.topicApi!.identity, same(app.account));
       expect(app.topicApi!.owner, isNull);
     } else {
       expect(app.account, isNull);
+      expect(app.facilityApi, isNull);
       expect(app.topicApi, isNull);
       await tester.tap(find.byKey(const Key('tab-3')));
       await tester.pumpAndSettle();
