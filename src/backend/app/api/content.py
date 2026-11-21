@@ -6,7 +6,7 @@ from fastapi import APIRouter, Path, Query, Request
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.api.recipes import active_recipes, recipe_record
+from app.api.recipes import active_recipes, matches_allergies, recipe_record
 from app.core.auth import DbSession
 from app.core.errors import AppError
 from app.models import (
@@ -29,6 +29,7 @@ from app.schemas.content import (
     NearbyFacilityPage,
     SeasonalDetail,
     SeasonalQuery,
+    SeasonalRecipeQuery,
     SeasonalSummary,
 )
 from app.services.content_catalog import (
@@ -196,7 +197,10 @@ def get_seasonal(food_id: UUID, request: Request, db: DbSession):
     responses={404: {"model": ErrorResponse}},
 )
 def list_seasonal_recipes(
-    food_id: UUID, request: Request, query: Annotated[PageQuery, Query()], db: DbSession
+    food_id: UUID,
+    request: Request,
+    query: Annotated[SeasonalRecipeQuery, Query()],
+    db: DbSession,
 ):
     try:
         _seasonal(db.get(SeasonalFood, food_id))
@@ -216,15 +220,29 @@ def list_seasonal_recipes(
         )
         if query.q:
             stmt = stmt.where(RecipeRevision.name.icontains(query.q, autoescape=True))
-        total = db.scalar(select(func.count()).select_from(stmt.subquery()))
-        rows = db.execute(
-            stmt.order_by(Recipe.source_id).offset(query.offset).limit(query.limit)
-        ).all()
+        ordered = stmt.order_by(Recipe.source_id)
+        if query.exclude_allergens:
+            excluded = set(query.exclude_allergens)
+            matches = [
+                record
+                for row in db.execute(ordered).all()
+                if matches_allergies(record := recipe_record(*row), excluded)
+            ]
+            total = len(matches)
+            items = matches[query.offset : query.offset + query.limit]
+        else:
+            total = db.scalar(select(func.count()).select_from(stmt.subquery()))
+            items = [
+                recipe_record(*row)
+                for row in db.execute(
+                    ordered.offset(query.offset).limit(query.limit)
+                ).all()
+            ]
     except SQLAlchemyError:
         raise _unavailable() from None
     return RecipeListResponse(
         data=Page(
-            items=[recipe_record(*row) for row in rows],
+            items=items,
             total=total,
             offset=query.offset,
             limit=query.limit,

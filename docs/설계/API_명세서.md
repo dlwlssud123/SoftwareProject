@@ -290,7 +290,7 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 | `GET /meal-facilities/{facility_id}` | 목록의 UUID `id`. 이름·지역·주소·좌표(없으면 null)·대상·운영 시간·연락처·출처·확인일·주의사항 |
 | `GET /seasonal-foods` | 선택 `month`(1~12), 생략 시 KST 현재 월. 이름 검색, 상세 본문을 제외한 요약과 이미지·쇼핑 검색 링크 |
 | `GET /seasonal-foods/{food_id}` | 목록의 UUID `id`. 요약 + 원천 상세 글(`detail`)·재료명(`terms`)·원천 관련 레시피 이름 |
-| `GET /seasonal-foods/{food_id}/recipes` | 실제 DB 레시피 연결. 기존 `RecipeRecord` 페이지 구조, 이름 검색·페이지 조회 |
+| `GET /seasonal-foods/{food_id}/recipes` | 실제 DB 레시피 연결. 기존 `RecipeRecord` 페이지 구조, 이름 검색·페이지 조회. 선택 `exclude_allergens` 반복 키(서버 알레르기 이름, 최대 19개)로 제외 후 건수·페이지 계산 |
 | `GET /life-guides` | 제목 검색·페이지 조회. `id/slug/title/source_reference/checked_on` |
 | `GET /life-guides/{slug}` | 가이드 요약 + 배열 순서대로 `steps`(단계 객체, `text` 등). 게시된 가이드만 조회 |
 
@@ -301,6 +301,10 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 `latitude`는 -90~90, `longitude`는 -180~180의 유한 숫자이며 문자열·불리언은 받지 않는다. `district`는 기존과 같이 `region`과 함께 사용한다. 위치를 거부하거나 얻지 못하면 기존 지역 GET 조회를 사용한다. 거리는 약 10m 단위로 반올림한 직선거리(km)이며 실제 이동 거리·당일 운영을 뜻하지 않는다. `match`는 `district`(같은 시군구의 반경 내 시설), `nearby`(그 외 반경 내 시설), `district_no_coords`(거리 미확인)이고, 마지막 유형의 `distance_km`는 null이다. 지역 없이 검색하면 좌표 없는 시설은 거리순 결과에 넣지 않는다. 조회된 결과를 거리·이름·UUID의 일정한 순서로 정렬한 뒤 페이지를 자르며 `total`은 그 검색 전체 후보 수다. 기존 GET·상세 응답 형식과 DB 스키마는 바꾸지 않는다. 앱의 위치 권한·지역 대체 선택은 후속 앱 연결에서 구현한다.
 
 제철 식재료는 `is_published=true`이고 상세가 `ok`인 항목만 제공한다. `content_sha256`·`provider/source_id/source_url/checked_on`으로 원천을 식별한다. 목록은 전체 상세 본문을 보내지 않고 상세 조회 시 읽어온다. `official_related_recipes`는 원천의 레시피 이름이며 앱에서 바로 조회 가능한 레시피 ID라는 뜻이 아니다. 앱 연결에는 `/recipes` 조회를 사용한다. 이 조회는 연결 당시 판본과 현재 활성 레시피 판본이 같은 자료만 제공하고, 연결 재적재 전의 낡은 판본은 숨긴다. `shopping_search_url`은 재료명으로 이동하는 외부 쿠팡 검색 주소이며 가격·재고·주문 API가 아니다.
+
+제철 연결 레시피의 `exclude_allergens`는 일반 레시피 조회와 같은 판정 함수를 사용한다. 검출·확인 필요·판정 불가 항목에 제외 조건이 걸리거나 알레르기 분석이 완전하지 않은 레시피를 제외한 뒤 `total`과 페이지를 계산한다. 제외 조건이 있는 응답은 오류를 포함해 `Cache-Control: no-store`다. 공개 조회이며 계정 프로필을 저장·수정하지 않는다. 질환별 맞춤 추천은 식단 추천 API에서 수행한다.
+
+식단 추천의 `seasonal_ingredients[]`는 이름·공식 원문·쿠팡 검색 주소 외에 `seasonal_food_id`(UUID)와 `month`(1~12)를 제공한다. 앱은 해당 월·상세 안내 연결에 사용할 수 있다. 두 필드는 이전 응답과의 호환을 위해 선택 값이며, 실제 추천은 현재 활성 레시피에 연결되고 공개·상세 정상인 KST 현재 월 자료만 반영한다.
 
 ### 관리자 수집 작업 현황
 

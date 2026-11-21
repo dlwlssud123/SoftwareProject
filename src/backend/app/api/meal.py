@@ -117,12 +117,14 @@ def recommend_meal(
             )
         ).all()
         seasonal = defaultdict(list)
-        for revision_id, name, source_url, shopping_url in db.execute(
+        for revision_id, name, source_url, shopping_url, food_id, month in db.execute(
             select(
                 SeasonalRecipeLink.recipe_revision_id,
                 SeasonalFood.name,
                 SeasonalFood.source_url,
                 SeasonalFood.shopping_search_url,
+                SeasonalFood.id,
+                SeasonalFood.month,
             )
             .join(SeasonalFood, SeasonalFood.id == SeasonalRecipeLink.seasonal_food_id)
             .join(
@@ -131,13 +133,18 @@ def recommend_meal(
             )
             .where(
                 SeasonalFood.is_published.is_(True),
+                SeasonalFood.detail_status == "ok",
                 SeasonalFood.month == now.astimezone(KOREA_TIMEZONE).month,
             )
             .order_by(SeasonalFood.name, SeasonalFood.source_id)
         ):
             seasonal[revision_id].append(
                 SeasonalMatch(
-                    name=name, source_url=source_url, shopping_search_url=shopping_url
+                    name=name,
+                    source_url=source_url,
+                    shopping_search_url=shopping_url,
+                    seasonal_food_id=food_id,
+                    month=month,
                 )
             )
         records = (recipe_record(*row) for row in db.execute(active_recipes()))

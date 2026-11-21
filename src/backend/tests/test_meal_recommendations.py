@@ -338,7 +338,16 @@ def test_recommendations_use_own_profile_and_confirmed_history(
         assert by_recipe["4"]["item"]["computed_nutrition"] is None
         assert "같은 열량 기준" in health["warnings"][0]
         assert by_recipe["7"]["seasonal_ingredients"][0]["name"] == "오이"
+        evidence = by_recipe["7"]["seasonal_ingredients"][0]
+        assert evidence["seasonal_food_id"] == str(seasonal.id)
+        assert evidence["month"] == now.month
+        assert evidence["source_url"] == seasonal.source_url
         assert "2" not in by_recipe
+        seasonal.detail_status = "failed"
+        db.commit()
+        result = client.post(PATH, json=payload, headers=headers).json()["data"]
+        assert all(not item["seasonal_ingredients"] for item in result["items"])
+        seasonal.detail_status = "ok"
         seasonal.is_published = False
         db.commit()
         result = client.post(PATH, json=payload, headers=headers).json()["data"]

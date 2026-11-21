@@ -3374,6 +3374,40 @@
               ],
               "title": "Q"
             }
+          },
+          {
+            "name": "exclude_allergens",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "알류",
+                  "우유",
+                  "메밀",
+                  "땅콩",
+                  "대두",
+                  "밀",
+                  "고등어",
+                  "게",
+                  "새우",
+                  "돼지고기",
+                  "복숭아",
+                  "토마토",
+                  "아황산류",
+                  "호두",
+                  "닭고기",
+                  "쇠고기",
+                  "오징어",
+                  "조개류",
+                  "잣"
+                ],
+                "type": "string"
+              },
+              "maxItems": 19,
+              "title": "Exclude Allergens"
+            }
           }
         ],
         "responses": {
@@ -10525,6 +10559,31 @@
           "shopping_search_url": {
             "type": "string",
             "title": "Shopping Search Url"
+          },
+          "seasonal_food_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seasonal Food Id"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 12.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Month"
           }
         },
         "additionalProperties": false,
