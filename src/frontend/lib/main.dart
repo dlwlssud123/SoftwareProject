@@ -16,6 +16,7 @@ import 'data/profile_api.dart';
 import 'data/intake_api.dart';
 import 'data/welfare_api.dart';
 import 'data/topic_api.dart';
+import 'data/facility_api.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -72,6 +73,7 @@ Future<void> main() async {
       settings: settings,
       recipeApi: recipeApi,
       account: account,
+      facilityApi: account == null ? null : FacilityApi(ApiClient()),
       welfareApi: account == null ? null : WelfareApi(ApiClient(), account),
       topicApi: account == null
           ? null
