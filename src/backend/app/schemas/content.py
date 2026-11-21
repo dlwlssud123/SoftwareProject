@@ -42,6 +42,21 @@ class FacilityPage(Page[FacilityRecord]):
     warnings: list[str] = Field(default_factory=list)
 
 
+class FacilityNearbyQuery(FacilityQuery):
+    latitude: float = Field(ge=-90, le=90, strict=True)
+    longitude: float = Field(ge=-180, le=180, strict=True)
+    radius_km: float = Field(default=5.0, ge=0.5, le=50, strict=True)
+
+
+class NearbyFacilityRecord(FacilityRecord):
+    match: Literal["district", "nearby", "district_no_coords"]
+    distance_km: float | None = Field(default=None, ge=0)
+
+
+class NearbyFacilityPage(Page[NearbyFacilityRecord]):
+    warnings: list[str] = Field(default_factory=list)
+
+
 class SeasonalQuery(PageQuery):
     month: int | None = Field(default=None, ge=1, le=12)
 

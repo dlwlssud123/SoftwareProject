@@ -20,11 +20,13 @@ from app.models import (
 from app.schemas.catalog import Page, PageQuery, RecipeListResponse
 from app.schemas.common import ErrorResponse, SuccessResponse, build_meta
 from app.schemas.content import (
+    FacilityNearbyQuery,
     FacilityPage,
     FacilityQuery,
     FacilityRecord,
     GuideDetail,
     GuideSummary,
+    NearbyFacilityPage,
     SeasonalDetail,
     SeasonalQuery,
     SeasonalSummary,
@@ -33,6 +35,7 @@ from app.services.content_catalog import (
     facility_candidates,
     facility_record,
     matching_facilities,
+    nearby_facilities,
 )
 
 router = APIRouter(
@@ -75,17 +78,9 @@ def _seasonal(food: SeasonalFood | None) -> SeasonalFood:
 def list_facilities(
     request: Request, query: Annotated[FacilityQuery, Query()], db: DbSession
 ):
-    stmt = select(MealFacility).where(MealFacility.is_published.is_(True))
-    if query.q:
-        stmt = stmt.where(
-            or_(
-                MealFacility.name.icontains(query.q, autoescape=True),
-                MealFacility.address.icontains(query.q, autoescape=True),
-            )
-        )
     try:
         notes, items = matching_facilities(
-            db.scalars(stmt).all(), query, datetime.now(KST).date()
+            _facility_rows(db, query), query, datetime.now(KST).date()
         )
     except SQLAlchemyError:
         raise _unavailable() from None
@@ -95,6 +90,43 @@ def list_facilities(
             total=len(items),
             limit=query.limit,
             offset=query.offset,
+            warnings=notes,
+        ),
+        meta=build_meta(request),
+    )
+
+
+def _facility_rows(db, query):
+    stmt = select(MealFacility).where(MealFacility.is_published.is_(True))
+    if query.q:
+        stmt = stmt.where(
+            or_(
+                MealFacility.name.icontains(query.q, autoescape=True),
+                MealFacility.address.icontains(query.q, autoescape=True),
+            )
+        )
+    return db.scalars(stmt).all()
+
+
+@router.post(
+    "/meal-facilities/nearby", response_model=SuccessResponse[NearbyFacilityPage]
+)
+def search_nearby_facilities(
+    body: FacilityNearbyQuery, request: Request, db: DbSession
+):
+    # Coordinates are transient search inputs; do not write profiles, logs or jobs.
+    try:
+        notes, items = nearby_facilities(
+            _facility_rows(db, body), body, datetime.now(KST).date()
+        )
+    except SQLAlchemyError:
+        raise _unavailable() from None
+    return SuccessResponse(
+        data=NearbyFacilityPage(
+            items=items[body.offset : body.offset + body.limit],
+            total=len(items),
+            limit=body.limit,
+            offset=body.offset,
             warnings=notes,
         ),
         meta=build_meta(request),

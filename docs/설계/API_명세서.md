@@ -286,6 +286,7 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 | 메서드·경로 (`/api/v1` 접두사) | 입력·응답 |
 | --- | --- |
 | `GET /meal-facilities` | 선택 `region/district`, `district`는 `region`과 함께. 지역 생략 시 전체 지역, 선택 시 내 시군구 → 같은 시도 다른 시군구 순. 이름·주소 검색. `warnings`로 지역 해석 결과 안내 |
+| `POST /meal-facilities/nearby` | 본문에 필수 `latitude/longitude`, 선택 `radius_km`(0.5~50, 기본 5), `region/district`, 공통 `q/limit/offset`. 좌표가 있는 반경 내 시설은 지역 경계와 무관하게 거리순, 같은 시군구의 좌표 없는 시설은 마지막에 표시. 각 시설에 `distance_km`·`match` 추가 |
 | `GET /meal-facilities/{facility_id}` | 목록의 UUID `id`. 이름·지역·주소·좌표(없으면 null)·대상·운영 시간·연락처·출처·확인일·주의사항 |
 | `GET /seasonal-foods` | 선택 `month`(1~12), 생략 시 KST 현재 월. 이름 검색, 상세 본문을 제외한 요약과 이미지·쇼핑 검색 링크 |
 | `GET /seasonal-foods/{food_id}` | 목록의 UUID `id`. 요약 + 원천 상세 글(`detail`)·재료명(`terms`)·원천 관련 레시피 이름 |
@@ -293,7 +294,11 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 | `GET /life-guides` | 제목 검색·페이지 조회. `id/slug/title/source_reference/checked_on` |
 | `GET /life-guides/{slug}` | 가이드 요약 + 배열 순서대로 `steps`(단계 객체, `text` 등). 게시된 가이드만 조회 |
 
-급식소는 원천 품질 표시와 조회 시점의 운영 종료일을 확인해 종료·미운영 시설을 제외한다. 시작 전 시설과 오래된 자료는 `cautions/quality_flags`에 안내한다. 원천 `reference_date`(자료 기준일)와 `checked_on`(원천 확인일)을 구분하며, 이용 자격·당일 운영·식사 제공 여부를 확정하지 않는다. 좌표 조회나 사용자 위치 저장은 이번 API 범위에 포함하지 않는다.
+급식소는 원천 품질 표시와 조회 시점의 운영 종료일을 확인해 종료·미운영 시설을 제외한다. 시작 전 시설과 오래된 자료는 `cautions/quality_flags`에 안내한다. 원천 `reference_date`(자료 기준일)와 `checked_on`(원천 확인일)을 구분하며, 이용 자격·당일 운영·식사 제공 여부를 확정하지 않는다.
+
+위치 허용 시 `/meal-facilities/nearby`에 HTTPS POST 본문으로 좌표를 전달한다. 좌표는 이번 검색 계산에만 쓰며 사용자·프로필·작업·시설 테이블에 저장하거나 응답으로 되돌리지 않는다. 성공·검증 오류·DB/내부 오류는 모두 `Cache-Control: no-store`다. 좌표를 URL 쿼리로 보내지 않는다. 서버의 공통 오류 응답은 잘못 입력한 좌표나 DB 세부 내용을 포함하지 않는다. 서버 앞단에서도 본문 로깅을 켜지 않아야 한다.
+
+`latitude`는 -90~90, `longitude`는 -180~180의 유한 숫자이며 문자열·불리언은 받지 않는다. `district`는 기존과 같이 `region`과 함께 사용한다. 위치를 거부하거나 얻지 못하면 기존 지역 GET 조회를 사용한다. 거리는 약 10m 단위로 반올림한 직선거리(km)이며 실제 이동 거리·당일 운영을 뜻하지 않는다. `match`는 `district`(같은 시군구의 반경 내 시설), `nearby`(그 외 반경 내 시설), `district_no_coords`(거리 미확인)이고, 마지막 유형의 `distance_km`는 null이다. 지역 없이 검색하면 좌표 없는 시설은 거리순 결과에 넣지 않는다. 조회된 결과를 거리·이름·UUID의 일정한 순서로 정렬한 뒤 페이지를 자르며 `total`은 그 검색 전체 후보 수다. 기존 GET·상세 응답 형식과 DB 스키마는 바꾸지 않는다. 앱의 위치 권한·지역 대체 선택은 후속 앱 연결에서 구현한다.
 
 제철 식재료는 `is_published=true`이고 상세가 `ok`인 항목만 제공한다. `content_sha256`·`provider/source_id/source_url/checked_on`으로 원천을 식별한다. 목록은 전체 상세 본문을 보내지 않고 상세 조회 시 읽어온다. `official_related_recipes`는 원천의 레시피 이름이며 앱에서 바로 조회 가능한 레시피 ID라는 뜻이 아니다. 앱 연결에는 `/recipes` 조회를 사용한다. 이 조회는 연결 당시 판본과 현재 활성 레시피 판본이 같은 자료만 제공하고, 연결 재적재 전의 낡은 판본은 숨긴다. `shopping_search_url`은 재료명으로 이동하는 외부 쿠팡 검색 주소이며 가격·재고·주문 API가 아니다.
 
