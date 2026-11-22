@@ -8,6 +8,7 @@ from app.models.auth import (  # noqa: F401
     User,
 )
 from app.models.content import (  # noqa: F401
+    CatalogAuditEvent,
     GuideAuditEvent,
     LifeGuide,
     MealFacility,

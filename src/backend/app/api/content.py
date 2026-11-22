@@ -32,6 +32,7 @@ from app.schemas.content import (
     SeasonalRecipeQuery,
     SeasonalSummary,
 )
+from app.services.catalog_review import review_allows, review_visibility
 from app.services.content_catalog import (
     facility_candidates,
     facility_record,
@@ -70,7 +71,12 @@ def _page(db, stmt, query, order, record_type):
 
 
 def _seasonal(food: SeasonalFood | None) -> SeasonalFood:
-    if food is None or not food.is_published or food.detail_status != "ok":
+    if (
+        food is None
+        or not food.is_published
+        or food.detail_status != "ok"
+        or not review_allows(food)
+    ):
         raise _not_found()
     return food
 
@@ -98,7 +104,9 @@ def list_facilities(
 
 
 def _facility_rows(db, query):
-    stmt = select(MealFacility).where(MealFacility.is_published.is_(True))
+    stmt = select(MealFacility).where(
+        MealFacility.is_published.is_(True), review_visibility(MealFacility)
+    )
     if query.q:
         stmt = stmt.where(
             or_(
@@ -144,7 +152,7 @@ def get_facility(facility_id: UUID, request: Request, db: DbSession):
         row = db.get(MealFacility, facility_id)
     except SQLAlchemyError:
         raise _unavailable() from None
-    if row is None or not row.is_published:
+    if row is None or not row.is_published or not review_allows(row):
         raise _not_found()
     candidates = facility_candidates([row], datetime.now(KST).date())
     if not candidates:
@@ -161,6 +169,7 @@ def list_seasonal(
     month = query.month or datetime.now(KST).month
     stmt = select(SeasonalFood).where(
         SeasonalFood.is_published.is_(True),
+        review_visibility(SeasonalFood),
         SeasonalFood.detail_status == "ok",
         SeasonalFood.month == month,
     )
@@ -215,6 +224,7 @@ def list_seasonal_recipes(
             .where(
                 SeasonalFood.id == food_id,
                 SeasonalFood.is_published.is_(True),
+                review_visibility(SeasonalFood),
                 SeasonalFood.detail_status == "ok",
             )
         )

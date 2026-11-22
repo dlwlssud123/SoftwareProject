@@ -96,9 +96,40 @@ class GuideAuditEvent(Base):
     )
 
 
-class MealFacility(Base):
+class CatalogReviewFields:
+    # Imports own source visibility; these independent fields preserve human decisions.
+    review_version: Mapped[int] = mapped_column(server_default="1")
+    review_status: Mapped[str] = mapped_column(String(16), server_default="legacy")
+    review_is_published: Mapped[bool] = mapped_column(server_default="true")
+    reviewed_content_sha256: Mapped[str | None] = mapped_column(String(64))
+    review_note: Mapped[str | None] = mapped_column(Text)
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+def _review_constraints(prefix):
+    return (
+        CheckConstraint("review_version > 0", name=f"ck_{prefix}_review_version"),
+        CheckConstraint(
+            "review_status IN ('legacy', 'review', 'approved', 'rejected')",
+            name=f"ck_{prefix}_review_status",
+        ),
+        CheckConstraint(
+            "NOT review_is_published OR review_status IN ('legacy', 'approved')",
+            name=f"ck_{prefix}_review_publication",
+        ),
+    )
+
+
+class MealFacility(CatalogReviewFields, Base):
     __tablename__ = "meal_facilities"
     __table_args__ = (
+        *_review_constraints("facility"),
         Index("ix_meal_facilities_region", "sido", "sigungu"),
         CheckConstraint(
             "(latitude IS NULL AND longitude IS NULL) OR "
@@ -144,11 +175,12 @@ class MealFacility(Base):
     )
 
 
-class SeasonalFood(Base):
+class SeasonalFood(CatalogReviewFields, Base):
     """One official 'food of the month' item (month, source sequence) with its detail text."""
 
     __tablename__ = "seasonal_foods"
     __table_args__ = (
+        *_review_constraints("seasonal_food"),
         UniqueConstraint("provider", "source_id", name="uq_seasonal_food_source"),
         UniqueConstraint("id", "month", name="uq_seasonal_food_month"),
         CheckConstraint("month BETWEEN 1 AND 12", name="ck_seasonal_food_month"),
@@ -178,6 +210,36 @@ class SeasonalFood(Base):
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     last_seen_run_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("data_import_runs.id", name="fk_seasonal_food_last_seen_run")
+    )
+
+
+class CatalogAuditEvent(Base):
+    __tablename__ = "catalog_audit_events"
+    __table_args__ = (
+        CheckConstraint(
+            "kind IN ('meal-facilities', 'seasonal-foods')",
+            name="ck_catalog_audit_kind",
+        ),
+        CheckConstraint(
+            "action IN ('submit', 'approve', 'reject', 'publish', 'unpublish')",
+            name="ck_catalog_audit_action",
+        ),
+        Index("ix_catalog_audit_target_created", "kind", "target_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    kind: Mapped[str] = mapped_column(String(24))
+    # Preserve decisions even if a source record is eventually archived.
+    target_id: Mapped[uuid.UUID]
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", name="fk_catalog_audit_actor", ondelete="SET NULL")
+    )
+    action: Mapped[str] = mapped_column(String(16))
+    before_state: Mapped[dict] = mapped_column(JSONB)
+    after_state: Mapped[dict] = mapped_column(JSONB)
+    request_id: Mapped[uuid.UUID]
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
     )
 
 

@@ -30,6 +30,7 @@ from app.schemas.catalog import (
 )
 from app.schemas.common import ErrorResponse, build_meta
 from app.schemas.profile import Preferences
+from app.services.catalog_review import review_visibility
 from app.services.meal_recommendations import RULES_VERSION, recommend
 
 router = APIRouter(
@@ -133,6 +134,7 @@ def recommend_meal(
             )
             .where(
                 SeasonalFood.is_published.is_(True),
+                review_visibility(SeasonalFood),
                 SeasonalFood.detail_status == "ok",
                 SeasonalFood.month == now.astimezone(KOREA_TIMEZONE).month,
             )
