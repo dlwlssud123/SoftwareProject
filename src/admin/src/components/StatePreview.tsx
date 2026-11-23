@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import StatusMessage from './StatusMessage'
 
 type PreviewState =
@@ -8,7 +9,13 @@ type PreviewState =
   | 'empty'
   | 'success'
 
-export default function StatePreview() {
+type StatePreviewProps = {
+  children?: ReactNode
+}
+
+export default function StatePreview({
+  children,
+}: StatePreviewProps) {
   const [status, setStatus] =
     useState<PreviewState>('disconnected')
 
@@ -37,10 +44,12 @@ export default function StatePreview() {
       </label>
 
       {status === 'success' ? (
-        <ul>
-          <li>예시 항목 A — 확인 대기</li>
-          <li>예시 항목 B — 확인 완료</li>
-        </ul>
+        children ?? (
+          <ul>
+            <li>예시 항목 A — 확인 대기</li>
+            <li>예시 항목 B — 확인 완료</li>
+          </ul>
+        )
       ) : status === 'error' ? (
         <StatusMessage
           status="error"
