@@ -86,26 +86,35 @@ class FoodChoice {
 }
 
 class FoodSelection {
-  const FoodSelection(this.food, this.amount, this.unit);
+  const FoodSelection(
+    this.food,
+    this.amount,
+    this.unit, {
+    this.estimated = false,
+  });
   final FoodChoice food;
   final double amount;
   final String unit;
+  final bool estimated;
   Map<String, dynamic> toJson() => {
     'food_id': food.id,
     'revision_id': food.revision,
     'amount': amount,
     'unit': unit,
+    if (estimated) 'amount_is_estimate': true,
   };
   Map<String, dynamic> toStorage() => {
     'food': food.toStorage(),
     'amount': amount,
     'unit': unit,
+    if (estimated) 'estimated': true,
   };
   factory FoodSelection.fromStorage(Map<String, dynamic> row) {
     final result = FoodSelection(
       FoodChoice.fromStorage(intakeMap(row['food'])),
       (row['amount'] as num).toDouble(),
       row['unit'] as String,
+      estimated: row['estimated'] as bool? ?? false,
     );
     if (!result.amount.isFinite ||
         result.amount <= 0 ||
@@ -220,6 +229,7 @@ class SavedIntake {
       food,
       ((original ? input!['amount'] : row['amount']) as num).toDouble(),
       (original ? unit : row['amount_unit']) as String,
+      estimated: calculation?['amount_is_estimate'] as bool? ?? false,
     );
   }
 }

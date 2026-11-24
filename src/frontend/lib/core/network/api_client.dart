@@ -48,6 +48,7 @@ class ApiClient {
     String? token,
     String? idempotencyKey,
     bool followRedirects = true,
+    Duration? receiveTimeout,
     CancelToken? cancelToken,
     required T Function(Object? json) parse,
   }) => _send(
@@ -59,6 +60,7 @@ class ApiClient {
         token,
         followRedirects: followRedirects,
         idempotencyKey: idempotencyKey,
+        receiveTimeout: receiveTimeout,
       ),
     ),
     parse,
@@ -93,7 +95,9 @@ class ApiClient {
     String? token, {
     bool followRedirects = true,
     String? idempotencyKey,
+    Duration? receiveTimeout,
   }) => Options(
+    receiveTimeout: receiveTimeout,
     followRedirects: followRedirects && token == null,
     headers: {
       if (token != null) 'Authorization': 'Bearer $token',

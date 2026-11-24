@@ -204,6 +204,32 @@ Remove-Item Env:RUN_DB_TESTS
 - 데이터 패키지 `agetech`를 로컬 editable 의존성으로 설치하므로 `uv sync --locked` 후 일반 Uvicorn 진입점에서 계약 모듈을 불러온다. 이미지 빌드 시 저장소 루트와 `src/data`도 포함한다.
 - 원천 수집 시각 역행과 시각 있는 이력 뒤의 무시각 입력을 차단한다. 이전 정상 레시피가 최신 보류 판정을 덮는 경우와 식품 판본 후퇴를 실제 DB에서 재현한 뒤 방지 테스트를 추가했다.
 
+## NVIDIA 생활·요리 AI와 음식 사진 · 작업 브랜치
+
+이 기능은 작업 브랜치의 구현이며 서버 배포·실기기 검증 완료를 의미하지 않는다. `uv sync --locked`로 Pillow를 설치하고 `alembic upgrade head`로 `20261124_02`의 사용량 테이블까지 적용한다. 키는 서버의 `NVIDIA_API_KEY`에만 보관하고 APK에 넣지 않는다. `NVIDIA_AI_ENABLED`는 기본 `false`이며 키와 활성화 설정이 모두 있어야 호출한다.
+
+- `POST /api/v1/ai/chat`: Bearer 세션과 `{message, allow_external_processing: true}`. 생활·요리·앱 사용 질문에 한국어 답변과 참고 안내를 반환한다. 대화 이력이나 사용자 프로필을 외부 모델에 자동 전송하지 않는다. 현재는 복지 RAG 근거 검색을 연결한 답변이 아니다.
+- `POST /api/v1/ai/food-photo`: Bearer 세션과 `{image_base64, allow_external_processing: true}`. 2MB 이하의 단일 JPG/PNG만 받는다. 서버에서 크기를 제한하고 EXIF/GPS를 제거한 JPEG로 재인코딩해 고정 NVIDIA HTTPS endpoint로 보낸다. 파일·질문·응답은 우리 DB에 저장하지 않는다.
+- 음식 이름·인식 확신도·대략적인 표준 1인분 질량만 모델에서 받고, 최대 6개 요리에 공공 식품 DB 후보를 연결한다. 영양 수치를 AI에서 받아 저장하지 않는다. 원천의 명시적인 1회 분량이 있으면 먼저 사용하고, 없으면 `basis=ai_estimate`로 제안량을 표시한다. 사진의 실제 질량을 측정한 결과가 아니다. DB에 없으면 후보를 비워 직접 검색하도록 한다.
+- 앱에서 음식과 분량을 확인한 뒤 기존 `/nutrition/calculate`와 `/meals`로 계산·저장한다. `amount_is_estimate=true`는 계산 및 저장 당시 JSON snapshot에 보존한다. 기본값은 false이며, 이전 저장 요청의 멱등성 해시를 유지한다.
+- 인증·외부 처리 동의·25초 기본 공급자 타임아웃·프로세스당 동시 2건을 적용한다. KST 날짜별 사용자 30회·서비스 전체 100회가 기본값이며 DB의 원자적 카운터로 제한한다. 공급자 호출 실패도 예약된 사용량을 소비하며 자동 재전송하지 않는다. 게스트 재발급으로 사용자 제한을 초기화할 수 있으므로 전체 제한도 함께 적용한다. 다중 프로세스의 동시성 합계는 별도 운영 설정이 필요하다.
+- 비활성/연결 실패는 503, 이용량 초과는 429, 잘못된 사진·동의 누락은 422, 본문 제한 초과는 413이다. 원문 공급자 오류·키를 반환하거나 로그에 출력하지 않으며 응답은 `no-store`다. 공급자 처리 중 세션이 폐기되면 결과도 반환하지 않는다.
+
+현재 모델은 `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`이며 [공식 Build 안내](https://build.nvidia.com/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning/build)에 따른다. JSON 출력은 서버에서 별도로 검증한다. [API Trial 약관](https://assets.ngc.nvidia.com/products/api-catalog/legal/NVIDIA%20API%20Trial%20Terms%20of%20Service.pdf)의 내부 시험·평가 범위를 전제로 하며 상용 운영 가능 여부는 별도 확인해야 한다. 얼굴·개인정보·개인 건강기록·의료 문서는 전송 대상이 아니다. 약 봉투·안내문 OCR은 이번 기능에 포함하지 않는다.
+
+## 커뮤니티 API · 2026-11-24 작업 브랜치
+
+`20261124_01`은 기존 `20261120_06` 다음에 글·차단·비공개 신고 테이블을 추가한다. 이 절은 작업 브랜치의 구현이며 운영 배포 완료를 의미하지 않는다.
+
+- 모든 `/api/v1/community/*` 요청은 서비스 Bearer 세션이 필요하다. 게스트도 서비스 세션으로 이용한다. 응답은 `no-store`이며 사용자 ID·연락처 대신 서버의 이웃 표시명을 반환한다.
+- `GET/POST /community/posts`: 식사(`meal`)·일상(`daily`) 글 목록과 작성. 목록은 분류·검색(`q`)·페이지를 지원한다. 작성은 UUID v4 `submission_id`, 분류, 1~60자 제목, 1~2,000자 평문 본문이 필요하다. 같은 전송 번호·내용의 재시도는 기존 결과를 반환하며 다른 내용은 409다. 삭제한 글을 재시도로 복원하지 않는다.
+- `GET /community/posts/mine`, `GET/PATCH/DELETE /community/posts/{id}`: 내 글·상세·수정·삭제. 수정과 삭제에 정수 `expected_version`을 요구하며 다른 사람은 변경할 수 없다. 삭제는 본문·제목을 비우고 글을 숨긴다. 작성 제한은 최근 24시간 10개이며 삭제로 한도를 초기화하지 않는다.
+- `POST /community/posts/{id}/reports`: `spam`, `abuse`, `misinformation`, `privacy`, `other` 사유와 선택 메모(500자 이하)를 접수한다. 같은 사용자의 중복 신고는 하나로 유지한다. 작성자·일반 사용자에게 신고자·신고 메모·처리 사유를 공개하지 않는다. 신고만으로 글을 자동 숨기지 않는다.
+- `POST /community/posts/{id}/block-author`, `GET /community/blocks`, `DELETE /community/blocks/{id}`: 글 작성자 차단·내 차단 목록·해제. 차단은 양쪽의 목록·상세 접근에 적용한다. 자기 차단·다른 사용자의 차단 해제는 거부하며 내부 사용자 ID를 요청하거나 반환하지 않는다.
+- `GET /admin/community/reports`, `PATCH /admin/community/reports/{id}`: 관리자만 신고 목록을 보고 처리한다. `decision=hide|dismiss`, `expected_post_version`, 1~200자 `resolution`을 보낸다. 변경된 글·처리된 신고는 409이며 숨긴 글을 작성자 수정으로 재게시할 수 없다.
+
+이 작업은 글·신고·차단의 백엔드다. 앱 게시판·관리자 신고 화면, 댓글·사진 첨부, 숨김 해제 UI, 실서버 배포는 별도 작업이다. 프런트는 본문을 HTML로 실행하지 않고 평문으로 표시하며 공개 글 작성 안내·삭제/차단 확인·신고 결과·수정 충돌을 연결해야 한다.
+
 ### 카카오 계정 연결
 
 백엔드 `.env`의 `KAKAO_APP_ID`는 카카오 개발자 앱의 숫자 ID다. Native 앱 키와 구분한다. `alembic upgrade head`로 `20261118_01`을 적용한 뒤 실행한다. 서버는 카카오 토큰 정보 API에서 앱 ID·사용자 식별자·만료를 검증하고, 카카오 토큰은 저장하지 않는다.

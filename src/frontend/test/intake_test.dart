@@ -12,6 +12,8 @@ import 'package:valueflow/data/auth_api.dart';
 import 'package:valueflow/data/intake_api.dart';
 import 'package:valueflow/data/profile_api.dart';
 import 'package:valueflow/models/intake.dart';
+import 'package:valueflow/models/ai.dart';
+import 'package:valueflow/screens/photo_food_screen.dart';
 import 'package:valueflow/screens/intake_screens.dart';
 import 'package:valueflow/services/account.dart';
 import 'package:valueflow/services/settings.dart';
@@ -304,6 +306,104 @@ void main() {
   late DemoRepository repository;
   setUpAll(() async => repository = await DemoRepository.load());
   final stamp = DateTime.utc(2026, 11, 19, 23);
+  PhotoRecognition photo(_Server server) => PhotoRecognition([
+    PhotoDish('쌀밥', 'high', 150, [
+      PhotoMatch(FoodChoice.fromJson(server.food), 200, 'g', '원천 1회 분량 참고'),
+    ]),
+  ], '사진에서 실제 양을 측정한 값이 아닌 예상 1인분이에요.');
+
+  testWidgets(
+    'photo starts at one serving, half portion changes calculation without auto-save',
+    (tester) async {
+      final server = _Server();
+      await _pump(
+        tester,
+        PhotoFoodScreen(result: photo(server), api: server.api),
+      );
+      expect(
+        tester
+            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '1인분'))
+            .selected,
+        isTrue,
+      );
+      await tester.tap(find.text('반 정도'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('이 음식으로 영양 확인'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('이 음식으로 영양 확인'));
+      await tester.pumpAndSettle();
+      final request = server.requests.singleWhere(
+        (r) => r.path.endsWith('/nutrition/calculate'),
+      );
+      expect(request.data['items'][0]['amount'], 100);
+      expect(request.data['items'][0]['amount_is_estimate'], isTrue);
+      expect(find.text('예상 분량 · 실제 먹은 양과 다를 수 있어요'), findsOneWidget);
+      expect(server.requests.where((r) => r.path == '/api/v1/meals'), isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'pending meal confirmation preserves photo selection for a later new save',
+    (tester) async {
+      final server = _Server();
+      await server.api.prepare(stamp, [server.selection]);
+      await _pump(
+        tester,
+        PhotoFoodScreen(result: photo(server), api: server.api),
+      );
+      await tester.ensureVisible(find.text('이 음식으로 영양 확인'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('이 음식으로 영양 확인'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('이전 식사의 저장 확인이 먼저예요'), findsOneWidget);
+      expect(
+        server.requests.where((r) => r.path.endsWith('/nutrition/calculate')),
+        isEmpty,
+      );
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('intake-save')).hitTestable(),
+        250,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('intake-save')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PhotoFoodScreen), findsOneWidget);
+      await tester.ensureVisible(find.text('이 음식으로 영양 확인'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('이 음식으로 영양 확인'));
+      await tester.pumpAndSettle();
+      final request = server.requests.singleWhere(
+        (r) => r.path.endsWith('/nutrition/calculate'),
+      );
+      expect(request.data['items'][0]['amount'], 200);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  test(
+    'estimated portion survives pending storage and saved snapshot decoding',
+    () {
+      final server = _Server();
+      final item = FoodSelection(
+        server.selection.food,
+        200,
+        'g',
+        estimated: true,
+      );
+      expect(FoodSelection.fromStorage(item.toStorage()).estimated, isTrue);
+      final saved = server._record({
+        'eaten_at': stamp.toIso8601String(),
+        'items': [item.toJson()],
+      });
+      (saved['items'][0]['calculation'] as Map)['amount_is_estimate'] = true;
+      expect(SavedIntake.fromJson(saved).items.single.estimated, isTrue);
+      expect(
+        server.selection.toJson().containsKey('amount_is_estimate'),
+        isFalse,
+      );
+    },
+  );
   test(
     'non-restorable amounts and units are rejected before persistence or transmission',
     () async {
@@ -599,7 +699,7 @@ void main() {
       await tester.tap(preview);
       await tester.pumpAndSettle();
       expect(find.text('300 kcal'), findsOneWidget);
-      final save = find.byKey(const Key('intake-save'));
+      final save = find.byKey(const Key('intake-save')).hitTestable();
       await tester.scrollUntilVisible(save, 250);
       await tester.tap(save);
       await tester.tap(save);
@@ -649,7 +749,7 @@ void main() {
         isNull,
       );
       await tester.scrollUntilVisible(
-        find.byKey(const Key('intake-save')),
+        find.byKey(const Key('intake-save')).hitTestable(),
         250,
       );
       expect(find.text('저장 다시 확인'), findsOneWidget);
@@ -703,7 +803,7 @@ void main() {
       await tester.tap(find.byKey(const Key('intake-preview')));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
-        find.byKey(const Key('intake-save')),
+        find.byKey(const Key('intake-save')).hitTestable(),
         250,
       );
       await tester.tap(find.byKey(const Key('intake-save')));
