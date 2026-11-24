@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import StatePreview from './components/StatePreview'
+import CollectionOverview from './components/CollectionOverview'
 
 const pages = {
   overview: {
@@ -90,7 +91,9 @@ export default function App() {
           <section className="card">
             <h3>{pages[page].title}</h3>
             <p>{pages[page].description}</p>
-            <StatePreview />
+            <StatePreview key={page}>
+            {page === 'collections' ? <CollectionOverview /> : undefined}
+            </StatePreview>
           </section>
         )}
       </main>
