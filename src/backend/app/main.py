@@ -21,6 +21,8 @@ from app.api.recipes import router as recipes_router
 from app.api.saved_recipes import router as saved_recipes_router
 from app.api.saved_welfare import router as saved_welfare_router
 from app.api.shopping import router as shopping_router
+from app.api.topic_requests import admin_router as admin_topics_router
+from app.api.topic_requests import router as topics_router
 from app.api.welfare import router as welfare_router
 from app.core.config import get_settings
 from app.core.database import engine
@@ -69,7 +71,20 @@ def create_app() -> FastAPI:
             )
 
         response.headers["X-Request-ID"] = request.state.request_id
+        if request.url.path.rstrip("/") == "/api/v1/meal-facilities/nearby":
+            response.headers["Cache-Control"] = "no-store"
+        if (
+            request.url.path.startswith("/api/v1/seasonal-foods/")
+            and request.url.path.rstrip("/").endswith("/recipes")
+            and "exclude_allergens" in request.query_params
+        ):
+            response.headers["Cache-Control"] = "no-store"
         if request.url.path.startswith("/api/v1/admin/"):
+            response.headers["Cache-Control"] = "no-store"
+        if (
+            request.url.path == "/api/v1/content-topic-requests"
+            or request.url.path.startswith("/api/v1/content-topic-requests/")
+        ):
             response.headers["Cache-Control"] = "no-store"
         if request.url.path.startswith("/api/v1/shopping-lists/"):
             response.headers["Cache-Control"] = "no-store"
@@ -99,6 +114,8 @@ def create_app() -> FastAPI:
     app.include_router(admin_login_router, prefix="/api/v1")
     app.include_router(admin_data_router, prefix="/api/v1")
     app.include_router(admin_guides_router, prefix="/api/v1")
+    app.include_router(topics_router, prefix="/api/v1")
+    app.include_router(admin_topics_router, prefix="/api/v1")
     app.include_router(content_router, prefix="/api/v1")
     app.include_router(profile_router, prefix="/api/v1")
     app.include_router(recipes_router, prefix="/api/v1")

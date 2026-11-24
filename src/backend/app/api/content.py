@@ -6,7 +6,7 @@ from fastapi import APIRouter, Path, Query, Request
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.api.recipes import active_recipes, recipe_record
+from app.api.recipes import active_recipes, matches_allergies, recipe_record
 from app.core.auth import DbSession
 from app.core.errors import AppError
 from app.models import (
@@ -20,19 +20,23 @@ from app.models import (
 from app.schemas.catalog import Page, PageQuery, RecipeListResponse
 from app.schemas.common import ErrorResponse, SuccessResponse, build_meta
 from app.schemas.content import (
+    FacilityNearbyQuery,
     FacilityPage,
     FacilityQuery,
     FacilityRecord,
     GuideDetail,
     GuideSummary,
+    NearbyFacilityPage,
     SeasonalDetail,
     SeasonalQuery,
+    SeasonalRecipeQuery,
     SeasonalSummary,
 )
 from app.services.content_catalog import (
     facility_candidates,
     facility_record,
     matching_facilities,
+    nearby_facilities,
 )
 
 router = APIRouter(
@@ -75,17 +79,9 @@ def _seasonal(food: SeasonalFood | None) -> SeasonalFood:
 def list_facilities(
     request: Request, query: Annotated[FacilityQuery, Query()], db: DbSession
 ):
-    stmt = select(MealFacility).where(MealFacility.is_published.is_(True))
-    if query.q:
-        stmt = stmt.where(
-            or_(
-                MealFacility.name.icontains(query.q, autoescape=True),
-                MealFacility.address.icontains(query.q, autoescape=True),
-            )
-        )
     try:
         notes, items = matching_facilities(
-            db.scalars(stmt).all(), query, datetime.now(KST).date()
+            _facility_rows(db, query), query, datetime.now(KST).date()
         )
     except SQLAlchemyError:
         raise _unavailable() from None
@@ -95,6 +91,43 @@ def list_facilities(
             total=len(items),
             limit=query.limit,
             offset=query.offset,
+            warnings=notes,
+        ),
+        meta=build_meta(request),
+    )
+
+
+def _facility_rows(db, query):
+    stmt = select(MealFacility).where(MealFacility.is_published.is_(True))
+    if query.q:
+        stmt = stmt.where(
+            or_(
+                MealFacility.name.icontains(query.q, autoescape=True),
+                MealFacility.address.icontains(query.q, autoescape=True),
+            )
+        )
+    return db.scalars(stmt).all()
+
+
+@router.post(
+    "/meal-facilities/nearby", response_model=SuccessResponse[NearbyFacilityPage]
+)
+def search_nearby_facilities(
+    body: FacilityNearbyQuery, request: Request, db: DbSession
+):
+    # Coordinates are transient search inputs; do not write profiles, logs or jobs.
+    try:
+        notes, items = nearby_facilities(
+            _facility_rows(db, body), body, datetime.now(KST).date()
+        )
+    except SQLAlchemyError:
+        raise _unavailable() from None
+    return SuccessResponse(
+        data=NearbyFacilityPage(
+            items=items[body.offset : body.offset + body.limit],
+            total=len(items),
+            limit=body.limit,
+            offset=body.offset,
             warnings=notes,
         ),
         meta=build_meta(request),
@@ -164,7 +197,10 @@ def get_seasonal(food_id: UUID, request: Request, db: DbSession):
     responses={404: {"model": ErrorResponse}},
 )
 def list_seasonal_recipes(
-    food_id: UUID, request: Request, query: Annotated[PageQuery, Query()], db: DbSession
+    food_id: UUID,
+    request: Request,
+    query: Annotated[SeasonalRecipeQuery, Query()],
+    db: DbSession,
 ):
     try:
         _seasonal(db.get(SeasonalFood, food_id))
@@ -184,15 +220,29 @@ def list_seasonal_recipes(
         )
         if query.q:
             stmt = stmt.where(RecipeRevision.name.icontains(query.q, autoescape=True))
-        total = db.scalar(select(func.count()).select_from(stmt.subquery()))
-        rows = db.execute(
-            stmt.order_by(Recipe.source_id).offset(query.offset).limit(query.limit)
-        ).all()
+        ordered = stmt.order_by(Recipe.source_id)
+        if query.exclude_allergens:
+            excluded = set(query.exclude_allergens)
+            matches = [
+                record
+                for row in db.execute(ordered).all()
+                if matches_allergies(record := recipe_record(*row), excluded)
+            ]
+            total = len(matches)
+            items = matches[query.offset : query.offset + query.limit]
+        else:
+            total = db.scalar(select(func.count()).select_from(stmt.subquery()))
+            items = [
+                recipe_record(*row)
+                for row in db.execute(
+                    ordered.offset(query.offset).limit(query.limit)
+                ).all()
+            ]
     except SQLAlchemyError:
         raise _unavailable() from None
     return RecipeListResponse(
         data=Page(
-            items=[recipe_record(*row) for row in rows],
+            items=items,
             total=total,
             offset=query.offset,
             limit=query.limit,

@@ -286,16 +286,25 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 | 메서드·경로 (`/api/v1` 접두사) | 입력·응답 |
 | --- | --- |
 | `GET /meal-facilities` | 선택 `region/district`, `district`는 `region`과 함께. 지역 생략 시 전체 지역, 선택 시 내 시군구 → 같은 시도 다른 시군구 순. 이름·주소 검색. `warnings`로 지역 해석 결과 안내 |
+| `POST /meal-facilities/nearby` | 본문에 필수 `latitude/longitude`, 선택 `radius_km`(0.5~50, 기본 5), `region/district`, 공통 `q/limit/offset`. 좌표가 있는 반경 내 시설은 지역 경계와 무관하게 거리순, 같은 시군구의 좌표 없는 시설은 마지막에 표시. 각 시설에 `distance_km`·`match` 추가 |
 | `GET /meal-facilities/{facility_id}` | 목록의 UUID `id`. 이름·지역·주소·좌표(없으면 null)·대상·운영 시간·연락처·출처·확인일·주의사항 |
 | `GET /seasonal-foods` | 선택 `month`(1~12), 생략 시 KST 현재 월. 이름 검색, 상세 본문을 제외한 요약과 이미지·쇼핑 검색 링크 |
 | `GET /seasonal-foods/{food_id}` | 목록의 UUID `id`. 요약 + 원천 상세 글(`detail`)·재료명(`terms`)·원천 관련 레시피 이름 |
-| `GET /seasonal-foods/{food_id}/recipes` | 실제 DB 레시피 연결. 기존 `RecipeRecord` 페이지 구조, 이름 검색·페이지 조회 |
+| `GET /seasonal-foods/{food_id}/recipes` | 실제 DB 레시피 연결. 기존 `RecipeRecord` 페이지 구조, 이름 검색·페이지 조회. 선택 `exclude_allergens` 반복 키(서버 알레르기 이름, 최대 19개)로 제외 후 건수·페이지 계산 |
 | `GET /life-guides` | 제목 검색·페이지 조회. `id/slug/title/source_reference/checked_on` |
 | `GET /life-guides/{slug}` | 가이드 요약 + 배열 순서대로 `steps`(단계 객체, `text` 등). 게시된 가이드만 조회 |
 
-급식소는 원천 품질 표시와 조회 시점의 운영 종료일을 확인해 종료·미운영 시설을 제외한다. 시작 전 시설과 오래된 자료는 `cautions/quality_flags`에 안내한다. 원천 `reference_date`(자료 기준일)와 `checked_on`(원천 확인일)을 구분하며, 이용 자격·당일 운영·식사 제공 여부를 확정하지 않는다. 좌표 조회나 사용자 위치 저장은 이번 API 범위에 포함하지 않는다.
+급식소는 원천 품질 표시와 조회 시점의 운영 종료일을 확인해 종료·미운영 시설을 제외한다. 시작 전 시설과 오래된 자료는 `cautions/quality_flags`에 안내한다. 원천 `reference_date`(자료 기준일)와 `checked_on`(원천 확인일)을 구분하며, 이용 자격·당일 운영·식사 제공 여부를 확정하지 않는다.
+
+위치 허용 시 `/meal-facilities/nearby`에 HTTPS POST 본문으로 좌표를 전달한다. 좌표는 이번 검색 계산에만 쓰며 사용자·프로필·작업·시설 테이블에 저장하거나 응답으로 되돌리지 않는다. 성공·검증 오류·DB/내부 오류는 모두 `Cache-Control: no-store`다. 좌표를 URL 쿼리로 보내지 않는다. 서버의 공통 오류 응답은 잘못 입력한 좌표나 DB 세부 내용을 포함하지 않는다. 서버 앞단에서도 본문 로깅을 켜지 않아야 한다.
+
+`latitude`는 -90~90, `longitude`는 -180~180의 유한 숫자이며 문자열·불리언은 받지 않는다. `district`는 기존과 같이 `region`과 함께 사용한다. 위치를 거부하거나 얻지 못하면 기존 지역 GET 조회를 사용한다. 거리는 약 10m 단위로 반올림한 직선거리(km)이며 실제 이동 거리·당일 운영을 뜻하지 않는다. `match`는 `district`(같은 시군구의 반경 내 시설), `nearby`(그 외 반경 내 시설), `district_no_coords`(거리 미확인)이고, 마지막 유형의 `distance_km`는 null이다. 지역 없이 검색하면 좌표 없는 시설은 거리순 결과에 넣지 않는다. 조회된 결과를 거리·이름·UUID의 일정한 순서로 정렬한 뒤 페이지를 자르며 `total`은 그 검색 전체 후보 수다. 기존 GET·상세 응답 형식과 DB 스키마는 바꾸지 않는다. 앱의 위치 권한·지역 대체 선택은 후속 앱 연결에서 구현한다.
 
 제철 식재료는 `is_published=true`이고 상세가 `ok`인 항목만 제공한다. `content_sha256`·`provider/source_id/source_url/checked_on`으로 원천을 식별한다. 목록은 전체 상세 본문을 보내지 않고 상세 조회 시 읽어온다. `official_related_recipes`는 원천의 레시피 이름이며 앱에서 바로 조회 가능한 레시피 ID라는 뜻이 아니다. 앱 연결에는 `/recipes` 조회를 사용한다. 이 조회는 연결 당시 판본과 현재 활성 레시피 판본이 같은 자료만 제공하고, 연결 재적재 전의 낡은 판본은 숨긴다. `shopping_search_url`은 재료명으로 이동하는 외부 쿠팡 검색 주소이며 가격·재고·주문 API가 아니다.
+
+제철 연결 레시피의 `exclude_allergens`는 일반 레시피 조회와 같은 판정 함수를 사용한다. 검출·확인 필요·판정 불가 항목에 제외 조건이 걸리거나 알레르기 분석이 완전하지 않은 레시피를 제외한 뒤 `total`과 페이지를 계산한다. 제외 조건이 있는 응답은 오류를 포함해 `Cache-Control: no-store`다. 공개 조회이며 계정 프로필을 저장·수정하지 않는다. 질환별 맞춤 추천은 식단 추천 API에서 수행한다.
+
+식단 추천의 `seasonal_ingredients[]`는 이름·공식 원문·쿠팡 검색 주소 외에 `seasonal_food_id`(UUID)와 `month`(1~12)를 제공한다. 앱은 해당 월·상세 안내 연결에 사용할 수 있다. 두 필드는 이전 응답과의 호환을 위해 선택 값이며, 실제 추천은 현재 활성 레시피에 연결되고 공개·상세 정상인 KST 현재 월 자료만 반영한다.
 
 ### 관리자 수집 작업 현황
 
@@ -335,6 +344,31 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 감사는 생성·수정·검수 요청·승인·반려·게시·비공개 작업의 메타데이터만 기록한다. 원문 전체·검수 의견·토큰은 복제하지 않는다. 관리자 계정을 삭제하면 행위자/검수자 FK는 null로 바뀌고 감사 이력은 유지한다. 감사 수정·삭제 및 가이드 영구 삭제 API는 제공하지 않는다. 공개 조회 응답에는 검수 의견·관리자 ID·감사 자료를 추가하지 않는다.
 
 마이그레이션 `20261120_03`은 `20261120_02` 다음에 가이드 관리 필드와 `guide_audit_events`를 추가한다. 기존 게시 자료는 `approved`로 옮겨 공개 상태·주소·내용을 유지하며 검수자·검수 시각은 알 수 없으므로 null로 둔다. 기존 행의 `updated_at` 초기값은 관리 필드 도입 시각이며 원천 확인일을 대신하지 않는다. 운영 복구에 자동 downgrade를 사용하지 않는다.
+
+### 6.4 콘텐츠 주제 요청
+
+모든 경로는 `/api/v1` 이후 부분이며 인증이 필요하고 성공·오류·검증 응답 모두 `Cache-Control: no-store`다. 프로필 동의와 별개의 명시적 요청이며, 입력 내용은 운영자가 확인한다. 사용자 목록·상세에는 본인 자료만 보이고 다른 사용자의 ID는 없는 자료와 동일하게 404다.
+
+| 경로 | 동작 |
+| --- | --- |
+| `POST /content-topic-requests` | `submission_id`(클라이언트 생성 UUID v4), `kind`(`life_guide`/`video`), `topic`(공백 제거 후 1~60자 한 줄). 새 접수 201, 동일 전송 재시도 200. `data.request`, `data.replayed` 반환 |
+| `POST /content-topic-requests/withdraw-submission` | 접수와 같은 본문으로 전송 번호를 취소하고 200 `TopicRecord` 반환. 접수 전이어도 원문 없는 취소 기록을 만들며, 같은 번호로 늦게 도착한 POST는 취소 상태를 유지 |
+| `GET /content-topic-requests` | 본인 목록. 공통 `limit/offset/q`와 선택 `kind/status/submission_id`. 생성 시각 내림차순·ID 정렬. 전송 UUID 조회는 자료를 생성하지 않음 |
+| `GET /content-topic-requests/{request_id}` | 본인 요청·처리 상태·답변·현재 게시된 연결 가이드 |
+| `DELETE /content-topic-requests/{request_id}` | 본인 취소. 원문·답변·연결을 지우고 `withdrawn` 반환. 반복 취소는 같은 결과 |
+| `GET /admin/content-topic-requests`, `GET /admin/content-topic-requests/{request_id}` | 관리자 처리함·상세. 취소된 요청 제외. 사용자 ID·프로필은 응답에 포함하지 않음 |
+| `PUT /admin/content-topic-requests/{request_id}` | 관리자 `expected_version`, `status`(`reviewing/completed/declined`), 선택 `reply/guide_id`. 완료·보류에는 1~1,000자 답변 필요 |
+| `GET /admin/content-topic-requests/{request_id}/audit` | 관리자 페이지 조회. 생성·처리·취소의 행위자 ID·전후 상태/판본/연결 ID·서버 요청 ID·시각만 기록 |
+
+상태는 `received → reviewing → completed/declined`이며 검토 없이 바로 완료·보류할 수도 있다. 완료·보류를 다른 결정으로 바꾸려면 먼저 `reviewing`으로 되돌린다. 같은 최종 상태의 답변 보완은 허용한다. 생활 가이드 요청 완료에는 승인 후 게시된 `guide_id`가 반드시 필요하며, 영상 요청에는 가이드를 연결하지 않는다. 이 API는 영상 제작이나 게시를 자동 실행하지 않는다. 연결 가이드가 나중에 비공개로 바뀌면 본인 응답의 `guide`는 null이며 비공개 내용은 공개하지 않는다.
+
+`submission_id`는 같은 계정에서 같은 주제 전송을 재시도하는 동안 유지한다. 같은 번호로 종류·내용을 바꾸면 `TOPIC_SUBMISSION_CHANGED`(409)다. 응답을 못 받았으면 목록을 `submission_id`만으로 조회해 해당 계정의 접수 기록(0~1건)을 확인할 수 있다. 이 조회는 새로 접수하지 않으므로 기록이 확인되면 해당 요청 ID에 DELETE를 보낼 수 있다. 조회 시점에 결과가 없다는 사실은 아직 처리 중인 POST의 취소 완료를 뜻하지 않으므로 앱은 전송 번호와 미확인 상태를 보존해야 한다. 취소 후에도 원문 없는 접수 번호·입력 해시를 남겨 늦은 재전송이 취소한 요청을 되살리지 못하게 한다. 새 요청은 새 번호를 사용한다. 재시도는 추가 접수로 세지 않고, 취소를 포함한 새 접수는 계정별 최근 24시간 최대 5건이다. 초과 시 `TOPIC_REQUEST_LIMIT`(429)와 `Retry-After`(초)를 반환한다.
+
+요청 수정·취소·감사 저장은 한 트랜잭션이고, 관리자 판본 충돌은 `TOPIC_VERSION_CHANGED`(409)다. 가이드 누락/비게시/잘못된 종류는 422 또는 `TOPIC_GUIDE_UNAVAILABLE`(409), DB 실패는 재시도 가능한 `TOPIC_REQUEST_UNAVAILABLE`(503)다. 취소된 요청은 관리자 처리함·상세·감사에서도 숨긴다. 감사에는 주제·답변·프로필·인증 값이 복제되지 않는다. 계정 삭제는 요청과 감사 자료를 함께 삭제하고 관리자 계정만 삭제하면 처리 이력을 보존하며 행위자 FK를 null로 바꾼다. 프로필 동의 철회는 기존 계약대로 프로필만 삭제하며, 주제 취소는 별도 DELETE로 수행한다.
+
+조회 결과가 없어도 취소하려면 `withdraw-submission`에 보관한 동일 본문을 보낸다. 접수와 전송 번호 취소는 사용자 행의 `FOR NO KEY UPDATE` 잠금으로 직렬화하며, 감사 행의 외래 키 확인과 잠금 순환을 만들지 않는다. 접수 전 취소 기록은 `was_submitted=false`로 구분하고 원문을 저장하지 않는다. 이 기록은 정상 접수 5건 한도와 별도로 최근 24시간 최대 20건이며, 초과 시 `TOPIC_CANCEL_LIMIT`(429)와 `Retry-After`를 반환한다. 이미 접수되었던 요청은 취소해도 정상 접수 한도에 포함된다. 같은 번호의 취소 재시도는 추가로 세지 않는다.
+
+`20261120_05`는 `content_topic_requests`, `topic_request_audit`를 추가한다. `20261120_06`은 `was_submitted`를 추가하고 기존 행을 true로 유지하며, false 행은 취소 상태만 허용한다. 앱은 AI 도우미의 생활 안내에서 게시된 안내 전체 단계를 읽고, 생활 안내·놀이터 영상에서 주제 접수·답변·취소를 이용한다. 전송 전에 서버·계정별 보안 저장소에 전송 번호와 본문을 보관하고, 불명확한 전송은 같은 번호로 확인·재시도·취소한다. 관리자 처리 화면 연결·실제 배포는 별도다. 기존 경로를 제거하지 않는다.
 
 ## 7. 미구현 예정 API
 

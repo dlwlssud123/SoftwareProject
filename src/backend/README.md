@@ -56,6 +56,8 @@ DB는 `pgvector/pgvector:0.8.7-pg16-bookworm` 이미지를 사용하며 로컬 `
 | `DELETE /api/v1/auth/session` | 현재 세션 폐기 |
 | `GET /api/v1/admin/me` | 관리자 세션이면 200, 일반 사용자이면 403 |
 | `POST /api/v1/admin/login` | 운영자가 발급한 전용 아이디·비밀번호로 관리자 세션 발급 |
+| `/api/v1/content-topic-requests` | 생활 가이드·영상 주제 접수·본인 조회·취소, 동일 전송 번호 재시도 보호 |
+| `/api/v1/admin/content-topic-requests` | 관리자 요청 검토·답변·게시 가이드 연결·감사 조회 |
 | `GET /api/v1/recipes` | 활성 레시피 목록, 검색·분류·조리방법·알레르기 제외와 페이지 조회 |
 | `GET /api/v1/recipes/{recipe_id}` | 원천 ID로 활성 레시피 상세 조회 |
 | `GET/PATCH/DELETE /api/v1/profile` | 본인 프로필 조회·동의 후 저장·철회 또는 삭제 |
@@ -154,6 +156,18 @@ $env:RUN_DB_TESTS = '1'
 .venv/Scripts/python.exe -m pytest -q
 Remove-Item Env:RUN_DB_TESTS
 ```
+
+## 급식소 위치 검색
+
+급식소 지역 조회는 기존 `GET /api/v1/meal-facilities`를 사용한다. 위치 기반 조회는 `POST /api/v1/meal-facilities/nearby`에 좌표와 반경(기본 5km)을 보내며, 기존 데이터 모듈의 거리 계산·지역 대체·시설 주의사항을 재사용한다. 좌표를 저장하지 않고 POST 응답·오류를 캐시하지 않는다. 반경 내 좌표 있는 시설과 같은 시군구의 좌표 없는 시설을 구분한다. 실제 이동 거리·이용 자격은 보장하지 않으며, 앱 위치 권한 연결과 원천의 서버 적재·실사용 검증은 별도다. 자세한 입력·거리·개인정보 경계는 [API 명세](../../docs/설계/API_명세서.md)의 생활지원 안내 부분을 따른다.
+
+## 콘텐츠 주제 요청
+
+`/api/v1/content-topic-requests`는 생활 가이드·영상 주제를 본인 계정으로 접수·조회·취소한다. 새 전송에는 UUID v4 `submission_id`를 만들고 통신 실패 재시도에는 같은 번호와 같은 내용을 사용한다. 동일 번호의 다른 내용은 409다. 최근 24시간 계정당 새 요청 5건까지이며 취소도 건수에 포함된다. 취소는 원문과 답변을 지우되 재전송 방지용 메타데이터를 남긴다.
+
+응답이 불명확할 때는 목록의 `submission_id` 필터로 접수를 확인한다. 접수 전에도 `POST /api/v1/content-topic-requests/withdraw-submission`에 동일 본문을 보내 취소할 수 있다. 이때 원문 없는 취소 기록을 남겨 늦은 POST가 되살리지 못하게 한다. 미접수 취소 기록은 정상 접수와 별도로 하루 20건까지이며, 접수된 요청의 취소는 기존 5건 한도에 포함된다.
+
+관리자는 `/api/v1/admin/content-topic-requests`에서 판본 확인과 답변을 거쳐 검토·완료·보류한다. 생활 가이드 완료는 승인·게시한 가이드 연결이 필요하고, 영상 요청 처리는 자동 영상 제작을 실행하지 않는다. 마이그레이션 `20261120_06`까지 적용해야 한다. Flutter 요청·안내 화면은 이 API를 사용하며 관리자 요청 처리 웹·운영 자료·실제 배포는 별도다. 상세 요청/응답·재시도·보관 경계는 [API 명세](../../docs/설계/API_명세서.md)의 콘텐츠 주제 요청 부분을 따른다.
 
 ## 기업 서버 배포 경계
 

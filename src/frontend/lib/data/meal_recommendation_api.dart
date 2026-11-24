@@ -1,5 +1,6 @@
 import '../core/network/api_client.dart';
 import '../models/recommendations.dart';
+import '../models/shopping_link.dart';
 import 'guest_session.dart';
 
 class MealRecommendationApi {
@@ -91,10 +92,17 @@ class MealRecommendationApi {
   }
 
   static SeasonalIngredient _seasonal(Map<String, dynamic> item) {
-    final url = _httpsUrl(item['shopping_search_url']);
+    final name = _string(item['name']);
+    final month = item['month'];
+    final source = _httpsUrl(item['source_url']);
     return SeasonalIngredient(
-      _string(item['name']),
-      url?.host == 'www.coupang.com' ? url : null,
+      name,
+      ingredientShoppingUrl(item['shopping_search_url'], name),
+      month: month is int && month >= 1 && month <= 12 ? month : null,
+      sourceUrl:
+          source != null && source.port == 443 && source.host.endsWith('.go.kr')
+          ? source
+          : null,
     );
   }
 

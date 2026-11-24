@@ -16,7 +16,12 @@ from app.core.auth import AuthContext, require_admin
 from app.core.errors import AppError
 from app.models import JobRun, LifeGuide, MealFacility, SeasonalFood
 from app.schemas.catalog import PageQuery
-from app.schemas.content import DataJobQuery, FacilityQuery, SeasonalQuery
+from app.schemas.content import (
+    DataJobQuery,
+    FacilityQuery,
+    SeasonalQuery,
+    SeasonalRecipeQuery,
+)
 from app.services.content_catalog import matching_facilities
 
 
@@ -125,7 +130,7 @@ def test_seasonal_queries_and_active_revision_join(context):
         == "보관 안내"
     )
     db.scalar.return_value = 0
-    linked = content.list_seasonal_recipes(food.id, request, PageQuery(), db)
+    linked = content.list_seasonal_recipes(food.id, request, SeasonalRecipeQuery(), db)
     assert linked.data.items == []
     compiled = str(db.execute.call_args.args[0].compile(dialect=postgresql.dialect()))
     assert "seasonal_recipe_links.recipe_revision_id = recipe_revisions.id" in compiled

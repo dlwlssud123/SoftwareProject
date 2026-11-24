@@ -1,3 +1,5 @@
+import 'shopping_link.dart';
+
 class ShoppingSource {
   const ShoppingSource(this.mealLabel, this.recipeName, this.description);
   final String mealLabel, recipeName, description;
@@ -51,24 +53,7 @@ class ShoppingItem {
 
   factory ShoppingItem.fromJson(Map<String, dynamic> row) {
     final name = row['name'] as String;
-    Uri? url;
-    try {
-      final candidate = Uri.tryParse(row['shopping_search_url'] as String);
-      if (candidate != null &&
-          candidate.scheme == 'https' &&
-          candidate.host == 'www.coupang.com' &&
-          candidate.userInfo.isEmpty &&
-          candidate.port == 443 &&
-          candidate.fragment.isEmpty &&
-          candidate.path == '/np/search' &&
-          candidate.queryParametersAll.length == 1 &&
-          candidate.queryParametersAll['q']?.length == 1 &&
-          candidate.queryParameters['q'] == name) {
-        url = candidate;
-      }
-    } on FormatException {
-      url = null;
-    }
+    final url = ingredientShoppingUrl(row['shopping_search_url'], name);
     return ShoppingItem(
       key: row['item_key'] as String,
       sourceHash: row['source_hash'] as String,

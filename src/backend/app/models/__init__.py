@@ -30,6 +30,7 @@ from app.models.recipe_nutrition import (  # noqa: F401
     RecipeComputedNutrition,
     RecipeIngredientFood,
 )
+from app.models.topic_requests import ContentTopicRequest, TopicRequestAudit  # noqa: F401
 from app.models.user_data import (  # noqa: F401
     MealCreateRequest,
     MealLog,

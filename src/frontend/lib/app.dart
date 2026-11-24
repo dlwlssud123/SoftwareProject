@@ -4,6 +4,8 @@ import 'data/demo_repository.dart';
 import 'data/recipe_api.dart';
 import 'data/intake_api.dart';
 import 'data/welfare_api.dart';
+import 'data/topic_api.dart';
+import 'data/facility_api.dart';
 import 'services/settings.dart';
 import 'services/account.dart';
 import 'theme.dart';
@@ -22,6 +24,8 @@ class ValueFlowApp extends StatelessWidget {
     this.account,
     this.intakeApi,
     this.welfareApi,
+    this.topicApi,
+    this.facilityApi,
     super.key,
   });
   final DemoRepository repository;
@@ -32,6 +36,8 @@ class ValueFlowApp extends StatelessWidget {
   final Account? account;
   final IntakeApi? intakeApi;
   final WelfareApi? welfareApi;
+  final TopicApi? topicApi;
+  final FacilityApi? facilityApi;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: settings,
@@ -64,6 +70,8 @@ class ValueFlowApp extends StatelessWidget {
       account: account,
       intakeApi: intakeApi,
       welfareApi: welfareApi,
+      topicApi: topicApi,
+      facilityApi: facilityApi,
     );
     final auth = account;
     if (auth == null) return shell();
@@ -83,6 +91,8 @@ class AppShell extends StatefulWidget {
     this.account,
     this.intakeApi,
     this.welfareApi,
+    this.topicApi,
+    this.facilityApi,
     super.key,
   });
   final DemoRepository repository;
@@ -91,6 +101,8 @@ class AppShell extends StatefulWidget {
   final Account? account;
   final IntakeApi? intakeApi;
   final WelfareApi? welfareApi;
+  final TopicApi? topicApi;
+  final FacilityApi? facilityApi;
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -119,8 +131,10 @@ class _AppShellState extends State<AppShell> {
       repository: widget.repository,
       settings: widget.settings,
       welfareApi: widget.welfareApi,
+      topicApi: widget.topicApi,
+      facilityApi: widget.facilityApi,
     ),
-    const ContentScreen(),
+    ContentScreen(settings: widget.settings, topicApi: widget.topicApi),
   ];
   static const labels = ['식단추천', '영양분석', 'AI 도우미', '놀이터'];
   static const icons = [
