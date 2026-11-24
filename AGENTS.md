@@ -1,8 +1,17 @@
 # AGENTS.md
 
-Follow the collaboration and review rules in README.md. Changes reach `main`
-through a PR with a GitHub approval from a team member other than the author.
-An AI review or a general deployment request does not replace that approval.
+Follow the collaboration and review rules in README.md, with the explicit
+owner-approval exception below taking precedence over its team-approval clauses.
+Changes reach `main` through a PR. By default, obtain a GitHub approval from a
+team member other than the author. The repository owner may explicitly waive
+that team-approval requirement for specified PRs, including an explicitly
+requested batch of PRs. Record the owner's instruction in the merge description;
+never fabricate a GitHub `Approve` or claim that an AI review is a team approval.
+A general development or deployment request alone is not an approval waiver.
+
+An owner waiver does not waive applicable tests, CI, conflict resolution,
+security checks, or unresolved change requests. Do not bypass GitHub-enforced
+branch protection, secret scanning, or execution approval controls.
 Preserve unrelated, uncommitted work and never commit credentials or local DBs.
 
 ## Testing
@@ -21,7 +30,7 @@ Preserve unrelated, uncommitted work and never commit credentials or local DBs.
 - Production URL: http://127.0.0.1:18081 (server loopback; no public URL configured)
 - Deploy workflow: .github/workflows/backend-ci.yml
 - Deploy status command: `gh run list --repo dlwlssud123/SoftwareProject --workflow backend-ci.yml --branch main --limit 3 --json headSha,status,conclusion`
-- Merge method: squash, after the required team approval
+- Merge method: squash, after team approval or an explicit repository-owner waiver
 - Project type: API
 - Post-deploy health check: on the server, `curl --fail http://127.0.0.1:18081/api/v1/health/ready`
 
