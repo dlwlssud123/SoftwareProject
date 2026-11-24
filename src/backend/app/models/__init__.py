@@ -1,5 +1,6 @@
 """Database models; importing this package registers migration metadata."""
 
+from app.models.ai import AIUsageBucket  # noqa: F401
 from app.models.auth import (  # noqa: F401
     AdminCredential,
     AdminLoginBucket,

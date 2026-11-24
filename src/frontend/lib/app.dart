@@ -6,6 +6,7 @@ import 'data/intake_api.dart';
 import 'data/welfare_api.dart';
 import 'data/topic_api.dart';
 import 'data/facility_api.dart';
+import 'data/ai_api.dart';
 import 'services/settings.dart';
 import 'services/account.dart';
 import 'theme.dart';
@@ -26,6 +27,7 @@ class ValueFlowApp extends StatelessWidget {
     this.welfareApi,
     this.topicApi,
     this.facilityApi,
+    this.aiApi,
     super.key,
   });
   final DemoRepository repository;
@@ -38,6 +40,7 @@ class ValueFlowApp extends StatelessWidget {
   final WelfareApi? welfareApi;
   final TopicApi? topicApi;
   final FacilityApi? facilityApi;
+  final AiApi? aiApi;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: settings,
@@ -72,6 +75,7 @@ class ValueFlowApp extends StatelessWidget {
       welfareApi: welfareApi,
       topicApi: topicApi,
       facilityApi: facilityApi,
+      aiApi: aiApi,
     );
     final auth = account;
     if (auth == null) return shell();
@@ -93,6 +97,7 @@ class AppShell extends StatefulWidget {
     this.welfareApi,
     this.topicApi,
     this.facilityApi,
+    this.aiApi,
     super.key,
   });
   final DemoRepository repository;
@@ -103,6 +108,7 @@ class AppShell extends StatefulWidget {
   final WelfareApi? welfareApi;
   final TopicApi? topicApi;
   final FacilityApi? facilityApi;
+  final AiApi? aiApi;
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -126,6 +132,7 @@ class _AppShellState extends State<AppShell> {
       repository: widget.repository,
       settings: widget.settings,
       intakeApi: widget.intakeApi,
+      aiApi: widget.aiApi,
     ),
     AssistantScreen(
       repository: widget.repository,
@@ -133,6 +140,7 @@ class _AppShellState extends State<AppShell> {
       welfareApi: widget.welfareApi,
       topicApi: widget.topicApi,
       facilityApi: widget.facilityApi,
+      aiApi: widget.aiApi,
     ),
     ContentScreen(settings: widget.settings, topicApi: widget.topicApi),
   ];

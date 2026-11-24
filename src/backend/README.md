@@ -204,6 +204,19 @@ Remove-Item Env:RUN_DB_TESTS
 - 데이터 패키지 `agetech`를 로컬 editable 의존성으로 설치하므로 `uv sync --locked` 후 일반 Uvicorn 진입점에서 계약 모듈을 불러온다. 이미지 빌드 시 저장소 루트와 `src/data`도 포함한다.
 - 원천 수집 시각 역행과 시각 있는 이력 뒤의 무시각 입력을 차단한다. 이전 정상 레시피가 최신 보류 판정을 덮는 경우와 식품 판본 후퇴를 실제 DB에서 재현한 뒤 방지 테스트를 추가했다.
 
+## NVIDIA 생활·요리 AI와 음식 사진 · 작업 브랜치
+
+이 기능은 작업 브랜치의 구현이며 서버 배포·실기기 검증 완료를 의미하지 않는다. `uv sync --locked`로 Pillow를 설치하고 `alembic upgrade head`로 `20261124_02`의 사용량 테이블까지 적용한다. 키는 서버의 `NVIDIA_API_KEY`에만 보관하고 APK에 넣지 않는다. `NVIDIA_AI_ENABLED`는 기본 `false`이며 키와 활성화 설정이 모두 있어야 호출한다.
+
+- `POST /api/v1/ai/chat`: Bearer 세션과 `{message, allow_external_processing: true}`. 생활·요리·앱 사용 질문에 한국어 답변과 참고 안내를 반환한다. 대화 이력이나 사용자 프로필을 외부 모델에 자동 전송하지 않는다. 현재는 복지 RAG 근거 검색을 연결한 답변이 아니다.
+- `POST /api/v1/ai/food-photo`: Bearer 세션과 `{image_base64, allow_external_processing: true}`. 2MB 이하의 단일 JPG/PNG만 받는다. 서버에서 크기를 제한하고 EXIF/GPS를 제거한 JPEG로 재인코딩해 고정 NVIDIA HTTPS endpoint로 보낸다. 파일·질문·응답은 우리 DB에 저장하지 않는다.
+- 음식 이름·인식 확신도·대략적인 표준 1인분 질량만 모델에서 받고, 최대 6개 요리에 공공 식품 DB 후보를 연결한다. 영양 수치를 AI에서 받아 저장하지 않는다. 원천의 명시적인 1회 분량이 있으면 먼저 사용하고, 없으면 `basis=ai_estimate`로 제안량을 표시한다. 사진의 실제 질량을 측정한 결과가 아니다. DB에 없으면 후보를 비워 직접 검색하도록 한다.
+- 앱에서 음식과 분량을 확인한 뒤 기존 `/nutrition/calculate`와 `/meals`로 계산·저장한다. `amount_is_estimate=true`는 계산 및 저장 당시 JSON snapshot에 보존한다. 기본값은 false이며, 이전 저장 요청의 멱등성 해시를 유지한다.
+- 인증·외부 처리 동의·25초 기본 공급자 타임아웃·프로세스당 동시 2건을 적용한다. KST 날짜별 사용자 30회·서비스 전체 100회가 기본값이며 DB의 원자적 카운터로 제한한다. 공급자 호출 실패도 예약된 사용량을 소비하며 자동 재전송하지 않는다. 게스트 재발급으로 사용자 제한을 초기화할 수 있으므로 전체 제한도 함께 적용한다. 다중 프로세스의 동시성 합계는 별도 운영 설정이 필요하다.
+- 비활성/연결 실패는 503, 이용량 초과는 429, 잘못된 사진·동의 누락은 422, 본문 제한 초과는 413이다. 원문 공급자 오류·키를 반환하거나 로그에 출력하지 않으며 응답은 `no-store`다. 공급자 처리 중 세션이 폐기되면 결과도 반환하지 않는다.
+
+현재 모델은 `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`이며 [공식 Build 안내](https://build.nvidia.com/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning/build)에 따른다. JSON 출력은 서버에서 별도로 검증한다. [API Trial 약관](https://assets.ngc.nvidia.com/products/api-catalog/legal/NVIDIA%20API%20Trial%20Terms%20of%20Service.pdf)의 내부 시험·평가 범위를 전제로 하며 상용 운영 가능 여부는 별도 확인해야 한다. 얼굴·개인정보·개인 건강기록·의료 문서는 전송 대상이 아니다. 약 봉투·안내문 OCR은 이번 기능에 포함하지 않는다.
+
 ## 커뮤니티 API · 2026-11-24 작업 브랜치
 
 `20261124_01`은 기존 `20261120_06` 다음에 글·차단·비공개 신고 테이블을 추가한다. 이 절은 작업 브랜치의 구현이며 운영 배포 완료를 의미하지 않는다.

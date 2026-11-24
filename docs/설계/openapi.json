@@ -503,6 +503,178 @@
         ]
       }
     },
+    "/api/v1/ai/chat": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Chat",
+        "operationId": "chat_api_v1_ai_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_ChatResult_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/ai/food-photo": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Photo",
+        "operationId": "photo_api_v1_ai_food_photo_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_PhotoResult_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ]
+      }
+    },
     "/api/v1/foods": {
       "get": {
         "tags": [
@@ -7940,6 +8112,11 @@
             "type": "boolean",
             "title": "Approx Ml"
           },
+          "amount_is_estimate": {
+            "type": "boolean",
+            "title": "Amount Is Estimate",
+            "default": false
+          },
           "nutrients": {
             "anyOf": [
               {
@@ -7982,6 +8159,59 @@
           "note"
         ],
         "title": "CalculatedPortion"
+      },
+      "ChatRequest": {
+        "properties": {
+          "allow_external_processing": {
+            "type": "boolean",
+            "title": "Allow External Processing"
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "allow_external_processing",
+          "message"
+        ],
+        "title": "ChatRequest"
+      },
+      "ChatResult": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Answer"
+          },
+          "provider": {
+            "type": "string",
+            "const": "NVIDIA",
+            "title": "Provider",
+            "default": "NVIDIA"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "notice": {
+            "type": "string",
+            "title": "Notice",
+            "default": "AI가 만든 참고 답변이에요. 개인 건강 상담이나 진료를 대신하지 않아요."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "answer",
+          "model"
+        ],
+        "title": "ChatResult"
       },
       "ComputedNutrition": {
         "properties": {
@@ -8693,6 +8923,11 @@
             "maximum": 10000.0,
             "exclusiveMinimum": 0.0,
             "title": "Amount"
+          },
+          "amount_is_estimate": {
+            "type": "boolean",
+            "title": "Amount Is Estimate",
+            "default": false
           },
           "unit": {
             "type": "string",
@@ -9447,6 +9682,23 @@
           "access_token"
         ],
         "title": "KakaoRequest"
+      },
+      "MatchedFood": {
+        "properties": {
+          "food": {
+            "$ref": "#/components/schemas/FoodRecord"
+          },
+          "serving": {
+            "$ref": "#/components/schemas/ServingSuggestion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "food",
+          "serving"
+        ],
+        "title": "MatchedFood"
       },
       "MealCreate": {
         "properties": {
@@ -10908,6 +11160,106 @@
           "total"
         ],
         "title": "Page[WelfareRecord]"
+      },
+      "PhotoDish": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Confidence"
+          },
+          "standard_serving_grams": {
+            "type": "integer",
+            "maximum": 1500.0,
+            "minimum": 10.0,
+            "title": "Standard Serving Grams"
+          },
+          "matches": {
+            "items": {
+              "$ref": "#/components/schemas/MatchedFood"
+            },
+            "type": "array",
+            "title": "Matches"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "confidence",
+          "standard_serving_grams",
+          "matches"
+        ],
+        "title": "PhotoDish"
+      },
+      "PhotoRequest": {
+        "properties": {
+          "allow_external_processing": {
+            "type": "boolean",
+            "title": "Allow External Processing"
+          },
+          "image_base64": {
+            "type": "string",
+            "maxLength": 2800000,
+            "minLength": 32,
+            "title": "Image Base64"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "allow_external_processing",
+          "image_base64"
+        ],
+        "title": "PhotoRequest"
+      },
+      "PhotoResult": {
+        "properties": {
+          "is_food": {
+            "type": "boolean",
+            "title": "Is Food"
+          },
+          "foods": {
+            "items": {
+              "$ref": "#/components/schemas/PhotoDish"
+            },
+            "type": "array",
+            "title": "Foods"
+          },
+          "provider": {
+            "type": "string",
+            "const": "NVIDIA",
+            "title": "Provider",
+            "default": "NVIDIA"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "notice": {
+            "type": "string",
+            "title": "Notice",
+            "default": "사진으로 찾은 음식 후보예요. 기본 1인분의 예상 양을 확인하거나 바꿔 주세요. 사진에서 실제 중량을 측정한 값은 아니에요."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "is_food",
+          "foods",
+          "model"
+        ],
+        "title": "PhotoResult"
       },
       "PlannedMeal": {
         "properties": {
@@ -12634,6 +12986,45 @@
         ],
         "title": "ServingReference"
       },
+      "ServingSuggestion": {
+        "properties": {
+          "amount": {
+            "type": "number",
+            "maximum": 10000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "g",
+              "mL"
+            ],
+            "title": "Unit"
+          },
+          "basis": {
+            "type": "string",
+            "enum": [
+              "source_serving",
+              "ai_estimate"
+            ],
+            "title": "Basis"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "amount",
+          "unit",
+          "basis",
+          "description"
+        ],
+        "title": "ServingSuggestion"
+      },
       "SessionData": {
         "properties": {
           "user_id": {
@@ -12959,6 +13350,22 @@
           "meta"
         ],
         "title": "SuccessResponse[BlockRecord]"
+      },
+      "SuccessResponse_ChatResult_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ChatResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[ChatResult]"
       },
       "SuccessResponse_DayMealPlan_": {
         "properties": {
@@ -13423,6 +13830,22 @@
           "meta"
         ],
         "title": "SuccessResponse[Page[WelfareRecord]]"
+      },
+      "SuccessResponse_PhotoResult_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PhotoResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[PhotoResult]"
       },
       "SuccessResponse_PlannedMeal_": {
         "properties": {

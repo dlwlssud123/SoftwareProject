@@ -184,10 +184,13 @@ def create_meal(
     db: DbSession,
 ):
     key_hash = hashlib.sha256(idempotency_key.encode()).hexdigest()
+    fingerprint = body.model_dump(mode="json")
+    # Keep pre-AI pending receipts replayable when the optional estimate flag is false.
+    for item in fingerprint["items"]:
+        if not item["amount_is_estimate"]:
+            del item["amount_is_estimate"]
     request_hash = hashlib.sha256(
-        json.dumps(
-            body.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
-        ).encode()
+        json.dumps(fingerprint, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
     try:
         claimed = db.scalar(

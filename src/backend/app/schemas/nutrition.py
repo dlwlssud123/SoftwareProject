@@ -39,6 +39,7 @@ class FoodPortionRequest(ContractModel):
     food_id: UUID
     revision_id: UUID
     amount: Annotated[float, Field(strict=True, gt=0, le=10000)]
+    amount_is_estimate: Annotated[bool, Field(strict=True)] = False
     unit: Literal[
         "g",
         "kg",
@@ -85,6 +86,7 @@ class CalculatedPortion(ContractModel):
     basis: FoodBasis | None
     factor: float | None
     approx_ml: bool
+    amount_is_estimate: bool = False
     nutrients: NutrientAmounts | None
     missing: list[str]
     note: str

@@ -9,6 +9,7 @@ from app.api.admin import router as admin_router
 from app.api.admin_data import router as admin_data_router
 from app.api.admin_guides import router as admin_guides_router
 from app.api.admin_login import router as admin_login_router
+from app.api.ai import router as ai_router
 from app.api.auth import router as auth_router
 from app.api.community import admin_router as admin_community_router
 from app.api.community import router as community_router
@@ -26,6 +27,7 @@ from app.api.shopping import router as shopping_router
 from app.api.topic_requests import admin_router as admin_topics_router
 from app.api.topic_requests import router as topics_router
 from app.api.welfare import router as welfare_router
+from app.core.ai_body_limit import AIBodyLimit
 from app.core.config import get_settings
 from app.core.database import engine
 from app.core.errors import error_response, register_error_handlers
@@ -83,6 +85,8 @@ def create_app() -> FastAPI:
             response.headers["Cache-Control"] = "no-store"
         if request.url.path.startswith("/api/v1/admin/"):
             response.headers["Cache-Control"] = "no-store"
+        if request.url.path.startswith("/api/v1/ai/"):
+            response.headers["Cache-Control"] = "no-store"
         if request.url.path.startswith("/api/v1/community/"):
             response.headers["Cache-Control"] = "no-store"
         if (
@@ -98,6 +102,7 @@ def create_app() -> FastAPI:
             response.headers["Cache-Control"] = "no-store"
         return response
 
+    app.add_middleware(AIBodyLimit)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
@@ -113,6 +118,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health_router, prefix="/api/v1")
     app.include_router(auth_router, prefix="/api/v1")
+    app.include_router(ai_router, prefix="/api/v1")
     app.include_router(foods_router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1")
     app.include_router(admin_login_router, prefix="/api/v1")

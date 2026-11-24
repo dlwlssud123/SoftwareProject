@@ -21,6 +21,22 @@ class Settings(BaseSettings):
     session_ttl_seconds: int = Field(default=604800, ge=300, le=2592000)
     admin_session_ttl_seconds: int = Field(default=3600, ge=300, le=28800)
     kakao_app_id: int | None = Field(default=None, gt=0)
+    nvidia_api_key: SecretStr | None = None
+    nvidia_ai_enabled: bool = False
+    nvidia_model: str = Field(
+        default="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+        min_length=1,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9._/-]+$",
+    )
+    nvidia_timeout_seconds: float = Field(default=25, ge=3, le=60)
+    ai_daily_user_limit: int = Field(default=30, ge=1, le=1000)
+    ai_daily_global_limit: int = Field(default=100, ge=1, le=10000)
+
+    @field_validator("nvidia_api_key", mode="before")
+    @classmethod
+    def empty_ai_key_is_disabled(cls, value):
+        return None if value == "" else value
 
     @field_validator("database_url")
     @classmethod

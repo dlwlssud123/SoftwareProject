@@ -298,7 +298,12 @@ class _PortionDialogState extends State<_PortionDialog> {
           if (_form.currentState!.validate()) {
             Navigator.pop(
               context,
-              FoodSelection(widget.food, double.parse(_amount.text), _unit),
+              FoodSelection(
+                widget.food,
+                double.parse(_amount.text),
+                _unit,
+                estimated: widget.initial?.estimated ?? false,
+              ),
             );
           }
         },
@@ -309,15 +314,23 @@ class _PortionDialogState extends State<_PortionDialog> {
 }
 
 class IntakeEditor extends StatefulWidget {
-  const IntakeEditor({required this.api, this.existing, super.key});
+  const IntakeEditor({
+    required this.api,
+    this.existing,
+    this.initialItems = const [],
+    super.key,
+  });
   final IntakeApi api;
   final SavedIntake? existing;
+  final List<FoodSelection> initialItems;
   @override
   State<IntakeEditor> createState() => _IntakeEditorState();
 }
 
 class _IntakeEditorState extends State<IntakeEditor> {
-  late final List<FoodSelection> _items = [...?widget.existing?.items];
+  late final List<FoodSelection> _items = [
+    ...(widget.existing?.items ?? widget.initialItems),
+  ];
   late DateTime _time = widget.existing?.eatenAt ?? DateTime.now().toUtc();
   IntakePreview? _preview;
   PendingIntake? _pending;
@@ -325,6 +338,7 @@ class _IntakeEditorState extends State<IntakeEditor> {
   bool _busy = false, _loading = true, _restoreFailed = false;
   String? _error;
   bool _conflict = false;
+  bool _restoredBeforePhoto = false;
 
   @override
   void initState() {
@@ -345,6 +359,7 @@ class _IntakeEditorState extends State<IntakeEditor> {
       setState(() {
         _pending = pending;
         if (pending != null) {
+          _restoredBeforePhoto = widget.initialItems.isNotEmpty;
           _items
             ..clear()
             ..addAll(pending.items);
@@ -361,6 +376,12 @@ class _IntakeEditorState extends State<IntakeEditor> {
       }
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+    if (mounted &&
+        !_restoreFailed &&
+        _pending == null &&
+        widget.initialItems.isNotEmpty) {
+      await _calculate();
     }
   }
 
@@ -526,7 +547,13 @@ class _IntakeEditorState extends State<IntakeEditor> {
         setState(() => _pending = attempt);
         saved = await widget.api.submit(attempt);
       }
-      if (mounted) Navigator.pop(context, saved);
+      if (mounted) {
+        if (_restoredBeforePhoto) {
+          Navigator.pop(context);
+        } else {
+          Navigator.pop(context, saved);
+        }
+      }
     } on ApiException catch (error) {
       if (!mounted) return;
       setState(() {
@@ -610,6 +637,10 @@ class _IntakeEditorState extends State<IntakeEditor> {
                     label: Text('${_when(context, _time)}\n한국 시간 기준'),
                   ),
                   const SectionTitle('먹은 음식과 양'),
+                  if (_pending != null && widget.initialItems.isNotEmpty)
+                    const Notice(
+                      '이전 식사의 저장 확인이 먼저예요. 이번 사진에서 고른 음식은 아직 반영하지 않았어요. 저장 확인 후 사진 화면에서 다시 진행해 주세요.',
+                    ),
                   for (var i = 0; i < _items.length; i++)
                     Card(
                       child: Padding(
@@ -628,6 +659,8 @@ class _IntakeEditorState extends State<IntakeEditor> {
                               '${_items[i].amount} ${_items[i].unit}',
                               style: const TextStyle(fontSize: 18),
                             ),
+                            if (_items[i].estimated)
+                              const Text('예상 분량 · 실제 먹은 양과 다를 수 있어요'),
                             if (_invalid.contains(i))
                               const Notice('음식 정보와 양을 다시 확인해 주세요.'),
                             Wrap(
@@ -715,7 +748,7 @@ class _IntakeEditorState extends State<IntakeEditor> {
                       child: const Text('저장한 식사 확인'),
                     ),
                   const Notice(
-                    '선택한 음식과 양으로 계산한 참고 정보예요. 사진 인식 결과나 건강 상태 판정이 아니에요.',
+                    '선택한 음식과 양을 공공 영양 DB로 계산한 참고 정보예요. 실제 영양은 조리법과 먹은 양에 따라 달라져요.',
                   ),
                 ],
               ),
@@ -913,6 +946,8 @@ class _IntakeDetailScreenState extends State<IntakeDetailScreen> {
                   ),
                 ),
               const SectionTitle('저장 당시 영양'),
+              if (meal.items.any((item) => item.estimated))
+                const Notice('예상 분량으로 계산한 식사가 포함돼 있어요. 실제 먹은 양을 측정한 값은 아니에요.'),
               IntakeNutrientView(meal.total),
               if (meal.legacy)
                 const Notice('이전 기록은 당시 저장한 수치를 보여 드려요. 자세한 환산 근거는 보관되지 않았어요.'),
