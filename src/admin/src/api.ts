@@ -12,6 +12,7 @@ export class ApiError extends Error {
 export type AdminSession = { token: string; userId: string; expiresAt: string }
 export const jobStatuses = ['queued', 'running', 'succeeded', 'failed', 'cancelled'] as const
 export type JobStatus = (typeof jobStatuses)[number]
+export const jobStatusLabels: Record<JobStatus, string> = { queued: '대기', running: '실행 중', succeeded: '성공', failed: '실패', cancelled: '취소' }
 export type DataJob = {
   id: string; status: JobStatus; attempts: number; created_at: string;
   next_run_at: string; started_at: string | null; finished_at: string | null;

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
 import App from '../src/App'
 import AccessBoundary from '../src/components/AccessBoundary'
@@ -39,7 +39,7 @@ it('세션은 브라우저 저장소에 쓰지 않고 성공 후 한국 시간 �
   expect(await screen.findByRole('table')).toBeTruthy()
   expect(screen.getByText('import_welfare')).toBeTruthy()
   expect(screen.getByText('실패', { selector: '.job-status' })).toBeTruthy()
-  expect(screen.getByText(/2026\. 11\. 20\..*8:50/)).toBeTruthy()
+  expect(within(screen.getByRole('table')).getByText(/2026\. 11\. 20\..*8:50/)).toBeTruthy()
   expect(save).not.toHaveBeenCalled()
   expect(api.jobs).toHaveBeenCalledWith(expect.any(String), { q: '', offset: 0 }, expect.any(AbortSignal))
 })
@@ -75,6 +75,7 @@ it.each([401, 403])('수집 조회 중 인증·권한이 사라지면 이전 내
   fireEvent.click(screen.getByRole('button', { name: '새로고침' }))
   expect(await screen.findByRole('heading', { name: '관리자 로그인' })).toBeTruthy()
   expect(screen.queryByRole('table')).toBeNull()
+  expect(screen.queryByLabelText('수집 작업 요약')).toBeNull()
 })
 
 it('로그아웃 통신이 실패해도 브라우저에서 개인 작업 내용을 제거한다', async () => {
