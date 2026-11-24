@@ -10,6 +10,8 @@ from app.api.admin_data import router as admin_data_router
 from app.api.admin_guides import router as admin_guides_router
 from app.api.admin_login import router as admin_login_router
 from app.api.auth import router as auth_router
+from app.api.community import admin_router as admin_community_router
+from app.api.community import router as community_router
 from app.api.content import router as content_router
 from app.api.foods import router as foods_router
 from app.api.health import router as health_router
@@ -81,6 +83,8 @@ def create_app() -> FastAPI:
             response.headers["Cache-Control"] = "no-store"
         if request.url.path.startswith("/api/v1/admin/"):
             response.headers["Cache-Control"] = "no-store"
+        if request.url.path.startswith("/api/v1/community/"):
+            response.headers["Cache-Control"] = "no-store"
         if (
             request.url.path == "/api/v1/content-topic-requests"
             or request.url.path.startswith("/api/v1/content-topic-requests/")
@@ -117,6 +121,8 @@ def create_app() -> FastAPI:
     app.include_router(topics_router, prefix="/api/v1")
     app.include_router(admin_topics_router, prefix="/api/v1")
     app.include_router(content_router, prefix="/api/v1")
+    app.include_router(community_router, prefix="/api/v1")
+    app.include_router(admin_community_router, prefix="/api/v1")
     app.include_router(profile_router, prefix="/api/v1")
     app.include_router(recipes_router, prefix="/api/v1")
     app.include_router(meal_router, prefix="/api/v1")

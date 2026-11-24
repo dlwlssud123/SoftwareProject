@@ -7,6 +7,7 @@ from app.models.auth import (  # noqa: F401
     KakaoIdentity,
     User,
 )
+from app.models.community import CommunityBlock, CommunityPost, CommunityReport  # noqa: F401
 from app.models.content import (  # noqa: F401
     GuideAuditEvent,
     LifeGuide,

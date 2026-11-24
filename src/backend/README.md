@@ -204,6 +204,19 @@ Remove-Item Env:RUN_DB_TESTS
 - 데이터 패키지 `agetech`를 로컬 editable 의존성으로 설치하므로 `uv sync --locked` 후 일반 Uvicorn 진입점에서 계약 모듈을 불러온다. 이미지 빌드 시 저장소 루트와 `src/data`도 포함한다.
 - 원천 수집 시각 역행과 시각 있는 이력 뒤의 무시각 입력을 차단한다. 이전 정상 레시피가 최신 보류 판정을 덮는 경우와 식품 판본 후퇴를 실제 DB에서 재현한 뒤 방지 테스트를 추가했다.
 
+## 커뮤니티 API · 2026-11-24 작업 브랜치
+
+`20261124_01`은 기존 `20261120_06` 다음에 글·차단·비공개 신고 테이블을 추가한다. 이 절은 작업 브랜치의 구현이며 운영 배포 완료를 의미하지 않는다.
+
+- 모든 `/api/v1/community/*` 요청은 서비스 Bearer 세션이 필요하다. 게스트도 서비스 세션으로 이용한다. 응답은 `no-store`이며 사용자 ID·연락처 대신 서버의 이웃 표시명을 반환한다.
+- `GET/POST /community/posts`: 식사(`meal`)·일상(`daily`) 글 목록과 작성. 목록은 분류·검색(`q`)·페이지를 지원한다. 작성은 UUID v4 `submission_id`, 분류, 1~60자 제목, 1~2,000자 평문 본문이 필요하다. 같은 전송 번호·내용의 재시도는 기존 결과를 반환하며 다른 내용은 409다. 삭제한 글을 재시도로 복원하지 않는다.
+- `GET /community/posts/mine`, `GET/PATCH/DELETE /community/posts/{id}`: 내 글·상세·수정·삭제. 수정과 삭제에 정수 `expected_version`을 요구하며 다른 사람은 변경할 수 없다. 삭제는 본문·제목을 비우고 글을 숨긴다. 작성 제한은 최근 24시간 10개이며 삭제로 한도를 초기화하지 않는다.
+- `POST /community/posts/{id}/reports`: `spam`, `abuse`, `misinformation`, `privacy`, `other` 사유와 선택 메모(500자 이하)를 접수한다. 같은 사용자의 중복 신고는 하나로 유지한다. 작성자·일반 사용자에게 신고자·신고 메모·처리 사유를 공개하지 않는다. 신고만으로 글을 자동 숨기지 않는다.
+- `POST /community/posts/{id}/block-author`, `GET /community/blocks`, `DELETE /community/blocks/{id}`: 글 작성자 차단·내 차단 목록·해제. 차단은 양쪽의 목록·상세 접근에 적용한다. 자기 차단·다른 사용자의 차단 해제는 거부하며 내부 사용자 ID를 요청하거나 반환하지 않는다.
+- `GET /admin/community/reports`, `PATCH /admin/community/reports/{id}`: 관리자만 신고 목록을 보고 처리한다. `decision=hide|dismiss`, `expected_post_version`, 1~200자 `resolution`을 보낸다. 변경된 글·처리된 신고는 409이며 숨긴 글을 작성자 수정으로 재게시할 수 없다.
+
+이 작업은 글·신고·차단의 백엔드다. 앱 게시판·관리자 신고 화면, 댓글·사진 첨부, 숨김 해제 UI, 실서버 배포는 별도 작업이다. 프런트는 본문을 HTML로 실행하지 않고 평문으로 표시하며 공개 글 작성 안내·삭제/차단 확인·신고 결과·수정 충돌을 연결해야 한다.
+
 ### 카카오 계정 연결
 
 백엔드 `.env`의 `KAKAO_APP_ID`는 카카오 개발자 앱의 숫자 ID다. Native 앱 키와 구분한다. `alembic upgrade head`로 `20261118_01`을 적용한 뒤 실행한다. 서버는 카카오 토큰 정보 API에서 앱 ID·사용자 식별자·만료를 검증하고, 카카오 토큰은 저장하지 않는다.
