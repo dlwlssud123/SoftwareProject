@@ -3,6 +3,8 @@
 /// 계약: docs/설계/API_명세서.md 9·10절, catalog.openapi.json의 RecipeRecord.
 /// - 누락된 영양값은 0으로 채우지 않고 null로 둔다.
 /// - 원천 ID는 숫자처럼 보여도 문자열로 유지한다.
+/// - `nutrition`은 원천이 적은 1인분 표기(근거 미확인), `computedNutrition`은
+///   재료로 계산한 값이다. 둘을 섞지 않는다(food_nutrition_contract.md 3.4).
 class RecipeRecord {
   const RecipeRecord({
     required this.recipeId,
@@ -16,6 +18,7 @@ class RecipeRecord {
     required this.steps,
     required this.missingStepNos,
     required this.nutrition,
+    this.computedNutrition,
     required this.sodiumTip,
     required this.allergens,
     required this.qualityStatus,
@@ -33,6 +36,9 @@ class RecipeRecord {
   final List<RecipeStepItem> steps;
   final List<int> missingStepNos;
   final RecipeNutritionInfo nutrition;
+
+  /// 재료로 계산한 영양. 아직 식품 매핑 전이면 null이다.
+  final ComputedNutrition? computedNutrition;
   final String? sodiumTip;
   final RecipeAllergenInfo allergens;
   final String qualityStatus;
@@ -63,6 +69,12 @@ class RecipeRecord {
       nutrition: RecipeNutritionInfo.fromJson(
         json['nutrition'] as Map<String, dynamic>,
       ),
+      computedNutrition: switch (json['computed_nutrition']) {
+        null => null,
+        final block => ComputedNutrition.fromJson(
+          block as Map<String, dynamic>,
+        ),
+      },
       sodiumTip: json['sodium_tip'] as String?,
       allergens: RecipeAllergenInfo.fromJson(
         json['allergens'] as Map<String, dynamic>,
@@ -154,6 +166,145 @@ class RecipeNutritionInfo {
   static double? _number(Object? value) =>
       value is num ? value.toDouble() : null;
 }
+
+/// 재료 목록 전체를 식품 DB로 계산한 영양(`computed_nutrition`, basis=whole_recipe).
+///
+/// 계약: docs/data/food_nutrition_contract.md 3.4.
+/// - [perServing]은 재료 원문에 'N인분'이 있을 때만 있다. 없으면 1인분을 지어내지 않는다.
+/// - [density]는 레시피끼리 비교하는 값이라 화면에 그대로 보여주지 않는다.
+class ComputedNutrition {
+  const ComputedNutrition({
+    required this.servings,
+    required this.total,
+    required this.perServing,
+    required this.partialNutrients,
+    required this.complete,
+    required this.density,
+    required this.notices,
+    required this.version,
+  });
+
+  final double? servings;
+  final NutrientAmounts total;
+  final NutrientAmounts? perServing;
+
+  /// 일부 재료만 합산된 성분 키(예: `sugars_g`).
+  final Set<String> partialNutrients;
+
+  /// 먹는 재료가 모두 계산에 들어갔는지.
+  final bool complete;
+  final NutrientDensity density;
+  final List<NutritionNotice> notices;
+  final String? version;
+
+  /// 화면에 보여줄 값: 1인분이 있으면 1인분, 없으면 레시피 전체 합계.
+  NutrientAmounts get shown => perServing ?? total;
+
+  factory ComputedNutrition.fromJson(Map<String, dynamic> json) =>
+      ComputedNutrition(
+        servings: _number(json['servings']),
+        total: NutrientAmounts.fromJson(json['total'] as Map<String, dynamic>),
+        perServing: switch (json['per_serving']) {
+          null => null,
+          final amounts => NutrientAmounts.fromJson(
+            amounts as Map<String, dynamic>,
+          ),
+        },
+        partialNutrients: {
+          for (final key in json['partial_nutrients'] as List) key as String,
+        },
+        complete: json['complete'] as bool,
+        density: NutrientDensity.fromJson(
+          json['density'] as Map<String, dynamic>,
+        ),
+        notices: [
+          for (final row in json['notices'] as List)
+            NutritionNotice.fromJson(row as Map<String, dynamic>),
+        ],
+        version: json['version'] as String?,
+      );
+}
+
+/// 성분 합계. 앱 화면은 열량·탄수화물·단백질·지방·나트륨 다섯 성분을 쓴다.
+class NutrientAmounts {
+  const NutrientAmounts({
+    required this.energyKcal,
+    required this.carbohydrateG,
+    required this.proteinG,
+    required this.fatG,
+    required this.sodiumMg,
+  });
+
+  final double? energyKcal;
+  final double? carbohydrateG;
+  final double? proteinG;
+  final double? fatG;
+  final double? sodiumMg;
+
+  factory NutrientAmounts.fromJson(Map<String, dynamic> json) =>
+      NutrientAmounts(
+        energyKcal: _number(json['energy_kcal']),
+        carbohydrateG: _number(json['carbohydrate_g']),
+        proteinG: _number(json['protein_g']),
+        fatG: _number(json['fat_g']),
+        sodiumMg: _number(json['sodium_mg']),
+      );
+}
+
+/// 분량과 상관없는 비교 값(food_nutrition_contract.md 3.2).
+class NutrientDensity {
+  const NutrientDensity({
+    required this.sodiumMgPer1000kcal,
+    required this.carbohydrateEnergyPct,
+  });
+
+  final double? sodiumMgPer1000kcal;
+  final double? carbohydrateEnergyPct;
+
+  factory NutrientDensity.fromJson(Map<String, dynamic> json) =>
+      NutrientDensity(
+        sodiumMgPer1000kcal: _number(json['sodium_mg_per_1000kcal']),
+        carbohydrateEnergyPct: _number(json['carbohydrate_energy_pct']),
+      );
+}
+
+/// 화면 안내. [label]은 서버 문구를 그대로 표시한다.
+class NutritionNotice {
+  const NutritionNotice({
+    required this.code,
+    required this.label,
+    required this.itemNames,
+  });
+
+  final String code;
+  final String label;
+
+  /// 안내에 해당하는 재료 이름(분량 표기가 있으면 함께).
+  final List<String> itemNames;
+
+  factory NutritionNotice.fromJson(Map<String, dynamic> json) =>
+      NutritionNotice(
+        code: json['code'] as String,
+        label: json['label'] as String,
+        itemNames: [
+          for (final row
+              in (json['items'] as List).cast<Map<String, dynamic>>())
+            ?_itemName(row),
+        ],
+      );
+
+  /// `{name, amount_text, ...}` → '건두부 (10장)'. 이름이 없는 항목은 건너뛴다.
+  static String? _itemName(Map<String, dynamic> item) {
+    final name = item['name'];
+    if (name is! String || name.trim().isEmpty) return null;
+    final amount = item['amount_text'];
+    return amount is String && amount.trim().isNotEmpty
+        ? '${name.trim()} ${amount.trim()}'
+        : name.trim();
+  }
+}
+
+double? _number(Object? value) => value is num ? value.toDouble() : null;
 
 /// 재료 이름 기준 알레르기 판정 결과. 이름은 서버 표기(예: 알류)다.
 class RecipeAllergenInfo {

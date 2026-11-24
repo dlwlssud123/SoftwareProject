@@ -212,4 +212,120 @@ void main() {
       ),
     );
   });
+
+  /// food_nutrition_contract.md 3.4의 예시(3282 어린잎채소 건두부말이).
+  Map<String, Object?> contractComputedNutrition() => {
+    'basis': 'whole_recipe',
+    'servings': 2.0,
+    'total': {
+      'energy_kcal': 1244.0,
+      'carbohydrate_g': 73.0,
+      'protein_g': 63.6,
+      'fat_g': 78.1,
+      'sodium_mg': 752.8,
+      'sugars_g': 42.2,
+      'fiber_g': 5.3,
+      'sat_fat_g': 23.5,
+      'cholesterol_mg': 59.2,
+      'potassium_mg': 750.6,
+      'calcium_mg': 1102.9,
+    },
+    'per_serving': {
+      'energy_kcal': 622.0,
+      'carbohydrate_g': 36.5,
+      'protein_g': 31.8,
+      'fat_g': 39.0,
+      'sodium_mg': 376.4,
+      'sugars_g': 21.1,
+      'fiber_g': 2.7,
+      'sat_fat_g': 11.8,
+      'cholesterol_mg': 29.6,
+      'potassium_mg': 375.3,
+      'calcium_mg': 551.5,
+    },
+    'partial_nutrients': ['cholesterol_mg', 'potassium_mg'],
+    'complete': true,
+    'density': {
+      'sodium_mg_per_1000kcal': 605.1,
+      'carbohydrate_energy_pct': 23.5,
+      'protein_energy_pct': 20.5,
+      'fat_energy_pct': 56.5,
+    },
+    'notices': [
+      {
+        'code': 'estimated_amount',
+        'label': '일부 재료는 양을 추정했어요',
+        'items': [
+          {'name': '건두부', 'amount_text': '(10장)', 'grams': 130.0},
+          {'name': '후춧가루', 'amount_text': '(약간)', 'grams': 0.02},
+        ],
+      },
+    ],
+    'version': 'recipe-food-map-v8',
+  };
+
+  test('재료로 계산한 영양(computed_nutrition)을 원문 표기와 따로 읽는다', () async {
+    final body = _copy(examples['recipe_detail']);
+    (body['data'] as Map)['computed_nutrition'] = contractComputedNutrition();
+    final (api, _) = apiReturning(200, body);
+
+    final recipe = await api.detail('108');
+    final computed = recipe.computedNutrition!;
+
+    expect(computed.servings, 2.0);
+    expect(computed.total.energyKcal, 1244.0);
+    expect(computed.perServing!.energyKcal, 622.0);
+    expect(computed.shown.sodiumMg, 376.4);
+    expect(computed.partialNutrients, {'cholesterol_mg', 'potassium_mg'});
+    expect(computed.density.sodiumMgPer1000kcal, 605.1);
+    expect(computed.notices.single.label, '일부 재료는 양을 추정했어요');
+    expect(computed.notices.single.itemNames, ['건두부 (10장)', '후춧가루 (약간)']);
+    // 원문 1인분 표기는 그대로 남는다.
+    expect(recipe.nutrition.energyKcal, 60.0);
+  });
+
+  test('N인분 표기가 없으면 1인분을 만들지 않고 전체 합계를 보여준다', () async {
+    final body = _copy(examples['recipe_detail']);
+    (body['data'] as Map)['computed_nutrition'] = contractComputedNutrition()
+      ..['servings'] = null
+      ..['per_serving'] = null;
+    final (api, _) = apiReturning(200, body);
+
+    final computed = (await api.detail('108')).computedNutrition!;
+
+    expect(computed.perServing, isNull);
+    expect(computed.shown.energyKcal, 1244.0);
+  });
+
+  test('매핑 전(null)이거나 칸이 없으면 계산 영양 없이 읽는다', () async {
+    final withNull = _copy(examples['recipe_detail']);
+    (withNull['data'] as Map)['computed_nutrition'] = null;
+    final (nullApi, _) = apiReturning(200, withNull);
+    expect((await nullApi.detail('108')).computedNutrition, isNull);
+
+    // 현재 계약 표본(api_examples.json)에는 이 칸이 없다.
+    final (missingApi, _) = apiReturning(
+      200,
+      examples['recipe_detail'] as Object,
+    );
+    expect((await missingApi.detail('108')).computedNutrition, isNull);
+  });
+
+  test('계산 영양 형식이 계약과 다르면 형식 오류로 처리한다', () async {
+    final body = _copy(examples['recipe_detail']);
+    (body['data'] as Map)['computed_nutrition'] = contractComputedNutrition()
+      ..remove('total');
+    final (api, _) = apiReturning(200, body);
+
+    await expectLater(
+      api.detail('108'),
+      throwsA(
+        isA<ApiException>().having(
+          (e) => e.type,
+          'type',
+          ApiErrorType.badResponse,
+        ),
+      ),
+    );
+  });
 }

@@ -69,6 +69,7 @@ void main() {
     Map<String, Object?> nutrition = const {},
     Map<String, Object?>? allergens,
     List<Map<String, Object?>>? ingredients,
+    Map<String, Object?>? computed,
   }) {
     final json = jsonDecode(jsonEncode(sample)) as Map<String, dynamic>;
     json['recipe_id'] = id;
@@ -78,6 +79,7 @@ void main() {
     (json['nutrition'] as Map<String, dynamic>).addAll(nutrition);
     if (allergens != null) json['allergens'] = allergens;
     if (ingredients != null) json['ingredients'] = ingredients;
+    if (computed != null) json['computed_nutrition'] = computed;
     return RecipeRecord.fromJson(json);
   }
 
@@ -233,5 +235,120 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('server-recipe-list')), findsOneWidget);
+  });
+
+  Map<String, Object?> amounts(double kcal, double sodium) => {
+    'energy_kcal': kcal,
+    'carbohydrate_g': 36.5,
+    'protein_g': 31.8,
+    'fat_g': 39.0,
+    'sodium_mg': sodium,
+    'sugars_g': null,
+    'fiber_g': null,
+    'sat_fat_g': null,
+    'cholesterol_mg': null,
+    'potassium_mg': null,
+    'calcium_mg': null,
+  };
+
+  Map<String, Object?> computedBlock({
+    double? servings,
+    List<Map<String, Object?>> notices = const [],
+    List<String> partial = const [],
+  }) => {
+    'basis': 'whole_recipe',
+    'servings': servings,
+    'total': amounts(1244, 752.8),
+    'per_serving': servings == null ? null : amounts(622, 376.4),
+    'partial_nutrients': partial,
+    'complete': notices.every((n) => n['code'] != 'partial'),
+    'density': {
+      'sodium_mg_per_1000kcal': 605.1,
+      'carbohydrate_energy_pct': 23.5,
+      'protein_energy_pct': 20.5,
+      'fat_energy_pct': 56.5,
+    },
+    'notices': notices,
+    'version': 'recipe-food-map-v8',
+  };
+
+  testWidgets('N인분이 있으면 재료로 계산한 1인분과 원문 표기를 구분해 보여준다', (tester) async {
+    final api = _FakeRecipeApi([
+      recipe(
+        '3282',
+        '어린잎채소 건두부말이',
+        computed: computedBlock(
+          servings: 2,
+          notices: [
+            {
+              'code': 'estimated_amount',
+              'label': '일부 재료는 양을 추정했어요',
+              'items': [
+                {'name': '건두부', 'amount_text': '(10장)', 'grams': 130.0},
+              ],
+            },
+          ],
+        ),
+      ),
+    ]);
+    await pump(tester, ServerRecipeList(api: api, settings: AppSettings()));
+
+    expect(find.textContaining('1인분 622 kcal'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('server-recipe-3282')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('재료로 계산한 1인분 (2인분 기준)'), findsOneWidget);
+    expect(find.text('622 kcal'), findsOneWidget);
+    expect(find.text('376 mg'), findsOneWidget);
+    expect(find.text('일부 재료는 양을 추정했어요\n건두부 (10장)'), findsOneWidget);
+    // 원문 1인분 값(60 kcal)은 큰 숫자 칸이 아니라 '원문 표기' 줄에만 나온다.
+    expect(find.text('60 kcal'), findsNothing);
+    expect(
+      find.textContaining('원문 표기(1인분 기준 미확인): 열량 60 kcal'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('N인분이 없으면 레시피 전체 합계로 보여주고 1인분을 만들지 않는다', (tester) async {
+    final api = _FakeRecipeApi([
+      recipe(
+        '1',
+        '두부조림',
+        computed: computedBlock(
+          partial: ['sodium_mg'],
+          notices: [
+            {'code': 'partial', 'label': '일부 재료만 계산한 값이에요', 'items': []},
+          ],
+        ),
+      ),
+    ]);
+    await pump(tester, ServerRecipeList(api: api, settings: AppSettings()));
+
+    expect(find.textContaining('전체 1244 kcal'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('server-recipe-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('레시피 전체 (재료 기준)'), findsOneWidget);
+    expect(find.textContaining('1인분 ('), findsNothing);
+    expect(find.text('1244 kcal'), findsOneWidget);
+    expect(find.text('753 mg (일부 재료)'), findsOneWidget);
+    expect(find.text('일부 재료만 계산한 값이에요'), findsOneWidget);
+  });
+
+  testWidgets('계산 전인 레시피는 원문 표기로 보여준다', (tester) async {
+    final api = _FakeRecipeApi([recipe('108', '오렌지와 당근 만남주스')]);
+    await pump(
+      tester,
+      ServerRecipeDetail(api: api, recipeId: '108', settings: AppSettings()),
+    );
+
+    expect(
+      find.byKey(const Key('server-recipe-computed-nutrition')),
+      findsNothing,
+    );
+    expect(find.text('원문 표기'), findsOneWidget);
+    expect(find.text('60 kcal'), findsOneWidget);
   });
 }
