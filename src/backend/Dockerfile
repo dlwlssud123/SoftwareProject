@@ -19,6 +19,7 @@ RUN groupadd --gid 10001 valueflow \
     && useradd --uid 10001 --gid valueflow --no-create-home valueflow
 COPY --from=dependencies /opt/valueflow/src/backend/.venv ./.venv
 COPY src/backend/app ./app
+COPY docs/data/sql/rag_search.sql /opt/valueflow/docs/data/sql/rag_search.sql
 COPY src/backend/alembic ./alembic
 COPY src/backend/alembic.ini ./alembic.ini
 COPY src/data/agetech_data /opt/valueflow/src/data/agetech_data

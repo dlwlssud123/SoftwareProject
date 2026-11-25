@@ -236,3 +236,23 @@ def test_external_processing_requires_explicit_boolean_and_bounded_payload():
         PhotoRequest(image_base64="x" * 2800001, allow_external_processing=True)
     with pytest.raises(ValidationError):
         ChatAnswer(answer="\ud800")
+
+
+def test_welfare_provider_receives_only_question_and_public_evidence(
+    configured, monkeypatch
+):
+    from app.schemas.welfare_chat import WelfareGroundedAnswer
+
+    opener = Mock()
+    opener.open.return_value = reply('{"answer":"공식 자료 안내 [1]","citations":[1]}')
+    monkeypatch.setattr(nvidia_ai, "build_opener", lambda *_: opener)
+    result = nvidia_ai.welfare_chat("난방비 지원", "[1] 공개 지원 안내")
+    assert isinstance(result, WelfareGroundedAnswer) and result.citations == [1]
+    request = opener.open.call_args.args[0]
+    body = json.loads(request.data)
+    assert request.full_url == nvidia_ai.ENDPOINT
+    assert json.loads(body["messages"][1]["content"]) == {
+        "question": "난방비 지원",
+        "official_evidence": "[1] 공개 지원 안내",
+    }
+    assert len(body["messages"]) == 2

@@ -589,6 +589,92 @@
         ]
       }
     },
+    "/api/v1/ai/welfare-chat": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Welfare Chat",
+        "operationId": "welfare_chat_api_v1_ai_welfare_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WelfareChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_WelfareChatResult_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ]
+      }
+    },
     "/api/v1/ai/food-photo": {
       "post": {
         "tags": [
@@ -14878,6 +14964,22 @@
         ],
         "title": "SuccessResponse[Union[ProfileData, NoneType]]"
       },
+      "SuccessResponse_WelfareChatResult_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WelfareChatResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[WelfareChatResult]"
+      },
       "SuccessResponse_WelfareNote_": {
         "properties": {
           "data": {
@@ -15233,6 +15335,217 @@
           "description"
         ],
         "title": "WelfareApplication"
+      },
+      "WelfareChatRequest": {
+        "properties": {
+          "allow_external_processing": {
+            "type": "boolean",
+            "title": "Allow External Processing"
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Message"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
+          "district": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "District"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "allow_external_processing",
+          "message"
+        ],
+        "title": "WelfareChatRequest"
+      },
+      "WelfareChatResult": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Answer"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "NVIDIA",
+              "references"
+            ],
+            "title": "Provider"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "answer_status": {
+            "type": "string",
+            "enum": [
+              "generated",
+              "references_only",
+              "no_evidence"
+            ],
+            "title": "Answer Status"
+          },
+          "evidence_status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "weak",
+              "none"
+            ],
+            "title": "Evidence Status"
+          },
+          "index_version": {
+            "type": "string",
+            "title": "Index Version"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
+          "district": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "District"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/WelfareChatSource"
+            },
+            "type": "array",
+            "maxItems": 5,
+            "title": "Sources"
+          },
+          "notice": {
+            "type": "string",
+            "title": "Notice",
+            "default": "공식 자료를 찾은 참고 안내예요. 실제 지원 대상·신청 가능 여부는 담당 기관에서 확인해 주세요."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "answer",
+          "provider",
+          "answer_status",
+          "evidence_status",
+          "index_version"
+        ],
+        "title": "WelfareChatResult"
+      },
+      "WelfareChatSource": {
+        "properties": {
+          "number": {
+            "type": "integer",
+            "title": "Number"
+          },
+          "service_id": {
+            "type": "string",
+            "title": "Service Id"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "welfare_central",
+              "welfare_local"
+            ],
+            "title": "Scope"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "excerpt": {
+            "type": "string",
+            "title": "Excerpt"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "number",
+          "service_id",
+          "scope",
+          "title",
+          "excerpt"
+        ],
+        "title": "WelfareChatSource"
       },
       "WelfareContact": {
         "properties": {

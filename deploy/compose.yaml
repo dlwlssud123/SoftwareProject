@@ -45,6 +45,10 @@ services:
       NVIDIA_TIMEOUT_SECONDS: ${NVIDIA_TIMEOUT_SECONDS:-25}
       AI_DAILY_USER_LIMIT: ${AI_DAILY_USER_LIMIT:-30}
       AI_DAILY_GLOBAL_LIMIT: ${AI_DAILY_GLOBAL_LIMIT:-100}
+      WELFARE_RAG_ENABLED: ${WELFARE_RAG_ENABLED:-false}
+      RAG_EMBEDDING_URL: ${RAG_EMBEDDING_URL:-}
+      RAG_EMBEDDING_TOKEN: ${RAG_EMBEDDING_TOKEN:-}
+      RAG_EMBEDDING_TIMEOUT_SECONDS: ${RAG_EMBEDDING_TIMEOUT_SECONDS:-5}
     ports:
       - "127.0.0.1:${API_PORT:-18081}:8000"
     depends_on:
@@ -63,5 +67,36 @@ services:
         max-size: 10m
         max-file: "3"
 
+  embedding:
+    profiles: [rag]
+    image: ${EMBEDDING_IMAGE:-valueflow-embedding:local}
+    restart: unless-stopped
+    init: true
+    mem_limit: 4g
+    cpus: 2.0
+    environment:
+      RAG_EMBEDDING_TOKEN: ${RAG_EMBEDDING_TOKEN:-}
+      HF_HOME: /models
+      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-0}
+    volumes:
+      - embedding_cache:/models
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8091/health', timeout=3).close()"]
+      interval: 15s
+      timeout: 5s
+      start_period: 300s
+      retries: 6
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
 volumes:
   postgres_data:
+  embedding_cache:
