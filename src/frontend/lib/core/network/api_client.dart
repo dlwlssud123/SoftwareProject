@@ -76,10 +76,11 @@ class ApiClient {
     parse,
   );
 
-  Future<void> delete(String path, {required String token}) => _send<void>(
-    () => _dio.delete<Object?>(path, options: _options(token)),
-    (_) {},
-  );
+  Future<void> delete(String path, {required String token, Object? body}) =>
+      _send<void>(
+        () => _dio.delete<Object?>(path, data: body, options: _options(token)),
+        (_) {},
+      );
 
   Future<T> patch<T>(
     String path, {

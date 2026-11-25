@@ -7,6 +7,7 @@ import 'data/welfare_api.dart';
 import 'data/topic_api.dart';
 import 'data/facility_api.dart';
 import 'data/ai_api.dart';
+import 'data/community_api.dart';
 import 'data/health_video_api.dart';
 import 'services/settings.dart';
 import 'services/account.dart';
@@ -29,6 +30,7 @@ class ValueFlowApp extends StatelessWidget {
     this.topicApi,
     this.facilityApi,
     this.aiApi,
+    this.communityApi,
     this.healthVideoApi,
     super.key,
   });
@@ -43,6 +45,7 @@ class ValueFlowApp extends StatelessWidget {
   final TopicApi? topicApi;
   final FacilityApi? facilityApi;
   final AiApi? aiApi;
+  final CommunityApi? communityApi;
   final HealthVideoApi? healthVideoApi;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -79,6 +82,7 @@ class ValueFlowApp extends StatelessWidget {
       topicApi: topicApi,
       facilityApi: facilityApi,
       aiApi: aiApi,
+      communityApi: communityApi,
       healthVideoApi: healthVideoApi,
     );
     final auth = account;
@@ -102,6 +106,7 @@ class AppShell extends StatefulWidget {
     this.topicApi,
     this.facilityApi,
     this.aiApi,
+    this.communityApi,
     this.healthVideoApi,
     super.key,
   });
@@ -114,6 +119,7 @@ class AppShell extends StatefulWidget {
   final TopicApi? topicApi;
   final FacilityApi? facilityApi;
   final AiApi? aiApi;
+  final CommunityApi? communityApi;
   final HealthVideoApi? healthVideoApi;
   @override
   State<AppShell> createState() => _AppShellState();
@@ -151,6 +157,7 @@ class _AppShellState extends State<AppShell> {
     ContentScreen(
       settings: widget.settings,
       topicApi: widget.topicApi,
+      communityApi: widget.communityApi,
       healthVideoApi: widget.healthVideoApi,
     ),
   ];
