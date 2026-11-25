@@ -185,6 +185,15 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
   );
 }
 
+Future<FoodSelection?> showFoodPortionDialog(
+  BuildContext context,
+  FoodChoice food, {
+  FoodSelection? initial,
+}) => showDialog<FoodSelection>(
+  context: context,
+  builder: (_) => _PortionDialog(food, initial),
+);
+
 class _PortionDialog extends StatefulWidget {
   const _PortionDialog(this.food, this.initial);
   final FoodChoice food;
@@ -330,11 +339,13 @@ class IntakeEditor extends StatefulWidget {
     required this.api,
     this.existing,
     this.initialItems = const [],
+    this.initialNotice,
     super.key,
   });
   final IntakeApi api;
   final SavedIntake? existing;
   final List<FoodSelection> initialItems;
+  final String? initialNotice;
   @override
   State<IntakeEditor> createState() => _IntakeEditorState();
 }
@@ -649,6 +660,8 @@ class _IntakeEditorState extends State<IntakeEditor> {
                     label: Text('${_when(context, _time)}\n한국 시간 기준'),
                   ),
                   const SectionTitle('먹은 음식과 양'),
+                  if (widget.initialNotice != null && !_restoredBeforePhoto)
+                    Notice(widget.initialNotice!),
                   if (_pending != null && widget.initialItems.isNotEmpty)
                     const Notice(
                       '이전 식사의 저장 확인이 먼저예요. 이번 사진에서 고른 음식은 아직 반영하지 않았어요. 저장 확인 후 사진 화면에서 다시 진행해 주세요.',

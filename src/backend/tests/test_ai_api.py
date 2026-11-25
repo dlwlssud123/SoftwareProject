@@ -9,17 +9,207 @@ from sqlalchemy import func, select, update
 from test_auth import guest
 from test_foods_api import foods_db  # noqa: F401
 from test_nvidia_ai import picture
-from test_public_data_import import snapshot
+from test_public_data_import import corrections, snapshot
 from test_topic_requests import parallel
 
 from app.api import ai
 from app.core.config import get_settings
 from app.jobs.import_public_data import apply_import, prepare_import
 from app.models import AIUsageBucket, AuthSession, Food, MealLog
-from app.schemas.ai import ChatAnswer, FoodInference
+from app.schemas.ai import ChatAnswer, FoodInference, IngredientInference
 from app.services import nvidia_ai
 
 BASE = "/api/v1/ai"
+
+
+def ingredient_body():
+    return {
+        "dish_name": "검증레시피",
+        "standard_serving_grams": 250,
+        "allow_external_processing": True,
+    }
+
+
+@pytest.fixture
+def ingredients_db(ai_db, tmp_path, monkeypatch):
+    client, db = ai_db
+    source = [
+        {
+            "FOOD_CD": "R101-008000301-0003",
+            "FOOD_NM_KR": "멥쌀, 백미, 생것",
+            "AMT_NUM1": "360",
+        },
+        {"FOOD_CD": "ONION_RAW", "FOOD_NM_KR": "양파, 생것", "AMT_NUM1": "40"},
+        {
+            "FOOD_CD": "R114-022000000-0000",
+            "FOOD_NM_KR": "콩기름",
+            "AMT_NUM1": "900",
+            "DB_GRP_NM": "가공식품",
+        },
+        {
+            "FOOD_CD": "ONION_DISH",
+            "FOOD_NM_KR": "양파볶음",
+            "AMT_NUM1": "120",
+            "DB_GRP_NM": "음식",
+        },
+    ]
+    rows = [{"DB_GRP_NM": "원재료성", "SERVING_SIZE": "100g", **row} for row in source]
+    apply_import(
+        db,
+        prepare_import(
+            "nutrition",
+            nutrition_path=snapshot(tmp_path, dataset="nutrition", rows=rows),
+        ),
+    )
+    recipe_path = snapshot(
+        tmp_path,
+        rows=[
+            {
+                "RCP_SEQ": "1",
+                "RCP_NM": "검증레시피",
+                "RCP_PARTS_DTLS": "쌀 100g, 물 200ml",
+                "MANUAL01": "1. 끓인다.",
+                "RCP_PAT2": "밥",
+                "INFO_ENG": "0",
+            }
+        ],
+    )
+    apply_import(
+        db,
+        prepare_import(
+            "recipes", recipes_path=recipe_path, corrections_path=corrections(tmp_path)
+        ),
+    )
+    db.commit()
+    estimate = Mock(
+        return_value=IngredientInference.model_validate(
+            {
+                "ingredients": [
+                    {"name": "쌀", "amount_g": 80},
+                    {"name": "양파", "amount_g": 50},
+                    {"name": "식용유", "amount_g": 5},
+                ]
+            }
+        )
+    )
+    monkeypatch.setattr(nvidia_ai, "estimate_ingredients", estimate)
+    return client, db, estimate
+
+
+def test_ingredient_estimate_requires_auth_and_consent(ai_db, monkeypatch):
+    client, _ = ai_db
+    provider = Mock()
+    monkeypatch.setattr(nvidia_ai, "estimate_ingredients", provider)
+    read(client.post(BASE + "/food-ingredients", json=ingredient_body()), 401)
+    _, headers = guest(client)
+    for update_body in (
+        {"allow_external_processing": False},
+        {"dish_name": "\u0000"},
+        {"standard_serving_grams": 9999},
+        {"profile": {"age": 70}},
+    ):
+        read(
+            client.post(
+                BASE + "/food-ingredients",
+                json={**ingredient_body(), **update_body},
+                headers=headers,
+            ),
+            422,
+        )
+    provider.assert_not_called()
+
+
+def test_estimated_ingredients_use_recipe_reference_and_db_nutrition_only(
+    ingredients_db,
+):
+    client, db, provider = ingredients_db
+    _, headers = guest(client)
+    result = read(
+        client.post(BASE + "/food-ingredients", json=ingredient_body(), headers=headers)
+    )
+    assert result["reference_recipe"]["recipe_id"] == "1"
+    assert result["reference_recipe"]["revision_id"]
+    provider.assert_called_once_with(
+        "검증레시피",
+        250,
+        {"name": "검증레시피", "ingredients_text": "쌀 100g, 물 200ml"},
+    )
+    items = result["ingredients"]
+    assert [
+        item["matches"][0]["food"]["nutrients"]["energy_kcal"] for item in items
+    ] == [360, 40, 900]
+    assert all(item["matches"][0]["match_basis"] == "name" for item in items)
+    assert all(
+        item["matches"][0]["food"]["nutrients"]["protein_g"] is None for item in items
+    )
+    assert db.scalar(select(func.count()).select_from(MealLog)) == 0
+    portions = [
+        {
+            "food_id": item["matches"][0]["food"]["food_id"],
+            "revision_id": item["matches"][0]["food"]["source"]["revision_id"],
+            "amount": item["amount_g"],
+            "unit": "g",
+            "amount_is_estimate": True,
+        }
+        for item in items
+    ]
+    calculation = read(
+        client.post("/api/v1/nutrition/calculate", json={"items": portions})
+    )
+    assert calculation["total"]["nutrients"]["energy_kcal"] == 353
+    assert all(item["amount_is_estimate"] for item in calculation["items"])
+
+
+def test_unmatched_ingredient_remains_unresolved_and_water_is_explicit(ingredients_db):
+    client, db, provider = ingredients_db
+    provider.return_value = IngredientInference.model_validate(
+        {
+            "ingredients": [
+                {"name": "등록되지않은특수식재료XYZ", "amount_g": 10},
+                {"name": "물", "amount_g": 100},
+            ]
+        }
+    )
+    _, headers = guest(client)
+    result = read(
+        client.post(
+            BASE + "/food-ingredients",
+            json={**ingredient_body(), "dish_name": "없는레시피XYZ"},
+            headers=headers,
+        )
+    )
+    assert result["reference_recipe"] is None
+    assert result["ingredients"][0]["matches"] == []
+    assert result["ingredients"][0]["is_water"] is False
+    assert result["ingredients"][1]["is_water"] is True
+    assert result["ingredients"][1]["matches"] == []
+    assert db.scalar(select(func.count()).select_from(MealLog)) == 0
+
+
+def test_revoked_session_discards_ingredient_result(ingredients_db):
+    from datetime import UTC, datetime
+    from uuid import UUID
+
+    client, db, provider = ingredients_db
+    identity, headers = guest(client)
+    original = provider.return_value
+
+    def revoke(*_args):
+        db.execute(
+            update(AuthSession)
+            .where(AuthSession.user_id == UUID(identity["user_id"]))
+            .values(revoked_at=datetime.now(UTC))
+        )
+        db.commit()
+        return original
+
+    provider.side_effect = revoke
+    read(
+        client.post(
+            BASE + "/food-ingredients", json=ingredient_body(), headers=headers
+        ),
+        401,
+    )
 
 
 @pytest.fixture

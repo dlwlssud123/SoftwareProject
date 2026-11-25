@@ -41,7 +41,22 @@ void main() {
               requestOptions: request,
               statusCode: 200,
               data: {
-                'data': broken ? {'answer': 7} : {'answer': '밥과 반찬을 골고루 드세요.'},
+                'data': request.path.endsWith('/food-ingredients')
+                    ? {
+                        'ingredients': [
+                          {
+                            'name': '양파',
+                            'amount_g': 50,
+                            'matches': [],
+                            'is_water': false,
+                          },
+                        ],
+                        'notice': '1인분 예상 재료예요.',
+                        'reference_recipe': null,
+                      }
+                    : broken
+                    ? {'answer': 7}
+                    : {'answer': '밥과 반찬을 골고루 드세요.'},
               },
             ),
           );
@@ -78,6 +93,23 @@ void main() {
       expect(request.headers['Authorization'], startsWith('Bearer '));
       expect(request.followRedirects, isFalse);
       expect(request.receiveTimeout, const Duration(seconds: 40));
+    },
+  );
+  test(
+    'ingredient request sends only dish name, serving suggestion and consent',
+    () async {
+      final result = await api.ingredients('양파요리', 200, CancelToken());
+      expect(result.ingredients.single.name, '양파');
+      expect(result.ingredients.single.grams, 50);
+      final request = sent.single;
+      expect(request.path, '/api/v1/ai/food-ingredients');
+      expect(request.data, {
+        'dish_name': '양파요리',
+        'standard_serving_grams': 200,
+        'allow_external_processing': true,
+      });
+      expect(request.headers['Authorization'], startsWith('Bearer '));
+      expect(request.followRedirects, isFalse);
     },
   );
   test('signed-out or oversized photo never reaches network', () async {

@@ -675,6 +675,92 @@
         ]
       }
     },
+    "/api/v1/ai/food-ingredients": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Ingredients",
+        "operationId": "ingredients_api_v1_ai_food_ingredients_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngredientRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_IngredientResult_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ]
+      }
+    },
     "/api/v1/foods": {
       "get": {
         "tags": [
@@ -9664,6 +9750,108 @@
         ],
         "title": "IdentityData"
       },
+      "IngredientCandidate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "amount_g": {
+            "type": "number",
+            "multipleOf": 0.001,
+            "maximum": 1500.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Amount G"
+          },
+          "matches": {
+            "items": {
+              "$ref": "#/components/schemas/MatchedFood"
+            },
+            "type": "array",
+            "title": "Matches"
+          },
+          "is_water": {
+            "type": "boolean",
+            "title": "Is Water",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "amount_g",
+          "matches"
+        ],
+        "title": "IngredientCandidate"
+      },
+      "IngredientRequest": {
+        "properties": {
+          "allow_external_processing": {
+            "type": "boolean",
+            "title": "Allow External Processing"
+          },
+          "dish_name": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Dish Name"
+          },
+          "standard_serving_grams": {
+            "type": "integer",
+            "maximum": 1500.0,
+            "minimum": 10.0,
+            "title": "Standard Serving Grams"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "allow_external_processing",
+          "dish_name",
+          "standard_serving_grams"
+        ],
+        "title": "IngredientRequest"
+      },
+      "IngredientResult": {
+        "properties": {
+          "dish_name": {
+            "type": "string",
+            "title": "Dish Name"
+          },
+          "ingredients": {
+            "items": {
+              "$ref": "#/components/schemas/IngredientCandidate"
+            },
+            "type": "array",
+            "title": "Ingredients"
+          },
+          "reference_recipe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecipeReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notice": {
+            "type": "string",
+            "title": "Notice",
+            "default": "음식 이름과 일반적인 조리법으로 예상한 1인분 재료와 양이에요. 사진에서 확인한 실제 재료·중량이 아니며, 기름·양념이 빠지거나 양이 다를 수 있어요. 재료를 확인한 뒤 참고값으로 계산해 주세요."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "dish_name",
+          "ingredients"
+        ],
+        "title": "IngredientResult"
+      },
       "JsonValue": {},
       "KakaoRequest": {
         "properties": {
@@ -12382,6 +12570,31 @@
         ],
         "title": "RecipeRecord"
       },
+      "RecipeReference": {
+        "properties": {
+          "recipe_id": {
+            "type": "string",
+            "title": "Recipe Id"
+          },
+          "revision_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Revision Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "recipe_id",
+          "revision_id",
+          "name"
+        ],
+        "title": "RecipeReference"
+      },
       "RecipeSource": {
         "properties": {
           "provider": {
@@ -13503,6 +13716,22 @@
           "meta"
         ],
         "title": "SuccessResponse[IdentityData]"
+      },
+      "SuccessResponse_IngredientResult_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/IngredientResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[IngredientResult]"
       },
       "SuccessResponse_MealCreateResult_": {
         "properties": {

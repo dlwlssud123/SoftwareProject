@@ -10,7 +10,13 @@ from pydantic import SecretStr, ValidationError
 
 from app.core.config import Settings
 from app.core.errors import AppError
-from app.schemas.ai import ChatAnswer, ChatRequest, FoodInference, PhotoRequest
+from app.schemas.ai import (
+    ChatAnswer,
+    ChatRequest,
+    FoodInference,
+    IngredientInference,
+    PhotoRequest,
+)
 from app.services import nvidia_ai
 
 
@@ -80,6 +86,42 @@ def reply(content, *, finish="stop"):
         {"choices": [{"finish_reason": finish, "message": {"content": content}}]}
     ).encode()
     return response
+
+
+def test_ingredient_provider_uses_bounded_text_reference_not_photo_or_profile(
+    configured, monkeypatch
+):
+    opener = Mock()
+    opener.open.return_value = reply('{"ingredients":[{"name":"양파","amount_g":50}]}')
+    monkeypatch.setattr(nvidia_ai, "build_opener", lambda *_: opener)
+    reference = {"name": "양파요리", "ingredients_text": "양파 50g, 기름 5g"}
+    result = nvidia_ai.estimate_ingredients("양파요리", 200, reference)
+    assert result.ingredients[0].amount_g == 50
+    body = json.loads(opener.open.call_args.args[0].data)
+    payload = json.loads(body["messages"][1]["content"])
+    assert payload == {
+        "dish_name": "양파요리",
+        "suggested_cooked_serving_grams": 200,
+        "reference_recipe": reference,
+    }
+    assert "image_url" not in json.dumps(body) and "profile" not in payload
+
+
+@pytest.mark.parametrize(
+    "rows",
+    [
+        [],
+        [{"name": "양파", "amount_g": 0}],
+        [{"name": "양파", "amount_g": "50"}],
+        [{"name": "양파", "amount_g": 50, "energy_kcal": 20}],
+        [{"name": "양파", "amount_g": 50}, {"name": "양파", "amount_g": 50}],
+        [{"name": f"재료{i}", "amount_g": 10} for i in range(9)],
+        [{"name": "재료1", "amount_g": 1400}, {"name": "재료2", "amount_g": 1400}],
+    ],
+)
+def test_ingredient_model_rejects_unbounded_guessed_nutrients_or_duplicates(rows):
+    with pytest.raises(ValidationError):
+        IngredientInference.model_validate({"ingredients": rows})
 
 
 def test_real_request_contract_uses_fixed_host_json_and_no_redirect_policy(

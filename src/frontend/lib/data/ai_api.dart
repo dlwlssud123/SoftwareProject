@@ -74,4 +74,15 @@ class AiApi {
       token,
     );
   }
+
+  Future<IngredientEstimate> ingredients(
+    String name,
+    int grams,
+    CancelToken token,
+  ) => _send(
+    'food-ingredients',
+    {'dish_name': name, 'standard_serving_grams': grams},
+    IngredientEstimate.fromJson,
+    token,
+  );
 }

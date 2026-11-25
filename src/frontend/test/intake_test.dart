@@ -10,11 +10,13 @@ import 'package:valueflow/app.dart';
 import 'package:valueflow/data/demo_repository.dart';
 import 'package:valueflow/data/auth_api.dart';
 import 'package:valueflow/data/intake_api.dart';
+import 'package:valueflow/data/ai_api.dart';
 import 'package:valueflow/data/profile_api.dart';
 import 'package:valueflow/models/intake.dart';
 import 'package:valueflow/models/ai.dart';
 import 'package:valueflow/screens/photo_food_screen.dart';
 import 'package:valueflow/screens/intake_screens.dart';
+import 'package:valueflow/screens/ingredient_review_screen.dart';
 import 'package:valueflow/services/account.dart';
 import 'package:valueflow/services/settings.dart';
 
@@ -43,6 +45,28 @@ class _Storage implements FlutterSecureStorage {
     }
     return super.noSuchMethod(invocation);
   }
+}
+
+class _IngredientAi implements AiApi {
+  _IngredientAi(this.respond);
+  final Future<IngredientEstimate> Function() respond;
+  int calls = 0;
+  String? requestedName;
+  int? requestedGrams;
+  @override
+  Future<IngredientEstimate> ingredients(
+    String name,
+    int grams,
+    CancelToken token,
+  ) {
+    calls++;
+    requestedName = name;
+    requestedGrams = grams;
+    return respond();
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _Server {
@@ -311,6 +335,149 @@ void main() {
       PhotoMatch(FoodChoice.fromJson(server.food), 200, 'g', '원천 1회 분량 참고'),
     ]),
   ], '사진에서 실제 양을 측정한 값이 아닌 예상 1인분이에요.');
+
+  testWidgets(
+    'confirmed ingredients keep other dishes, allow quantity edits, and never silently omit missing ingredients',
+    (tester) async {
+      final server = _Server();
+      final ai = _IngredientAi(
+        () async => IngredientEstimate(
+          [
+            IngredientGuess('쌀', 80, [
+              PhotoMatch(
+                FoodChoice.fromJson(server.food),
+                80,
+                'g',
+                'AI 예상 재료량',
+              ),
+            ]),
+            const IngredientGuess('못찾은양념', 5, []),
+          ],
+          '일반 조리법으로 예상한 재료예요.',
+          referenceName: '검증레시피',
+        ),
+      );
+      await _pump(
+        tester,
+        PhotoFoodScreen(
+          result: PhotoRecognition([
+            photo(server).foods.first,
+            const PhotoDish('이름모를볶음밥', 'medium', 250, []),
+          ], '음식 후보예요.'),
+          api: server.api,
+          aiApi: ai,
+        ),
+      );
+      await tester.scrollUntilVisible(find.text('AI로 재료 추정하기'), 180);
+      await tester.pumpAndSettle();
+      expect(ai.calls, 0);
+      await tester.tap(find.text('AI로 재료 추정하기'));
+      await tester.pumpAndSettle();
+      expect(ai.calls, 1);
+      expect(ai.requestedName, '이름모를볶음밥');
+      expect(ai.requestedGrams, 250);
+      expect(find.textContaining('공공 레시피 검증레시피'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('ingredients-confirm')),
+        180,
+      );
+      expect(
+        tester
+            .widget<FilledButton>(find.byKey(const Key('ingredients-confirm')))
+            .onPressed,
+        isNull,
+      );
+      expect(server.requests, isEmpty);
+      await tester.ensureVisible(find.text('양 바꾸기'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('양 바꾸기'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('food-amount')), '120');
+      await tester.ensureVisible(find.text('이 양으로 담기'));
+      await tester.tap(find.text('이 양으로 담기'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.widgetWithText(CheckboxListTile, '못찾은양념'),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(CheckboxListTile, '못찾은양념'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('ingredients-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.text('빠진 재료가 있는 참고값으로 계속'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('ingredients-confirm')));
+      await tester.pumpAndSettle();
+      final half = find.widgetWithText(ChoiceChip, '반 정도').last;
+      await tester.ensureVisible(half);
+      await tester.pumpAndSettle();
+      await tester.tap(half);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('이 음식으로 영양 확인'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('이 음식으로 영양 확인'));
+      await tester.pumpAndSettle();
+      final request = server.requests.singleWhere(
+        (r) => r.path.endsWith('/nutrition/calculate'),
+      );
+      expect((request.data['items'] as List).map((item) => item['amount']), [
+        200,
+        60,
+      ]);
+      expect(
+        (request.data['items'] as List).every(
+          (item) => item['amount_is_estimate'] == true,
+        ),
+        isTrue,
+      );
+      expect(find.textContaining('빠진 기름·양념'), findsOneWidget);
+      expect(server.meal, isNull);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'ingredient errors can retry and water or unmatched-only results cannot calculate',
+    (tester) async {
+      var first = true;
+      final server = _Server();
+      final ai = _IngredientAi(() async {
+        if (first) {
+          first = false;
+          throw const ApiException(ApiErrorType.network, '연결이 끊겼어요.');
+        }
+        return const IngredientEstimate([
+          IngredientGuess('물', 100, [], isWater: true),
+          IngredientGuess('못찾은재료', 10, []),
+        ], '예상 재료예요.');
+      });
+      await _pump(
+        tester,
+        IngredientReviewScreen(
+          aiApi: ai,
+          intakeApi: server.api,
+          name: '새 요리',
+          grams: 200,
+        ),
+      );
+      expect(find.text('연결이 끊겼어요.'), findsOneWidget);
+      await tester.tap(find.text('다시 시도'));
+      await tester.pumpAndSettle();
+      expect(ai.calls, 2);
+      expect(find.text('조리용 물은 영양 합산에서 제외해요.'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('ingredients-confirm')),
+        180,
+      );
+      expect(
+        tester
+            .widget<FilledButton>(find.byKey(const Key('ingredients-confirm')))
+            .onPressed,
+        isNull,
+      );
+      expect(server.requests, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'similar food shows source nutrients and requires selection before calculation',

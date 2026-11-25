@@ -71,8 +71,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
       if (!mounted) return;
       final saved = await Navigator.of(context).push<SavedIntake>(
         MaterialPageRoute(
-          builder: (_) =>
-              PhotoFoodScreen(result: result, api: widget.intakeApi!),
+          builder: (_) => PhotoFoodScreen(
+            result: result,
+            api: widget.intakeApi!,
+            aiApi: widget.aiApi,
+          ),
         ),
       );
       if (saved != null && mounted) showMessage(context, '식사를 저장했어요.');

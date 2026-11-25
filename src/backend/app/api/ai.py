@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from threading import BoundedSemaphore
 
 from agetech_data.nutrition.foods import FoodRecord as DataFoodRecord
-from agetech_data.nutrition.match import FoodIndex, search_dishes
+from agetech_data.nutrition.match import FoodIndex, match_ingredient, search_dishes
 from agetech_data.nutrition.portion import serving_reference
 from fastapi import APIRouter, Request
 from sqlalchemy import delete, func, or_, select
@@ -14,17 +14,30 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.foods import food_record
+from app.api.recipes import active_recipes
 from app.core.auth import CurrentAuth, DbSession, unauthenticated
 from app.core.config import get_settings
 from app.core.errors import AppError
-from app.models import AIUsageBucket, AuthSession, Food, FoodRevision, User
+from app.models import (
+    AIUsageBucket,
+    AuthSession,
+    Food,
+    FoodRevision,
+    Recipe,
+    RecipeRevision,
+    User,
+)
 from app.schemas.ai import (
     ChatRequest,
     ChatResult,
+    IngredientCandidate,
+    IngredientRequest,
+    IngredientResult,
     MatchedFood,
     PhotoDish,
     PhotoRequest,
     PhotoResult,
+    RecipeReference,
     ServingSuggestion,
 )
 from app.schemas.common import ErrorResponse, SuccessResponse, build_meta
@@ -247,4 +260,119 @@ def photo(request: Request, payload: PhotoRequest, db: DbSession, auth: CurrentA
         except (SQLAlchemyError, TypeError, ValueError):
             raise nvidia_ai.unavailable("AI_MATCH_UNAVAILABLE") from None
     # No photo, prompt, meal log or guessed nutrient value is stored by this endpoint.
+    return SuccessResponse(data=result, meta=build_meta(request))
+
+
+def _ingredient_index(db):
+    rows = db.execute(
+        _photo_foods()
+        .where(
+            FoodRevision.normalized["db_group"]
+            .as_string()
+            .in_(("원재료성", "가공식품"))
+        )
+        .with_only_columns(
+            Food.food_code.label("food_code"),
+            FoodRevision.name.label("name"),
+            FoodRevision.normalized["db_group"].as_string().label("db_group"),
+            FoodRevision.basis_unit.label("basis_unit"),
+            FoodRevision.normalized["ref_name"].as_string().label("ref_name"),
+        )
+    ).mappings()
+    return FoodIndex([dict(row) for row in rows])
+
+
+def _ingredient_candidate(db, ingredient, index):
+    match = match_ingredient(ingredient.name, index)
+    exact = match.usable and match.food_code in index.by_code
+    codes = (
+        [match.food_code]
+        if exact
+        else [
+            row["food_code"]
+            for row in index.candidates(ingredient.name, limit=3, min_score=0.8)
+        ]
+    )
+    if match.status == "water":
+        codes = []
+    found = (
+        {
+            food.food_code: (food, revision, imported_at)
+            for food, revision, imported_at in db.execute(
+                _photo_foods().where(
+                    Food.food_code.in_(codes),
+                    FoodRevision.normalized["db_group"]
+                    .as_string()
+                    .in_(("원재료성", "가공식품")),
+                )
+            )
+        }
+        if codes
+        else {}
+    )
+    return IngredientCandidate(
+        **ingredient.model_dump(),
+        is_water=match.status == "water",
+        matches=[
+            MatchedFood(
+                food=food_record(*found[code]),
+                match_basis="name" if exact else "similar",
+                serving=ServingSuggestion(
+                    amount=ingredient.amount_g,
+                    unit="g",
+                    basis="ai_estimate",
+                    description="일반적인 조리법의 1인분 예상 재료량 · 실제 사용량을 확인해 주세요",
+                ),
+            )
+            for code in codes
+            if code in found
+        ],
+    )
+
+
+def _reference_recipe(db, name):
+    row = db.execute(
+        active_recipes()
+        .where(RecipeRevision.name.icontains(name, autoescape=True))
+        .order_by((RecipeRevision.name == name).desc(), Recipe.source_id)
+        .limit(1)
+    ).first()
+    if row is None:
+        return None, None
+    recipe, revision, _, _ = row
+    text = revision.effective.get("RCP_PARTS_DTLS")
+    if not isinstance(text, str) or not text.strip():
+        return None, None
+    ref = RecipeReference(
+        recipe_id=recipe.source_id, revision_id=revision.id, name=revision.name
+    )
+    return ref, {"name": ref.name, "ingredients_text": text[:2000]}
+
+
+@router.post("/food-ingredients", response_model=SuccessResponse[IngredientResult])
+def ingredients(
+    request: Request, payload: IngredientRequest, db: DbSession, auth: CurrentAuth
+):
+    with _request_slot():
+        _budget(db, auth)
+        try:
+            reference, context = _reference_recipe(db, payload.dish_name)
+        except SQLAlchemyError:
+            raise nvidia_ai.unavailable("AI_MATCH_UNAVAILABLE") from None
+        inferred = nvidia_ai.estimate_ingredients(
+            payload.dish_name, payload.standard_serving_grams, context
+        )
+        try:
+            _active(db, auth)
+            index = _ingredient_index(db)
+            result = IngredientResult(
+                dish_name=payload.dish_name,
+                reference_recipe=reference,
+                ingredients=[
+                    _ingredient_candidate(db, item, index)
+                    for item in inferred.ingredients
+                ],
+            )
+        except (SQLAlchemyError, TypeError, ValueError):
+            raise nvidia_ai.unavailable("AI_MATCH_UNAVAILABLE") from None
     return SuccessResponse(data=result, meta=build_meta(request))

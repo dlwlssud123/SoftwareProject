@@ -68,3 +68,49 @@ class PhotoRecognition {
           PhotoDish.fromJson(intakeMap(dish)),
       ], row['notice'] as String);
 }
+
+class IngredientGuess {
+  const IngredientGuess(
+    this.name,
+    this.grams,
+    this.matches, {
+    this.isWater = false,
+  });
+  final String name;
+  final double grams;
+  final List<PhotoMatch> matches;
+  final bool isWater;
+  factory IngredientGuess.fromJson(Map<String, dynamic> row) {
+    final grams = (row['amount_g'] as num).toDouble();
+    if (!grams.isFinite || grams <= 0 || grams > 1500) {
+      throw const FormatException('Invalid ingredient amount');
+    }
+    return IngredientGuess(row['name'] as String, grams, [
+      for (final match in row['matches'] as List)
+        PhotoMatch.fromJson(intakeMap(match)),
+    ], isWater: row['is_water'] == true);
+  }
+}
+
+class IngredientEstimate {
+  const IngredientEstimate(this.ingredients, this.notice, {this.referenceName});
+  final List<IngredientGuess> ingredients;
+  final String notice;
+  final String? referenceName;
+  factory IngredientEstimate.fromJson(Map<String, dynamic> row) {
+    final items = [
+      for (final item in row['ingredients'] as List)
+        IngredientGuess.fromJson(intakeMap(item)),
+    ];
+    if (items.isEmpty || items.length > 8) {
+      throw const FormatException('Invalid ingredient list');
+    }
+    return IngredientEstimate(
+      items,
+      row['notice'] as String,
+      referenceName: row['reference_recipe'] == null
+          ? null
+          : intakeMap(row['reference_recipe'])['name'] as String,
+    );
+  }
+}
