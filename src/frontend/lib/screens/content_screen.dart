@@ -7,17 +7,26 @@ import '../data/topic_api.dart';
 import '../models/topic_request.dart';
 import '../services/settings.dart';
 import 'topic_screens.dart';
+import '../data/community_api.dart';
+import 'community_screens.dart';
 
 class ContentScreen extends StatefulWidget {
-  const ContentScreen({required this.settings, this.topicApi, super.key});
+  const ContentScreen({
+    required this.settings,
+    this.topicApi,
+    this.communityApi,
+    super.key,
+  });
   final AppSettings settings;
   final TopicApi? topicApi;
+  final CommunityApi? communityApi;
   @override
   State<ContentScreen> createState() => _ContentScreenState();
 }
 
 class _ContentScreenState extends State<ContentScreen> {
-  bool showVideos = false;
+  int selected = 0;
+  bool get showVideos => selected == 1;
   static const health = [
     (
       title: '의자 스트레칭',
@@ -102,167 +111,185 @@ class _ContentScreenState extends State<ContentScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('게임과 건강 영상을 즐겨요.'),
+              const Text('게임과 영상을 즐기고, 이웃과 이야기를 나눠요.'),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  for (final videos in [false, true])
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: videos ? 0 : 10),
-                        child: Semantics(
-                          selected: showVideos == videos,
-                          child: OutlinedButton(
-                            key: Key(
-                              videos ? 'playground-videos' : 'playground-games',
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(48, 60),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 14,
+              IntrinsicHeight(
+                child: Row(
+                  children: [
+                    for (var index = 0; index < 3; index++)
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(right: index == 2 ? 0 : 6),
+                          child: Semantics(
+                            selected: selected == index,
+                            child: OutlinedButton(
+                              key: Key(
+                                [
+                                  'playground-games',
+                                  'playground-videos',
+                                  'playground-community',
+                                ][index],
                               ),
-                              foregroundColor: showVideos == videos
-                                  ? Colors.white
-                                  : blue,
-                              backgroundColor: showVideos == videos
-                                  ? blue
-                                  : Colors.white,
-                              side: BorderSide(
-                                color: showVideos == videos ? blue : line,
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(48, 60),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 14,
+                                ),
+                                foregroundColor: selected == index
+                                    ? Colors.white
+                                    : blue,
+                                backgroundColor: selected == index
+                                    ? blue
+                                    : Colors.white,
+                                side: BorderSide(
+                                  color: selected == index ? blue : line,
+                                ),
+                              ),
+                              onPressed: () => setState(() => selected = index),
+                              child: Text(
+                                ['게임하기', '영상 보기', '이웃 이야기'][index],
+                                textAlign: TextAlign.center,
                               ),
                             ),
-                            onPressed: () =>
-                                setState(() => showVideos = videos),
-                            child: Text(videos ? '영상 보기' : '게임하기'),
                           ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
         ),
         Expanded(
-          child: ListView(
-            key: ValueKey(showVideos),
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
-            children: [
-              if (!showVideos) ...[
-                const Notice(
-                  '시간 제한 없이 천천히 해 보세요.',
-                  icon: Icons.sports_esports_outlined,
-                  color: blue,
-                ),
-                const SizedBox(height: 18),
-                ServiceGrid(
+          child: selected == 2
+              ? widget.communityApi == null
+                    ? const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text('서버에 연결하면 이웃 이야기를 나눌 수 있어요.'),
+                      )
+                    : CommunityScreen(
+                        api: widget.communityApi!,
+                        settings: widget.settings,
+                      )
+              : ListView(
+                  key: ValueKey(showVideos),
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
                   children: [
-                    ServiceButton(
-                      title: '두뇌체조',
-                      subtitle: '같은 그림을 찾아보세요',
-                      icon: Icons.grid_view_rounded,
-                      background: const Color(0xFFE4EEDC),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const MemoryGame(),
-                        ),
+                    if (!showVideos) ...[
+                      const Notice(
+                        '시간 제한 없이 천천히 해 보세요.',
+                        icon: Icons.sports_esports_outlined,
+                        color: blue,
                       ),
-                    ),
-                    ServiceButton(
-                      key: const Key('number-game-start'),
-                      title: '숫자 놀이',
-                      subtitle: '1부터 9까지 순서대로 눌러요',
-                      icon: Icons.touch_app_outlined,
-                      background: const Color(0xFFE5EDF5),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const NumberOrderGame(),
-                        ),
-                      ),
-                    ),
-                    ServiceButton(
-                      key: const Key('proverb-game-start'),
-                      title: '속담 퀴즈',
-                      subtitle: '익숙한 속담을 이어 맞혀요',
-                      icon: Icons.chat_bubble_outline_rounded,
-                      background: const Color(0xFFFAEACF),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const ProverbGame(),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ] else ...[
-                const SectionTitle('건강쇼츠'),
-                const Text('보고 싶은 주제를 누르면 YouTube에서 영상을 볼 수 있어요.'),
-                const SizedBox(height: 12),
-                ServiceGrid(
-                  children: [
-                    for (final item in health)
-                      ServiceButton(
-                        title: item.title,
-                        subtitle: item.category,
-                        icon: item.icon,
-                        background: item.color,
-                        onTap: () => openLink(
-                          context,
-                          Uri.https('www.youtube.com', '/results', {
-                            'search_query': item.query,
-                          }),
-                        ),
-                      ),
-                  ],
-                ),
-                const SectionTitle('영상으로 즐기는 취미'),
-                ServiceGrid(
-                  children: [
-                    for (final item in play)
-                      ServiceButton(
-                        title: item.category,
-                        subtitle: item.title,
-                        icon: item.icon,
-                        background: item.color,
-                        onTap: () => openLink(
-                          context,
-                          Uri.https('www.youtube.com', '/results', {
-                            'search_query': item.query,
-                          }),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 22),
-                OutlinedButton.icon(
-                  onPressed: widget.topicApi == null
-                      ? null
-                      : () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => TopicRequestsScreen(
-                              api: widget.topicApi!,
-                              settings: widget.settings,
-                              initialKind: TopicKind.video,
+                      const SizedBox(height: 18),
+                      ServiceGrid(
+                        children: [
+                          ServiceButton(
+                            title: '두뇌체조',
+                            subtitle: '같은 그림을 찾아보세요',
+                            icon: Icons.grid_view_rounded,
+                            background: const Color(0xFFE4EEDC),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const MemoryGame(),
+                              ),
                             ),
                           ),
+                          ServiceButton(
+                            key: const Key('number-game-start'),
+                            title: '숫자 놀이',
+                            subtitle: '1부터 9까지 순서대로 눌러요',
+                            icon: Icons.touch_app_outlined,
+                            background: const Color(0xFFE5EDF5),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const NumberOrderGame(),
+                              ),
+                            ),
+                          ),
+                          ServiceButton(
+                            key: const Key('proverb-game-start'),
+                            title: '속담 퀴즈',
+                            subtitle: '익숙한 속담을 이어 맞혀요',
+                            icon: Icons.chat_bubble_outline_rounded,
+                            background: const Color(0xFFFAEACF),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const ProverbGame(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ] else ...[
+                      const SectionTitle('건강쇼츠'),
+                      const Text('보고 싶은 주제를 누르면 YouTube에서 영상을 볼 수 있어요.'),
+                      const SizedBox(height: 12),
+                      ServiceGrid(
+                        children: [
+                          for (final item in health)
+                            ServiceButton(
+                              title: item.title,
+                              subtitle: item.category,
+                              icon: item.icon,
+                              background: item.color,
+                              onTap: () => openLink(
+                                context,
+                                Uri.https('www.youtube.com', '/results', {
+                                  'search_query': item.query,
+                                }),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SectionTitle('영상으로 즐기는 취미'),
+                      ServiceGrid(
+                        children: [
+                          for (final item in play)
+                            ServiceButton(
+                              title: item.category,
+                              subtitle: item.title,
+                              icon: item.icon,
+                              background: item.color,
+                              onTap: () => openLink(
+                                context,
+                                Uri.https('www.youtube.com', '/results', {
+                                  'search_query': item.query,
+                                }),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 22),
+                      OutlinedButton.icon(
+                        onPressed: widget.topicApi == null
+                            ? null
+                            : () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => TopicRequestsScreen(
+                                    api: widget.topicApi!,
+                                    settings: widget.settings,
+                                    initialKind: TopicKind.video,
+                                  ),
+                                ),
+                              ),
+                        icon: const Icon(Icons.edit_note_rounded),
+                        label: const Text('보고 싶은 주제 요청 · 내역'),
+                      ),
+                      if (widget.topicApi == null)
+                        const Text(
+                          '주제 요청은 서버 연결 후 이용할 수 있어요.',
+                          style: TextStyle(fontSize: 14, color: muted),
                         ),
-                  icon: const Icon(Icons.edit_note_rounded),
-                  label: const Text('보고 싶은 주제 요청 · 내역'),
+                      const SizedBox(height: 12),
+                      const Text(
+                        '영상은 외부 YouTube 검색으로 연결돼요.',
+                        style: TextStyle(fontSize: 14, color: muted),
+                      ),
+                    ],
+                  ],
                 ),
-                if (widget.topicApi == null)
-                  const Text(
-                    '주제 요청은 서버 연결 후 이용할 수 있어요.',
-                    style: TextStyle(fontSize: 14, color: muted),
-                  ),
-                const SizedBox(height: 12),
-                const Text(
-                  '영상은 외부 YouTube 검색으로 연결돼요.',
-                  style: TextStyle(fontSize: 14, color: muted),
-                ),
-              ],
-            ],
-          ),
         ),
       ],
     );

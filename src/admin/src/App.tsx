@@ -3,10 +3,15 @@ import './App.css'
 import Collections from './components/Collections'
 import Guides from './components/Guides'
 import TopicRequests from './components/TopicRequests'
+import CommunityReports from './components/CommunityReports'
 import StatusMessage from './components/StatusMessage'
 import type { AdminConnection } from './components/AccessBoundary'
 
 const pages = {
+  community: {
+    title: '커뮤니티 신고',
+    description: '문제가 있는 글의 신고를 확인하고 숨김·기각을 처리합니다.',
+  },
   overview: {
     title: '관리자 홈',
     description: '수집·콘텐츠·품질 검토 현황을 확인하는 공간입니다.',
@@ -41,11 +46,16 @@ export default function App({ connection }: { connection: AdminConnection }) {
   const [leaving, setLeaving] = useState(false)
   const [guideDirty, setGuideDirty] = useState(false)
   const [topicDirty, setTopicDirty] = useState(false)
+  const [communityDirty, setCommunityDirty] = useState(false)
 
   useEffect(() => {
     const update = () => {
       const target = readPage()
       if (target === page) return
+      if (communityDirty && !window.confirm('저장하지 않은 신고 처리 내용을 버리고 이동할까요?')) {
+        window.history.replaceState(null, '', `#${page}`)
+        return
+      }
       if (guideDirty && !window.confirm('저장하지 않은 가이드 변경을 버리고 이동할까요?')) {
         window.history.replaceState(null, '', `#${page}`)
         return
@@ -58,7 +68,7 @@ export default function App({ connection }: { connection: AdminConnection }) {
     }
     window.addEventListener('hashchange', update)
     return () => window.removeEventListener('hashchange', update)
-  }, [page, guideDirty, topicDirty])
+  }, [page, guideDirty, topicDirty, communityDirty])
 
   useEffect(() => {
     document.title = `${pages[page].title} | ValueFlow`
@@ -90,6 +100,7 @@ export default function App({ connection }: { connection: AdminConnection }) {
             <h2>{pages[page].title}</h2>
           </div>
           <button className="secondary-button" disabled={leaving} onClick={async () => {
+            if (communityDirty && !window.confirm('저장하지 않은 신고 처리 내용을 버리고 로그아웃할까요?')) return
             if (guideDirty && !window.confirm('저장하지 않은 가이드 변경을 버리고 로그아웃할까요?')) return
             if (topicDirty && !window.confirm('저장하지 않은 답변을 버리고 로그아웃할까요?')) return
             setLeaving(true)
@@ -114,7 +125,7 @@ export default function App({ connection }: { connection: AdminConnection }) {
                 </a>
               ))}
           </div>
-        ) : page === 'collections' ? <Collections connection={connection} /> : page === 'contents' ? <Guides connection={connection} onDirtyChange={setGuideDirty} /> : page === 'requests' ? <TopicRequests key={connection.session.userId} connection={connection} onDirtyChange={setTopicDirty} /> : (
+        ) : page === 'community' ? <CommunityReports key={connection.session.token} connection={connection} onDirtyChange={setCommunityDirty} /> : page === 'collections' ? <Collections connection={connection} /> : page === 'contents' ? <Guides connection={connection} onDirtyChange={setGuideDirty} /> : page === 'requests' ? <TopicRequests key={connection.session.userId} connection={connection} onDirtyChange={setTopicDirty} /> : (
           <section className="card">
             <h3>{pages[page].title}</h3>
             <p>{pages[page].description}</p>
