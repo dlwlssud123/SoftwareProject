@@ -1,5 +1,16 @@
 # ValueFlow 공통 백엔드 API 명세서
 
+## 건강 영상 목록 (2026-11-25 추가)
+
+| 경로 | 인증 | 요청·응답 |
+| --- | --- | --- |
+| `GET /api/v1/health-videos` | 불필요 | `topic=stretching/hands/healthy_life` 선택, `limit`·`offset`. `data.items/total/limit/offset` 반환 |
+| `GET /api/v1/health-videos/{id}` | 불필요 | 게시 중인 영상 메타데이터. 미등록·게시 중단은 `VIDEO_NOT_FOUND` 404 |
+
+각 항목은 `id`, `topic`, `title`, `publisher`, `video_id`, `source_url`, `checked_on`이다. 앱은 검증한 11자리 `video_id`로 YouTube watch 주소를 만들고 사용자가 재생 버튼을 누를 때 외부 앱/브라우저를 연다. 출처 URL은 HTTPS·확인한 기관/플랫폼 도메인만 허용한다. 손상된 목록은 `VIDEO_CATALOG_UNAVAILABLE` 503이며 빈 성공으로 바꾸지 않는다. 서버는 외부 영상이나 메타데이터를 매 요청마다 가져오지 않는다. 원본 삭제·연령/지역 제한은 플랫폼에서 달라질 수 있다.
+
+기존 예정 `/videos` 경로와 구분하며, 실행 계약은 함께 갱신한 `openapi.json`을 따른다. 새 DB 마이그레이션·환경변수·유료 API 키는 필요 없다.
+
 - 작성일: 2026-11-03
 - 갱신일: 2026-11-18
 - API 경로 버전: `v1` / 애플리케이션 버전: `0.1.0`

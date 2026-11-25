@@ -18,6 +18,7 @@ import 'data/welfare_api.dart';
 import 'data/topic_api.dart';
 import 'data/facility_api.dart';
 import 'data/ai_api.dart';
+import 'data/health_video_api.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,6 +75,7 @@ Future<void> main() async {
       settings: settings,
       recipeApi: recipeApi,
       account: account,
+      healthVideoApi: ApiConfig.hasServer ? HealthVideoApi(ApiClient()) : null,
       aiApi: account == null ? null : AiApi(ApiClient(), account),
       facilityApi: account == null ? null : FacilityApi(ApiClient()),
       welfareApi: account == null ? null : WelfareApi(ApiClient(), account),

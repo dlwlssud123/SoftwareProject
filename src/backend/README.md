@@ -1,5 +1,13 @@
 # ValueFlow 공통 백엔드
 
+## 건강 영상 목록 (2026-11-25)
+
+`GET /api/v1/health-videos`는 검토한 공식기관 영상의 제목·주제·게시 기관·YouTube 영상 ID·출처 URL·확인일을 제공한다. `topic=stretching|hands|healthy_life`, `limit`·`offset`을 지원한다. `GET /api/v1/health-videos/{id}`는 현재 게시 중인 영상만 반환하며 중단한 항목은 404다. 인증·개인정보·영상 다운로드·외부 API 호출·DB 접근은 필요하지 않다.
+
+초기 목록은 `app/resources/health_videos.json`에서 관리하며 현재 3개다. 기관 안내와 YouTube 공개 메타데이터의 게시 채널을 2026-11-25에 확인했다. 의학적 효과나 지속적인 재생 가능성을 검증했다는 의미는 아니다. 목록을 변경하거나 `active=false`로 내린 뒤에는 서버를 배포해야 한다. 새 출처 도메인을 채택하면 서버와 앱의 허용 출처를 함께 검토한다. 관리자 웹의 영상 등록·자동 생성·자동 가용성 검사는 이번 범위에 없다.
+
+확인 근거: [지자체 영상 안내](https://www.seohae.go.kr/open_content/office/bbs/bbsMsgDetail.do?bcd=notice&msg_seq=25922), [국민건강보험 공식 채널](https://www.youtube.com/@nhicsns). 원본을 편집·재배포하지 않고 공식 YouTube 재생 주소로 연결한다. 영상 길이는 각각 다르며 1분 이내로 제한한 목록이 아니다.
+
 Python 3.12·FastAPI 기반이다. 환경설정, DB 세션, 공통 응답·오류, 요청 ID, 상태 확인과 레시피·식품·복지 원천 테이블·적재 CLI를 구현했다. 게스트·카카오 세션, 관리자 권한 확인, 레시피·복지 DB 조회, 식단·복지 후보 추천, 동의 기반 프로필, 하루 식단표·레시피/복지 저장을 제공한다.
 
 API 계약은 [API 명세서](../../docs/설계/API_명세서.md), 자동 생성 스냅샷은 [OpenAPI JSON](../../docs/설계/openapi.json)을 따른다.

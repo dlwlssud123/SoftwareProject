@@ -16,6 +16,7 @@ from app.api.community import router as community_router
 from app.api.content import router as content_router
 from app.api.foods import router as foods_router
 from app.api.health import router as health_router
+from app.api.health_videos import router as health_video_router
 from app.api.meal import router as meal_router
 from app.api.meal_plans import router as meal_plans_router
 from app.api.meals import router as meals_router
@@ -128,6 +129,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_topics_router, prefix="/api/v1")
     app.include_router(content_router, prefix="/api/v1")
     app.include_router(community_router, prefix="/api/v1")
+    app.include_router(health_video_router, prefix="/api/v1")
     app.include_router(admin_community_router, prefix="/api/v1")
     app.include_router(profile_router, prefix="/api/v1")
     app.include_router(recipes_router, prefix="/api/v1")
