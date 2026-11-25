@@ -108,7 +108,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text(
-            '식단과 복지는 공식 API에서 수집한 정보를 사용해요. 영상 버튼은 YouTube 검색으로 연결돼요.',
+            '식단과 복지는 공식 API에서 수집한 정보를 사용해요. 건강 영상은 출처를 확인한 목록에서 고르고, 취미 영상은 YouTube 검색으로 연결돼요.',
             style: TextStyle(fontSize: 14, color: muted, height: 1.5),
           ),
         ],
