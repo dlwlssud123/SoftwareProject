@@ -171,7 +171,8 @@ void main() {
     expect(find.text('의자 스트레칭'), findsOneWidget);
     expect(find.text('부드러운 한 끼'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('영상으로 즐기는 취미'), 200);
-    expect(find.text('그때 그 시절'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('그때 그 시절'), 160);
+    expect(find.text('그때 그 시절').hitTestable(), findsOneWidget);
     await tapVisible(tester, find.byKey(const Key('tab-1')));
     await tapVisible(tester, find.byKey(const Key('tab-3')));
     expect(find.byKey(const Key('number-game-start')), findsNothing);
