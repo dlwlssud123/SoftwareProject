@@ -602,7 +602,19 @@ class _ComposeState extends State<_Compose> {
         if (mounted) Navigator.pop(context, result);
       });
     } on Object catch (e) {
-      if (mounted) setState(() => error = _message(e));
+      if (mounted) {
+        setState(() {
+          if (e is ApiException &&
+              e.statusCode == 404 &&
+              e.code == 'COMMUNITY_NOT_FOUND') {
+            pending = null;
+            acknowledged = false;
+            error = '이전에 보낸 글이 삭제됐어요. 내용을 다시 확인한 뒤 새 글로 공개할 수 있어요.';
+          } else {
+            error = _message(e);
+          }
+        });
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }

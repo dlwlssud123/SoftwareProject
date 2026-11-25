@@ -21,7 +21,7 @@ const root = '/api/v1/community';
 
 class _Storage implements FlutterSecureStorage {
   final values = <String, String>{};
-  bool failWrite = false;
+  bool failWrite = false, failDelete = false;
   @override
   dynamic noSuchMethod(Invocation invocation) {
     final key = invocation.namedArguments[#key] as String;
@@ -36,6 +36,9 @@ class _Storage implements FlutterSecureStorage {
       return Future<void>.value();
     }
     if (invocation.memberName == #delete) {
+      if (failDelete) {
+        return Future<void>.error(PlatformException(code: 'delete'));
+      }
       values.remove(key);
       return Future<void>.value();
     }
@@ -60,7 +63,7 @@ class _Server {
       InterceptorsWrapper(
         onRequest: (request, handler) async {
           requests.add(request);
-          void fail(int status) => handler.reject(
+          void fail(int status, {String? code}) => handler.reject(
             DioException(
               requestOptions: request,
               type: DioExceptionType.badResponse,
@@ -69,6 +72,7 @@ class _Server {
                 statusCode: status,
                 data: {
                   'error': {
+                    'code': code,
                     'message': '요청을 다시 확인해 주세요.',
                     'retryable': status >= 500,
                   },
@@ -85,6 +89,10 @@ class _Server {
           if (request.path == '$root/posts' && request.method == 'POST') {
             final body = request.data as Map;
             final key = body['submission_id'] as String;
+            if (deletedSubmissions.contains(key)) {
+              fail(404, code: 'COMMUNITY_NOT_FOUND');
+              return;
+            }
             final replay = submitted.containsKey(key);
             final row = submitted.putIfAbsent(
               key,
@@ -125,6 +133,7 @@ class _Server {
               fail(409);
               return;
             }
+            deletedSubmissions.addAll(submitted.keys);
             submitted.clear();
           } else {
             data =
@@ -153,6 +162,7 @@ class _Server {
   final storage = _Storage();
   final requests = <RequestOptions>[];
   final submitted = <String, Map<String, dynamic>>{};
+  final deletedSubmissions = <String>{};
   bool loseResponse = false,
       blocked = false,
       denied = false,
@@ -236,6 +246,33 @@ Future<void> tap(WidgetTester tester, Finder finder) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   WidgetController.hitTestWarningShouldBeFatal = true;
+  test(
+    'deleted submissions clear a retained receipt without republishing',
+    () async {
+      final server = _Server()..storage.failDelete = true;
+      final pending = await server.api.prepare(
+        CommunityCategory.meal,
+        '한 끼',
+        '맛있게 먹었어요',
+      );
+      final post = await server.api.submit(pending);
+      expect(await server.api.pending(), isNotNull);
+      server.storage.failDelete = false;
+      await server.api.remove(post);
+      await expectLater(
+        server.api.submit(pending),
+        throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 404)),
+      );
+      expect(await server.api.pending(), isNull);
+      expect(server.submitted, isEmpty);
+      final fresh = await server.api.prepare(
+        CommunityCategory.daily,
+        '새 글',
+        '다른 이야기',
+      );
+      expect(fresh.submissionId, isNot(pending.submissionId));
+    },
+  );
   test(
     'session, filters, delete version and block routes follow the server contract',
     () async {
