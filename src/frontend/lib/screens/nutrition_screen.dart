@@ -233,7 +233,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
               ? null
               : () => pick(ImageSource.camera),
           icon: const Icon(Icons.camera_alt_rounded),
-          label: const Text('사진 촬영하기'),
+          label: Text(hasPhoto ? '다시 촬영하기' : '사진 촬영하기'),
         ),
         const SizedBox(height: 12),
         FilledButton.icon(
@@ -244,22 +244,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
               ? null
               : () => pick(ImageSource.gallery),
           icon: const Icon(Icons.photo_library_rounded),
-          label: const Text('앨범에서 선택하기'),
+          label: Text(hasPhoto ? '다른 사진 선택하기' : '앨범에서 선택하기'),
         ),
-        if (!widget.document &&
-            widget.aiApi != null &&
-            widget.intakeApi != null &&
-            photo != null) ...[
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            key: const Key('photo-analyze'),
-            onPressed: _analyzing ? null : _analyze,
-            icon: const Icon(Icons.auto_awesome),
-            label: Text(_analyzing ? '음식을 찾고 있어요…' : '음식 찾고 영양 확인'),
-          ),
-          if (_analyzing) const LinearProgressIndicator(),
-          if (_aiError != null) Notice('$_aiError\n직접 입력도 이용할 수 있어요.'),
-        ],
         if (!widget.document && widget.aiApi == null) ...[
           const SizedBox(height: 14),
           OutlinedButton.icon(
@@ -330,6 +316,34 @@ class _NutritionScreenState extends State<NutritionScreen> {
             appBar: AppBar(title: const Text('사진 도우미')),
             body: content,
           )
-        : content;
+        : Column(
+            children: [
+              Expanded(child: content),
+              if (widget.aiApi != null &&
+                  widget.intakeApi != null &&
+                  photo != null)
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (_aiError != null)
+                          Text('$_aiError\n다시 시도하거나 직접 입력해 주세요.'),
+                        if (_analyzing) const LinearProgressIndicator(),
+                        FilledButton.icon(
+                          key: const Key('photo-analyze'),
+                          onPressed: _analyzing || picking ? null : _analyze,
+                          icon: const Icon(Icons.search),
+                          label: Text(_analyzing ? '음식을 찾고 있어요…' : '음식 찾기'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          );
   }
 }
