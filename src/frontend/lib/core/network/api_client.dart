@@ -30,12 +30,14 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? query,
     String? token,
+    CancelToken? cancelToken,
     required T Function(Object? json) parse,
   }) => _send(
     () => _dio.get<Object?>(
       path,
       queryParameters: query,
       options: _options(token),
+      cancelToken: cancelToken,
     ),
     parse,
   );
@@ -44,13 +46,22 @@ class ApiClient {
     String path, {
     Object? body,
     String? token,
+    String? idempotencyKey,
     bool followRedirects = true,
+    Duration? receiveTimeout,
+    CancelToken? cancelToken,
     required T Function(Object? json) parse,
   }) => _send(
     () => _dio.post<Object?>(
       path,
       data: body,
-      options: _options(token, followRedirects: followRedirects),
+      cancelToken: cancelToken,
+      options: _options(
+        token,
+        followRedirects: followRedirects,
+        idempotencyKey: idempotencyKey,
+        receiveTimeout: receiveTimeout,
+      ),
     ),
     parse,
   );
@@ -80,9 +91,18 @@ class ApiClient {
     parse,
   );
 
-  Options _options(String? token, {bool followRedirects = true}) => Options(
+  Options _options(
+    String? token, {
+    bool followRedirects = true,
+    String? idempotencyKey,
+    Duration? receiveTimeout,
+  }) => Options(
+    receiveTimeout: receiveTimeout,
     followRedirects: followRedirects && token == null,
-    headers: {if (token != null) 'Authorization': 'Bearer $token'},
+    headers: {
+      if (token != null) 'Authorization': 'Bearer $token',
+      'Idempotency-Key': ?idempotencyKey,
+    },
   );
 
   Future<T> _send<T>(

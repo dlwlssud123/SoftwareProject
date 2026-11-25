@@ -35,6 +35,7 @@ DATABASE_URL=postgresql+psycopg://valueflow:$password@db:5432/valueflow
 KAKAO_APP_ID=$KAKAO_APP_ID
 CORS_ORIGINS=[]
 SESSION_TTL_SECONDS=604800
+ADMIN_SESSION_TTL_SECONDS=3600
 EOF
   )
   unset password

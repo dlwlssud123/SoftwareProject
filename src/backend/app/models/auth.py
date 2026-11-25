@@ -3,7 +3,15 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, String, func
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    String,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.base import Base
@@ -27,6 +35,10 @@ class AuthSession(Base):
     __tablename__ = "sessions"
     __table_args__ = (
         CheckConstraint("expires_at > created_at", name="ck_session_expiry"),
+        CheckConstraint(
+            "reauthenticate_at IS NULL OR expires_at <= reauthenticate_at",
+            name="ck_session_reauthentication",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -37,6 +49,35 @@ class AuthSession(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reauthenticate_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class AdminCredential(Base):
+    __tablename__ = "admin_credentials"
+    __table_args__ = (
+        CheckConstraint("failed_attempts >= 0", name="ck_admin_failed_attempts"),
+    )
+
+    username: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), unique=True
+    )
+    password_hash: Mapped[str] = mapped_column(String(256))
+    enabled: Mapped[bool] = mapped_column(Boolean, server_default="true")
+    failed_attempts: Mapped[int] = mapped_column(server_default="0")
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class AdminLoginBucket(Base):
+    __tablename__ = "admin_login_buckets"
+    __table_args__ = (CheckConstraint("attempts >= 0", name="ck_admin_login_attempts"),)
+
+    bucket_key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    attempts: Mapped[int]
 
 
 class KakaoIdentity(Base):

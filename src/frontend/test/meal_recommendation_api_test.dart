@@ -19,6 +19,9 @@ void main() {
       final token = List.filled(43, 'a').join();
       var guests = 0;
       var recommendations = 0;
+      var includeSeasonalEvidence = true;
+      var seasonalMonth = 11;
+      var seasonalSource = 'https://www.nics.go.kr/food';
       dio.interceptors.add(
         InterceptorsWrapper(
           onRequest: (options, handler) {
@@ -74,7 +77,13 @@ void main() {
                           {
                             'name': '쌀',
                             'shopping_search_url':
-                                'https://www.coupang.com/np/search?q=rice',
+                                'https://www.coupang.com/np/search?q=쌀',
+                            if (includeSeasonalEvidence) ...{
+                              'seasonal_food_id':
+                                  '00000000-0000-4000-8000-000000000001',
+                              'month': seasonalMonth,
+                              'source_url': seasonalSource,
+                            },
                           },
                         ],
                       },
@@ -118,7 +127,19 @@ void main() {
       expect(item.simpleMatch, isTrue);
       expect(item.ingredientCount, 1);
       expect(item.seasonal.single.shoppingUrl!.host, 'www.coupang.com');
+      expect(item.seasonal.single.month, 11);
+      expect(item.seasonal.single.sourceUrl!.host, 'www.nics.go.kr');
       expect(result.warnings.single, '공개 표기량을 확인해 주세요.');
+      includeSeasonalEvidence = false;
+      final older = await api.recommend(profile, MealTime.lunch);
+      expect(older.items.single.seasonal.single.month, isNull);
+      expect(older.items.single.seasonal.single.sourceUrl, isNull);
+      includeSeasonalEvidence = true;
+      seasonalMonth = 13;
+      seasonalSource = 'https://www.nics.go.kr.evil.test/food';
+      final invalidEvidence = await api.recommend(profile, MealTime.lunch);
+      expect(invalidEvidence.items.single.seasonal.single.month, isNull);
+      expect(invalidEvidence.items.single.seasonal.single.sourceUrl, isNull);
     },
   );
 

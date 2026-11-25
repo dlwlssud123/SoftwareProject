@@ -117,6 +117,8 @@ gh variable set VALUEFLOW_CD_ENABLED --repo dlwlssud123/SoftwareProject --body f
 
 ## 앱 연결과 접속 확인
 
+음식 사진·AI 대화를 배포할 때는 해당 API가 있는 이미지와 `20261124_02`까지의 마이그레이션이 필요하다. 서버 `.env`에만 `NVIDIA_API_KEY`를 보관하고 시험용 사용 조건을 확인한 뒤 `NVIDIA_AI_ENABLED=true`를 설정한다. Compose가 이 값들과 모델·타임아웃·일일 한도를 API 컨테이너에 전달한다. 기본값은 비활성이며 기존 키 없는 배포는 그대로 유지한다. 키를 GitHub 변수·APK·배포 아카이브에 넣지 않는다.
+
 방화벽·도메인 변경 전에는 작업 PC에서 터널을 열어 확인한다.
 
 ```powershell

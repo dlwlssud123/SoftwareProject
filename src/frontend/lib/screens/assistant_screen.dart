@@ -1,22 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import '../data/ai_api.dart';
+import '../core/network/api_exception.dart';
+import '../widgets/ai_consent.dart';
 import '../data/demo_repository.dart';
+import '../data/welfare_api.dart';
+import '../data/topic_api.dart';
+import '../data/facility_api.dart';
 import '../services/settings.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'profile_form.dart';
 import 'nutrition_screen.dart';
+import 'welfare_screens.dart';
+import 'topic_screens.dart';
+import 'facility_screens.dart';
 
 class AssistantScreen extends StatelessWidget {
   const AssistantScreen({
     required this.repository,
     required this.settings,
+    this.welfareApi,
+    this.topicApi,
+    this.facilityApi,
+    this.aiApi,
     super.key,
   });
   final DemoRepository repository;
   final AppSettings settings;
+  final WelfareApi? welfareApi;
+  final TopicApi? topicApi;
+  final FacilityApi? facilityApi;
+  final AiApi? aiApi;
   void chat(BuildContext context) => Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => ConversationScreen(settings: settings),
+      builder: (_) => ConversationScreen(settings: settings, api: aiApi),
     ),
   );
   void places(BuildContext context) => showModalBottomSheet<void>(
@@ -72,19 +90,41 @@ class AssistantScreen extends StatelessWidget {
       ),
       FeatureTile(
         title: '복지 소식 · 맞춤 추천',
-        subtitle: '내 정보로 필요한 복지 찾기',
+        subtitle: welfareApi == null
+            ? '예시로 복지 찾기 체험'
+            : '내 지역의 복지 찾기 · 저장한 복지와 메모',
         icon: Icons.campaign_rounded,
         color: const Color(0xFFCE4149),
         background: const Color(0xFFFFF0F0),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (_) => ProfileForm(
-              repository: repository,
-              settings: settings,
-              welfare: true,
-            ),
+            builder: (_) => welfareApi != null
+                ? WelfareSearchScreen(api: welfareApi!)
+                : ProfileForm(
+                    repository: repository,
+                    settings: settings,
+                    welfare: true,
+                  ),
           ),
         ),
+      ),
+      FeatureTile(
+        title: '무료급식소 · 경로식당',
+        subtitle: facilityApi == null
+            ? '서버 연결 후 이용할 수 있어요'
+            : '내 주변·지역으로 찾기 · 방문 전 확인',
+        icon: Icons.soup_kitchen_outlined,
+        onTap: () {
+          if (facilityApi == null) {
+            showMessage(context, '급식소 검색은 서버에 연결한 앱에서 이용해 주세요.');
+            return;
+          }
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => FacilitySearchScreen(api: facilityApi!),
+            ),
+          );
+        },
       ),
       const SectionTitle('편리한 도우미'),
       ServiceGrid(
@@ -125,16 +165,27 @@ class AssistantScreen extends StatelessWidget {
           ),
           ServiceButton(
             title: '생활 도우미',
-            subtitle: '앱 사용법 물어보기',
+            subtitle: topicApi == null ? '앱 사용법 물어보기' : '생활 안내 보기 · 필요한 주제 요청',
             icon: Icons.lightbulb_outline_rounded,
             background: const Color(0xFFFFF3E4),
-            onTap: () => chat(context),
+            onTap: () => topicApi == null
+                ? chat(context)
+                : Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => GuideCatalogScreen(
+                        api: topicApi!,
+                        settings: settings,
+                      ),
+                    ),
+                  ),
           ),
         ],
       ),
       const SizedBox(height: 18),
-      const Text(
-        '대화는 사용법 예시를 제공해요. 실제 AI 상담·사진 풀이는 아직 연결되지 않았어요.',
+      Text(
+        aiApi == null
+            ? '서버 연결이 없어 사용법 예시 대화를 제공해요.'
+            : 'AI는 생활·요리 참고용이에요. 음식 사진은 영양분석에서 확인해 주세요. 안내문·약 봉투 AI 풀이는 아직 제공하지 않아요.',
         style: TextStyle(fontSize: 14, color: muted, height: 1.5),
       ),
     ],
@@ -142,8 +193,9 @@ class AssistantScreen extends StatelessWidget {
 }
 
 class ConversationScreen extends StatefulWidget {
-  const ConversationScreen({required this.settings, super.key});
+  const ConversationScreen({required this.settings, this.api, super.key});
   final AppSettings settings;
+  final AiApi? api;
   @override
   State<ConversationScreen> createState() => _ConversationScreenState();
 }
@@ -151,6 +203,9 @@ class ConversationScreen extends StatefulWidget {
 class _ConversationScreenState extends State<ConversationScreen> {
   final input = TextEditingController();
   final scroll = ScrollController();
+  bool _busy = false, _consented = false;
+  String? _error;
+  CancelToken? _request;
   final messages = <({bool user, String text})>[
     (user: false, text: '안녕하세요! 오늘동행 사용법을 안내해 드릴게요. 아래 질문을 눌러 보세요.'),
   ];
@@ -162,8 +217,40 @@ class _ConversationScreenState extends State<ConversationScreen> {
     '글자를 더 크게 보고 싶어요':
         '화면 오른쪽 위 설정 버튼을 눌러 ‘크게’ 또는 ‘아주 크게’를 선택해 주세요. 앱 전체 글자 크기가 바뀌어요.',
   };
-  void send(String text) {
-    if (text.trim().isEmpty) return;
+  Future<void> send(String text) async {
+    if (text.trim().isEmpty || _busy) return;
+    if (widget.api != null) {
+      setState(() {
+        _busy = true;
+        _error = null;
+      });
+      try {
+        if (!_consented) {
+          final allowed = await confirmAiProcessing(context, photo: false);
+          if (!allowed || !mounted) return;
+          setState(() => _consented = true);
+        }
+        _request = CancelToken();
+        final answer = await widget.api!.chat(text, _request!);
+        if (!mounted) return;
+        setState(() {
+          messages.add((user: true, text: text.trim()));
+          messages.add((user: false, text: answer));
+          input.clear();
+        });
+        _scrollToEnd();
+      } on ApiException catch (error) {
+        if (mounted) {
+          setState(() {
+            _error = error.message;
+            input.text = text;
+          });
+        }
+      } finally {
+        if (mounted) setState(() => _busy = false);
+      }
+      return;
+    }
     setState(() {
       messages.add((user: true, text: text.trim()));
       messages.add((
@@ -174,6 +261,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
       ));
     });
     input.clear();
+    _scrollToEnd();
+  }
+
+  void _scrollToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (scroll.hasClients) {
         scroll.animateTo(
@@ -187,6 +278,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   @override
   void dispose() {
+    _request?.cancel();
     input.dispose();
     scroll.dispose();
     widget.settings.stop();
@@ -196,11 +288,11 @@ class _ConversationScreenState extends State<ConversationScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('건강·생활 이야기'),
-      actions: const [
+      title: const Text('생활·요리 도우미'),
+      actions: [
         Padding(
           padding: EdgeInsets.only(right: 16),
-          child: Center(child: Tag('예시 대화')),
+          child: Center(child: Tag(widget.api == null ? '예시 대화' : 'AI 대화')),
         ),
       ],
     ),
@@ -211,7 +303,13 @@ class _ConversationScreenState extends State<ConversationScreen> {
             controller: scroll,
             padding: const EdgeInsets.all(20),
             children: [
-              const Notice('사용법을 안내하는 예시 대화예요. 건강 상담이나 진료를 대신하지 않아요.'),
+              Notice(
+                widget.api == null
+                    ? '사용법을 안내하는 예시 대화예요. 건강 상담이나 진료를 대신하지 않아요.'
+                    : 'AI가 만든 참고 답변이에요. 개인 건강기록을 적지 마세요. 진료나 복지 자격 확인을 대신하지 않아요.',
+              ),
+              if (_busy && _consented) const LinearProgressIndicator(),
+              if (_error != null) Notice('$_error\n질문을 확인하고 다시 보내 주세요.'),
               const SizedBox(height: 20),
               for (final message in messages)
                 Align(
@@ -260,7 +358,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: OutlinedButton(
-                    onPressed: () => send(question),
+                    onPressed: _busy ? null : () => send(question),
                     child: Text(question),
                   ),
                 ),
@@ -277,6 +375,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   child: TextField(
                     controller: input,
                     maxLength: 300,
+                    enabled: !_busy,
                     textInputAction: TextInputAction.send,
                     decoration: const InputDecoration(
                       hintText: '궁금한 내용을 적어 주세요',
@@ -288,7 +387,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 const SizedBox(width: 8),
                 IconButton.filled(
                   tooltip: '질문 보내기',
-                  onPressed: () => send(input.text),
+                  onPressed: _busy ? null : () => send(input.text),
                   icon: const Icon(Icons.arrow_upward_rounded),
                 ),
               ],

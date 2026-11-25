@@ -51,13 +51,19 @@ def auth_unavailable() -> AppError:
     )
 
 
-def new_session(user_id, now: datetime) -> tuple[AuthSession, str]:
+def new_session(
+    user_id, now: datetime, *, reauthenticate_at: datetime | None = None
+) -> tuple[AuthSession, str]:
     token = secrets.token_urlsafe(32)
+    expires_at = now + timedelta(seconds=get_settings().session_ttl_seconds)
+    if reauthenticate_at is not None:
+        expires_at = min(expires_at, reauthenticate_at)
     return AuthSession(
         user_id=user_id,
         token_hash=token_digest(token),
         created_at=now,
-        expires_at=now + timedelta(seconds=get_settings().session_ttl_seconds),
+        expires_at=expires_at,
+        reauthenticate_at=reauthenticate_at,
     ), token
 
 

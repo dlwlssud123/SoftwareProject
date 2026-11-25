@@ -131,9 +131,16 @@ class RecipeMatch {
 }
 
 class SeasonalIngredient {
-  const SeasonalIngredient(this.name, this.shoppingUrl);
+  const SeasonalIngredient(
+    this.name,
+    this.shoppingUrl, {
+    this.month,
+    this.sourceUrl,
+  });
   final String name;
   final Uri? shoppingUrl;
+  final int? month;
+  final Uri? sourceUrl;
 }
 
 class MealRecommendations {

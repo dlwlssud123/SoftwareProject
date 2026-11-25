@@ -10,9 +10,29 @@ from pydantic import (
     field_validator,
 )
 
+from app.core.passwords import normalize_username
+
 
 class GuestRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+class AdminLoginRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
+    username: str = Field(min_length=3, max_length=64)
+    password: SecretStr = Field(min_length=1, max_length=128)
+
+    @field_validator("username")
+    @classmethod
+    def canonical_username(cls, value: str) -> str:
+        return normalize_username(value)
+
+    @field_validator("password")
+    @classmethod
+    def bounded_password(cls, value: SecretStr) -> SecretStr:
+        if len(value.get_secret_value().encode("utf-8")) > 512:
+            raise ValueError("Password is too long")
+        return value
 
 
 class KakaoRequest(BaseModel):
