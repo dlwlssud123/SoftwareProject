@@ -109,6 +109,7 @@ def calculate_nutrition(
     response.headers.update(NO_STORE)
     try:
         calculation = calculate_portions(db, body.items)
+        calculation.analysis_context = body.analysis_context
     except SQLAlchemyError:
         raise unavailable() from None
     return NutritionCalculationResponse(

@@ -80,6 +80,7 @@ def calculate_portions(db, selections, *, lock=False) -> NutritionCalculation:
                 "food_id": food.id,
                 "source": source_record(food, revision, imported_at),
                 "amount_is_estimate": item.amount_is_estimate,
+                "origin": item.origin,
             }
         )
     return NutritionCalculation(items=items, total=meal_total(portions))

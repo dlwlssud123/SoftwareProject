@@ -547,8 +547,10 @@ def test_pre_ai_pending_receipt_hash_still_replays(ai_db):
         201,
     )
     old_body = MealCreate.model_validate(body).model_dump(mode="json")
+    old_body.pop("analysis_context")
     for item in old_body["items"]:
         del item["amount_is_estimate"]
+        del item["origin"]
     old_hash = hashlib.sha256(
         json.dumps(old_body, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()

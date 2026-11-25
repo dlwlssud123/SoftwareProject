@@ -230,6 +230,10 @@ DB 실패 응답은 1.2절 예시와 같다. DB 연결 제한 시간은 현재 5
 
 상세의 `items[]`에는 `food_id/revision_id/food_code/name/order_no/amount/amount_unit/nutrients/calculation_version/calculation`을 반환한다. `calculation`은 저장 시점의 입력 분량·환산 근거·근사 여부·원천 판본을 보관한 스냅샷이다. 원천 갱신은 과거 기록의 수치를 바꾸지 않는다. 섭취 시각만 수정할 때도 음식과 당시 영양값은 유지한다. 이전 버전에서 저장한 스냅샷 없는 기록은 기존 수치를 그대로 반환하고 `calculation=null`, `legacy_snapshot_missing=true`로 알린다. 근거를 새로 만들어 채우지 않는다.
 
+미리보기 `/nutrition/calculate`와 식사 생성·수정의 `items[]`는 선택적으로 `origin`을 받는다. `method`는 `manual/photo/similar_food/ingredient_estimate`, `quantity_basis`는 `user_entered/source_serving/ai_estimate/user_adjusted`다. `recognized_name`(최대 60자)은 manual 이외 방법에서 필수이며, `ingredient_name`(최대 60자)은 ingredient_estimate에서 필수다. 선택 `reference_recipe_name`은 최대 200자이고 재료 추정일 때만 허용한다. manual 이외에는 `amount_is_estimate=true`가 필요하다. 이 값은 사용자가 확인한 입력 맥락으로, 서버가 검증한 AI 실행 증명이나 영양 수치의 출처를 대체하지 않는다. DB 계산·출처 판본은 서버가 결정한다. 응답은 항목별 `origin`(식사 상세에서는 `calculation.origin`)으로 돌려준다.
+
+같은 요청의 선택 `analysis_context.excluded_ingredients[]`에는 `dish_name/ingredient_name/reason`을 최대 48개 받는다. 이름은 각각 최대 60자, reason은 `user_excluded/unmatched/water`다. 해당 음식에서 빠진 재료와 조리용 물을 명시하며 미리보기·생성·상세·목록에 유지한다. `null`은 과거 정보 미기록, 빈 배열은 기록된 제외 재료 없음으로 구분한다. 목록·상세의 `contains_estimates`는 저장한 항목의 추정 분량 여부에서 서버가 계산한다. 시간만 수정하거나 `analysis_context`를 생략하면 기존 맥락을 유지하며, 명시적인 빈 배열로 초기화할 수 있다(수정 요청의 명시적 null은 거부). 생성 키의 요청 해시에는 제공된 입력 맥락도 포함하되, 추가 전 앱의 저장 재시도가 충돌하지 않도록 null인 새 선택 필드는 해시에서 제외한다.
+
 같은 사용자의 같은 키·같은 요청은 기록을 하나만 생성한다. 날짜는 UTC 기준으로 비교하므로 같은 시각의 다른 시간대 표기도 같은 요청이다. 같은 키로 다른 내용을 보내면 `IDEMPOTENCY_KEY_REUSED`(409), 기록을 삭제한 뒤 그 생성 요청을 재전송하면 `MEAL_ALREADY_DELETED`(409)다. 수정 후 최초 생성 요청을 재전송하면 같은 기록의 **현재 상태**와 `replayed=true`를 반환한다. 신규 저장에는 새 키, 네트워크 재시도에는 기존 키를 사용한다.
 
 수정·삭제는 `version`으로 경합을 확인하며 오래된 버전은 `MEAL_VERSION_CHANGED`(409)로 막는다. 변경을 반영하기 전에 상세를 다시 읽도록 앱에서 안내한다. 타인과 없는 기록은 `MEAL_NOT_FOUND`(404)로 구분하지 않는다. DB 실패는 재시도 가능한 `MEALS_UNAVAILABLE`(503)이며 기록·음식·중복 방지 이력을 함께 롤백한다. 요청 키 원문과 입력 원문은 중복 방지 테이블에 남기지 않고 해시와 기록 링크만 보관한다. 기록 삭제 시 링크를 비워 재시도에 의한 복원을 막고, 사용자 DB 행 삭제 시 그 사용자의 기록·음식·요청 이력을 cascade 삭제한다. 세션 폐기와 프로필 동의 철회는 사용자 DB 행 삭제와 다르다.

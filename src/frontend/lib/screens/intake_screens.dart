@@ -9,6 +9,7 @@ import '../models/intake.dart';
 import '../models/recommendations.dart' show nutrientLabel;
 import '../widgets/async_state_view.dart';
 import '../widgets/common.dart';
+import '../widgets/intake_evidence_view.dart';
 
 String _when(BuildContext context, DateTime instant) {
   final wall = koreanTime(instant), locale = MaterialLocalizations.of(context);
@@ -324,6 +325,15 @@ class _PortionDialogState extends State<_PortionDialog> {
                 double.parse(_amount.text),
                 _unit,
                 estimated: widget.initial?.estimated ?? false,
+                origin: widget.initial == null
+                    ? const FoodOrigin(
+                        method: 'manual',
+                        quantityBasis: 'user_entered',
+                      )
+                    : widget.initial!.amount == double.parse(_amount.text) &&
+                          widget.initial!.unit == _unit
+                    ? widget.initial!.origin
+                    : widget.initial!.origin?.adjusted(),
               ),
             );
           }
@@ -340,17 +350,22 @@ class IntakeEditor extends StatefulWidget {
     this.existing,
     this.initialItems = const [],
     this.initialNotice,
+    this.initialContext,
     super.key,
   });
   final IntakeApi api;
   final SavedIntake? existing;
   final List<FoodSelection> initialItems;
   final String? initialNotice;
+  final AnalysisContext? initialContext;
   @override
   State<IntakeEditor> createState() => _IntakeEditorState();
 }
 
 class _IntakeEditorState extends State<IntakeEditor> {
+  late AnalysisContext? _analysisContext = widget.existing != null
+      ? widget.existing!.analysisContext
+      : widget.initialContext ?? const AnalysisContext([]);
   late final List<FoodSelection> _items = [
     ...(widget.existing?.items ?? widget.initialItems),
   ];
@@ -387,6 +402,7 @@ class _IntakeEditorState extends State<IntakeEditor> {
             ..clear()
             ..addAll(pending.items);
           _time = pending.eatenAt;
+          _analysisContext = pending.analysisContext;
         }
         _error = null;
       });
@@ -469,11 +485,52 @@ class _IntakeEditorState extends State<IntakeEditor> {
       if (index == null) {
         _items.add(portion);
       } else {
-        _items[index] = portion;
+        final old = _items[index];
+        _items[index] = FoodSelection(
+          portion.food,
+          portion.amount,
+          portion.unit,
+          estimated: old.estimated || portion.estimated,
+          origin: old.origin?.method == 'ingredient_estimate'
+              ? old.origin!.adjusted()
+              : FoodOrigin(
+                  method: 'manual',
+                  quantityBasis: 'user_entered',
+                  recognizedName: old.origin?.recognizedName,
+                ),
+        );
       }
       _preview = null;
       _invalid.clear();
     });
+  }
+
+  void _recordRemovedIngredient(FoodSelection removed) {
+    if (_analysisContext == null) return;
+    final origin = removed.origin;
+    if (origin?.method != 'ingredient_estimate' ||
+        origin?.recognizedName == null ||
+        origin?.ingredientName == null) {
+      return;
+    }
+    final dish = origin!.recognizedName!;
+    final groupRemains = _items.any(
+      (item) =>
+          item.origin?.method == 'ingredient_estimate' &&
+          item.origin?.recognizedName == dish,
+    );
+    final omitted = _analysisContext!.excluded
+        .where((item) => groupRemains || item.dishName != dish)
+        .toList();
+    if (groupRemains &&
+        !omitted.any(
+          (item) => item.dishName == dish && item.name == origin.ingredientName,
+        )) {
+      omitted.add(
+        ExcludedIngredient(dish, origin.ingredientName!, 'user_excluded'),
+      );
+    }
+    _analysisContext = AnalysisContext(omitted);
   }
 
   Future<void> _amount(int index) async {
@@ -531,7 +588,10 @@ class _IntakeEditorState extends State<IntakeEditor> {
       _invalid.clear();
     });
     try {
-      final preview = await widget.api.preview(_items);
+      final preview = await widget.api.preview(
+        _items,
+        analysisContext: _analysisContext,
+      );
       if (mounted) {
         setState(() {
           _preview = preview;
@@ -563,9 +623,16 @@ class _IntakeEditorState extends State<IntakeEditor> {
           original,
           _time,
           items: _timeOnly ? null : _items,
+          analysisContext: _analysisContext,
         );
       } else {
-        final attempt = _pending ?? await widget.api.prepare(_time, _items);
+        final attempt =
+            _pending ??
+            await widget.api.prepare(
+              _time,
+              _items,
+              analysisContext: _analysisContext,
+            );
         if (!mounted) return;
         setState(() => _pending = attempt);
         saved = await widget.api.submit(attempt);
@@ -702,7 +769,8 @@ class _IntakeEditorState extends State<IntakeEditor> {
                                 TextButton(
                                   onPressed: editable
                                       ? () => setState(() {
-                                          _items.removeAt(i);
+                                          final removed = _items.removeAt(i);
+                                          _recordRemovedIngredient(removed);
                                           _invalid.clear();
                                           _preview = null;
                                         })
@@ -733,6 +801,10 @@ class _IntakeEditorState extends State<IntakeEditor> {
                     ),
                   if (total != null) ...[
                     const SectionTitle('확인한 영양 정보'),
+                    IntakeEvidenceView(
+                      items: _items,
+                      contextInfo: _analysisContext,
+                    ),
                     IntakeNutrientView(total),
                   ],
                   if (_preview?.notes.isNotEmpty == true)
@@ -851,7 +923,7 @@ class _IntakeHistoryScreenState extends State<IntakeHistoryScreen> {
                       FeatureTile(
                         title: _when(context, item.eatenAt),
                         subtitle:
-                            '열량 ${nutrientLabel(item.total.nutrients.values['energy_kcal'], 'kcal')} · 눌러서 음식과 양 확인',
+                            '열량 ${nutrientLabel(item.total.nutrients.values['energy_kcal'], 'kcal')}${item.containsEstimates ? ' · 추정값 포함' : ''}${item.analysisContext?.partial == true ? ' · 제외 재료 있음' : ''} · 눌러서 음식과 양 확인',
                         icon: Icons.receipt_long_outlined,
                         onTap: () => _open(item),
                       ),
@@ -971,6 +1043,10 @@ class _IntakeDetailScreenState extends State<IntakeDetailScreen> {
                   ),
                 ),
               const SectionTitle('저장 당시 영양'),
+              IntakeEvidenceView(
+                items: meal.items,
+                contextInfo: meal.analysisContext,
+              ),
               if (meal.items.any((item) => item.estimated))
                 const Notice('예상 분량으로 계산한 식사가 포함돼 있어요. 실제 먹은 양을 측정한 값은 아니에요.'),
               IntakeNutrientView(meal.total),

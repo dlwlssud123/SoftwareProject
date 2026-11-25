@@ -6,12 +6,14 @@ from pydantic import AwareDatetime, Field, field_validator, model_validator
 
 from app.schemas.catalog import ContractModel, NutrientAmounts, Page
 from app.schemas.common import SuccessResponse
+from app.schemas.intake_evidence import AnalysisContext
 from app.schemas.nutrition import CalculatedPortion, FoodPortionRequest, NutritionTotal
 
 
 class MealCreate(ContractModel):
     eaten_at: AwareDatetime
     items: list[FoodPortionRequest] = Field(min_length=1, max_length=30)
+    analysis_context: AnalysisContext | None = None
 
     @field_validator("eaten_at")
     @classmethod
@@ -28,6 +30,7 @@ class MealUpdate(ContractModel):
     items: list[FoodPortionRequest] | None = Field(
         default=None, min_length=1, max_length=30
     )
+    analysis_context: AnalysisContext | None = None
 
     @field_validator("eaten_at")
     @classmethod
@@ -72,6 +75,8 @@ class MealSummary(ContractModel):
     version: int
     total: NutritionTotal
     legacy_snapshot_missing: bool
+    analysis_context: AnalysisContext | None = None
+    contains_estimates: bool = False
 
 
 class MealRecord(MealSummary):

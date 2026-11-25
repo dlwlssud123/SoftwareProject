@@ -17,6 +17,7 @@ import 'package:valueflow/models/ai.dart';
 import 'package:valueflow/screens/photo_food_screen.dart';
 import 'package:valueflow/screens/intake_screens.dart';
 import 'package:valueflow/screens/ingredient_review_screen.dart';
+import 'package:valueflow/widgets/intake_evidence_view.dart';
 import 'package:valueflow/services/account.dart';
 import 'package:valueflow/services/settings.dart';
 
@@ -201,6 +202,9 @@ class _Server {
               meal = _record(Map<String, dynamic>.from(options.data as Map));
             }
             meal!['eaten_at'] = options.data['eaten_at'];
+            if ((options.data as Map).containsKey('analysis_context')) {
+              meal!['analysis_context'] = options.data['analysis_context'];
+            }
             meal!['version'] = (old['version'] as int) + 1;
             data = meal;
           } else if (private && options.method == 'DELETE') {
@@ -258,7 +262,11 @@ class _Server {
     'food_id': '00000000-0000-0000-0000-000000000001',
     'name': '쌀밥',
     'basis': {'text': '100g', 'unit': 'g'},
-    'source': {'revision_id': '00000000-0000-0000-0000-000000000002'},
+    'source': {
+      'revision_id': '00000000-0000-0000-0000-000000000002',
+      'provider': 'data.go.kr:FoodNtrCpntDbInfo03',
+      'food_code': 'RICE',
+    },
     'category': '밥류',
     'dish_serving_text': '200g',
     'serving_ref_text': null,
@@ -287,6 +295,10 @@ class _Server {
     'version': 1,
     'eaten_at': payload['eaten_at'],
     'legacy_snapshot_missing': false,
+    'analysis_context': payload['analysis_context'],
+    'contains_estimates': (payload['items'] as List).any(
+      (row) => row['amount_is_estimate'] == true,
+    ),
     'total': _total(payload['items'] as List),
     'items': [
       for (final row in payload['items'] as List)
@@ -294,11 +306,15 @@ class _Server {
           'food_id': food['food_id'],
           'revision_id': (food['source'] as Map)['revision_id'],
           'name': food['name'],
+          'food_code': (food['source'] as Map)['food_code'],
           'amount': _amount(row),
           'amount_unit': 'g',
           'calculation': {
             'basis': food['basis'],
             'input': row,
+            'source': food['source'],
+            'origin': row['origin'],
+            'amount_is_estimate': row['amount_is_estimate'] ?? false,
             'serving': row['unit'] == '인분' ? {'text': '200g'} : null,
           },
         },
@@ -330,6 +346,203 @@ void main() {
   late DemoRepository repository;
   setUpAll(() async => repository = await DemoRepository.load());
   final stamp = DateTime.utc(2026, 11, 19, 23);
+  FoodSelection withEvidence(_Server server) => FoodSelection(
+    server.selection.food,
+    100,
+    'g',
+    estimated: true,
+    origin: const FoodOrigin(
+      method: 'ingredient_estimate',
+      quantityBasis: 'ai_estimate',
+      recognizedName: '양파볶음밥',
+      ingredientName: '쌀',
+      referenceRecipeName: '참고 레시피',
+    ),
+  );
+  AnalysisContext exclusions() =>
+      AnalysisContext([const ExcludedIngredient('양파볶음밥', '소금', 'unmatched')]);
+
+  test(
+    'evidence survives acknowledgement loss, app reopening and retry without body changes',
+    () async {
+      final server = _Server();
+      final contextInfo = exclusions();
+      final attempt = await server.api.prepare(stamp, [
+        withEvidence(server),
+      ], analysisContext: contextInfo);
+      contextInfo.excluded.clear();
+      expect(attempt.analysisContext!.excluded, hasLength(1));
+      server.loseNextAck = true;
+      await expectLater(
+        server.api.submit(attempt),
+        throwsA(isA<ApiException>()),
+      );
+      final reopened = server.reopen();
+      final pending = (await reopened.pending())!;
+      expect(pending.body, attempt.body);
+      final saved = await reopened.submit(pending);
+      expect(server.receipts, hasLength(1));
+      expect(saved.analysisContext!.partial, isTrue);
+      expect(saved.items.single.origin!.referenceRecipeName, '참고 레시피');
+      expect(saved.items.single.estimated, isTrue);
+      expect(
+        saved.items.single.food.sourceProvider,
+        'data.go.kr:FoodNtrCpntDbInfo03',
+      );
+      final summary = (await reopened.history(stamp)).items.single;
+      expect(summary.items, isEmpty);
+      expect(summary.containsEstimates, isTrue);
+      expect(summary.analysisContext!.partial, isTrue);
+    },
+  );
+
+  testWidgets(
+    'saved evidence exposes actual food basis, estimation path and excluded ingredients',
+    (tester) async {
+      final server = _Server();
+      late SavedIntake saved;
+      await tester.runAsync(() async {
+        saved = await server.api.submit(
+          await server.api.prepare(stamp, [
+            withEvidence(server),
+          ], analysisContext: exclusions()),
+        );
+      });
+      await _pump(tester, IntakeDetailScreen(api: server.api, id: saved.id));
+      await tester.scrollUntilVisible(find.text('계산 기준과 제외한 재료'), 180);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('계산 기준과 제외한 재료'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.textContaining('자료 출처: 공공 식품영양성분 DB'),
+        180,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('입력 방법: 예상 재료를 합산'), findsOneWidget);
+      expect(find.text('입력 당시 참고 레시피: 참고 레시피'), findsOneWidget);
+      expect(find.text('영양 자료 기준량: 100g'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('양파볶음밥: 소금 · 연결하지 못해 제외'), 180);
+      await tester.pumpAndSettle();
+      expect(find.text('양파볶음밥: 소금 · 연결하지 못해 제외'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('legacy records never invent a manual or photo origin', (
+    tester,
+  ) async {
+    final server = _Server();
+    late SavedIntake saved;
+    await tester.runAsync(() async {
+      saved = await server.api.submit(
+        await server.api.prepare(stamp, [server.selection]),
+      );
+    });
+    (server.meal!['items'] as List).single['calculation'] = null;
+    server.meal!['legacy_snapshot_missing'] = true;
+    await _pump(tester, IntakeDetailScreen(api: server.api, id: saved.id));
+    await tester.scrollUntilVisible(find.text('계산 기준과 제외한 재료'), 180);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('계산 기준과 제외한 재료'));
+    await tester.pumpAndSettle();
+    expect(find.text('입력 방법: 기록 없음'), findsOneWidget);
+    expect(find.text('입력 방법: 직접 고른 식품'), findsNothing);
+    expect(find.text('제외한 재료 정보가 기록되지 않았어요.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'editing an estimated quantity preserves its ingredient and recipe context',
+    (tester) async {
+      final server = _Server();
+      FoodSelection? changed;
+      await _pump(
+        tester,
+        Builder(
+          builder: (context) => Scaffold(
+            body: FilledButton(
+              onPressed: () async => changed = await showFoodPortionDialog(
+                context,
+                server.selection.food,
+                initial: withEvidence(server),
+              ),
+              child: const Text('수정'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('수정'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('food-amount')), '50');
+      await tester.ensureVisible(find.text('이 양으로 담기'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('이 양으로 담기'));
+      await tester.pumpAndSettle();
+      expect(changed!.amount, 50);
+      expect(changed!.origin!.method, 'ingredient_estimate');
+      expect(changed!.origin!.referenceRecipeName, '참고 레시피');
+      expect(changed!.origin!.quantityBasis, 'user_adjusted');
+      expect(changed!.estimated, isTrue);
+    },
+  );
+  testWidgets(
+    'removing ingredients records omissions without erasing unrelated evidence',
+    (tester) async {
+      final server = _Server();
+      await _pump(
+        tester,
+        IntakeEditor(
+          api: server.api,
+          initialItems: [
+            withEvidence(server),
+            withEvidence(server),
+            server.selection,
+          ],
+          initialContext: AnalysisContext([
+            ...exclusions().excluded,
+            const ExcludedIngredient('이전 음식', '양념', 'user_excluded'),
+          ]),
+        ),
+      );
+      for (var remaining = 2; remaining >= 1; remaining--) {
+        await tester.ensureVisible(find.text('빼기').first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('빼기').first);
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(
+          find.byKey(const Key('intake-preview')),
+          180,
+        );
+        await tester.tap(find.byKey(const Key('intake-preview')));
+        await tester.pumpAndSettle();
+        final evidence = tester.widget<IntakeEvidenceView>(
+          find.byType(IntakeEvidenceView),
+        );
+        expect(evidence.items, hasLength(remaining));
+        expect(
+          evidence.contextInfo!.excluded.any(
+            (item) => item.dishName == '이전 음식',
+          ),
+          isTrue,
+        );
+        expect(
+          evidence.contextInfo!.excluded.any(
+            (item) => item.dishName == '양파볶음밥' && item.name == '쌀',
+          ),
+          remaining == 2,
+        );
+        if (remaining == 1) {
+          expect(
+            evidence.contextInfo!.excluded.any(
+              (item) => item.dishName == '양파볶음밥',
+            ),
+            isFalse,
+          );
+        }
+      }
+      expect(tester.takeException(), isNull);
+    },
+  );
   PhotoRecognition photo(_Server server) => PhotoRecognition([
     PhotoDish('쌀밥', 'high', 150, [
       PhotoMatch(FoodChoice.fromJson(server.food), 200, 'g', '원천 1회 분량 참고'),

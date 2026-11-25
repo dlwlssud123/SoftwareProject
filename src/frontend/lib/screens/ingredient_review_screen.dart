@@ -33,6 +33,14 @@ class _IngredientReviewScreenState extends State<IngredientReviewScreen> {
   bool _loading = true;
   List<FoodSelection?> _items = [];
   List<bool> _included = [];
+  FoodOrigin _origin(IngredientGuess row, IngredientEstimate result) =>
+      FoodOrigin(
+        method: 'ingredient_estimate',
+        recognizedName: widget.name,
+        ingredientName: row.name,
+        referenceRecipeName: result.referenceName,
+        quantityBasis: 'ai_estimate',
+      );
   @override
   void initState() {
     super.initState();
@@ -57,7 +65,10 @@ class _IngredientReviewScreenState extends State<IngredientReviewScreen> {
         _result = result;
         _items = [
           for (final row in result.ingredients)
-            row.matches.where((m) => !m.isSimilar).firstOrNull?.portion(1),
+            row.matches
+                .where((m) => !m.isSimilar)
+                .firstOrNull
+                ?.portion(1, origin: _origin(row, result)),
         ];
         _included = [for (final row in result.ingredients) !row.isWater];
       });
@@ -90,6 +101,7 @@ class _IngredientReviewScreenState extends State<IngredientReviewScreen> {
         _result!.ingredients[index].grams,
         'g',
         estimated: true,
+        origin: _origin(_result!.ingredients[index], _result!),
       ),
     );
   }
@@ -169,8 +181,15 @@ class _IngredientReviewScreenState extends State<IngredientReviewScreen> {
                           const Text('연결할 식품을 골라 주세요. 찾지 못한 재료를 0으로 계산하지 않아요.'),
                           for (final match in result.ingredients[i].matches)
                             OutlinedButton(
-                              onPressed: () =>
-                                  setState(() => _items[i] = match.portion(1)),
+                              onPressed: () => setState(
+                                () => _items[i] = match.portion(
+                                  1,
+                                  origin: _origin(
+                                    result.ingredients[i],
+                                    result,
+                                  ),
+                                ),
+                              ),
                               child: Text('${match.food.name} 선택 · 확인 필요'),
                             ),
                         ],
@@ -191,7 +210,22 @@ class _IngredientReviewScreenState extends State<IngredientReviewScreen> {
               key: const Key('ingredients-confirm'),
               onPressed: selected.isEmpty || unresolved
                   ? null
-                  : () => Navigator.pop(context, selected),
+                  : () => Navigator.pop(
+                      context,
+                      IngredientReviewSelection(selected, [
+                        for (var i = 0; i < result.ingredients.length; i++)
+                          if (!_included[i])
+                            ExcludedIngredient(
+                              widget.name,
+                              result.ingredients[i].name,
+                              result.ingredients[i].isWater
+                                  ? 'water'
+                                  : _items[i] == null
+                                  ? 'unmatched'
+                                  : 'user_excluded',
+                            ),
+                      ]),
+                    ),
               child: Text(omitted ? '빠진 재료가 있는 참고값으로 계속' : '이 재료와 양으로 계속'),
             ),
           ],

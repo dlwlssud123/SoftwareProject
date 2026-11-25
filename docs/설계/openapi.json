@@ -8084,6 +8084,21 @@
         ],
         "title": "AllergenEvidence"
       },
+      "AnalysisContext": {
+        "properties": {
+          "excluded_ingredients": {
+            "items": {
+              "$ref": "#/components/schemas/ExcludedIngredient"
+            },
+            "type": "array",
+            "maxItems": 48,
+            "title": "Excluded Ingredients"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "AnalysisContext"
+      },
       "BlockRecord": {
         "properties": {
           "id": {
@@ -8202,6 +8217,16 @@
             "type": "boolean",
             "title": "Amount Is Estimate",
             "default": false
+          },
+          "origin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PortionOrigin"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "nutrients": {
             "anyOf": [
@@ -8600,6 +8625,39 @@
           "meta"
         ],
         "title": "ErrorResponse"
+      },
+      "ExcludedIngredient": {
+        "properties": {
+          "dish_name": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Dish Name"
+          },
+          "ingredient_name": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Ingredient Name"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "user_excluded",
+              "unmatched",
+              "water"
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "dish_name",
+          "ingredient_name",
+          "reason"
+        ],
+        "title": "ExcludedIngredient"
       },
       "ExcludedPortion": {
         "properties": {
@@ -9014,6 +9072,16 @@
             "type": "boolean",
             "title": "Amount Is Estimate",
             "default": false
+          },
+          "origin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PortionOrigin"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "unit": {
             "type": "string",
@@ -9912,6 +9980,16 @@
             "maxItems": 30,
             "minItems": 1,
             "title": "Items"
+          },
+          "analysis_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -10069,6 +10147,21 @@
             "type": "boolean",
             "title": "Legacy Snapshot Missing"
           },
+          "analysis_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contains_estimates": {
+            "type": "boolean",
+            "title": "Contains Estimates",
+            "default": false
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/MealItemRecord"
@@ -10128,6 +10221,21 @@
           "legacy_snapshot_missing": {
             "type": "boolean",
             "title": "Legacy Snapshot Missing"
+          },
+          "analysis_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contains_estimates": {
+            "type": "boolean",
+            "title": "Contains Estimates",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -10176,6 +10284,16 @@
               }
             ],
             "title": "Items"
+          },
+          "analysis_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -10631,6 +10749,16 @@
           },
           "total": {
             "$ref": "#/components/schemas/NutritionTotal"
+          },
+          "analysis_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -10651,6 +10779,16 @@
             "maxItems": 30,
             "minItems": 1,
             "title": "Items"
+          },
+          "analysis_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -11510,6 +11648,76 @@
           "unit"
         ],
         "title": "PortionInput"
+      },
+      "PortionOrigin": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "photo",
+              "similar_food",
+              "ingredient_estimate"
+            ],
+            "title": "Method"
+          },
+          "quantity_basis": {
+            "type": "string",
+            "enum": [
+              "user_entered",
+              "source_serving",
+              "ai_estimate",
+              "user_adjusted"
+            ],
+            "title": "Quantity Basis"
+          },
+          "recognized_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recognized Name"
+          },
+          "ingredient_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ingredient Name"
+          },
+          "reference_recipe_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Recipe Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "method",
+          "quantity_basis"
+        ],
+        "title": "PortionOrigin"
       },
       "PostCreate": {
         "properties": {

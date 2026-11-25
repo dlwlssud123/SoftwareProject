@@ -63,6 +63,197 @@ def count(db, model):
     return db.scalar(select(func.count()).select_from(model))
 
 
+def evidence_body(client):
+    item = {
+        **choice(client, "쌀밥"),
+        "amount_is_estimate": True,
+        "origin": {
+            "method": "ingredient_estimate",
+            "quantity_basis": "ai_estimate",
+            "recognized_name": "양파볶음밥",
+            "ingredient_name": "쌀",
+            "reference_recipe_name": "입력 당시 참고 레시피",
+        },
+    }
+    return meal_body(
+        client,
+        items=[item],
+        analysis_context={
+            "excluded_ingredients": [
+                {
+                    "dish_name": "양파볶음밥",
+                    "ingredient_name": "소금",
+                    "reason": "unmatched",
+                },
+                {"dish_name": "양파볶음밥", "ingredient_name": "물", "reason": "water"},
+            ]
+        },
+    )
+
+
+def test_confirmed_evidence_survives_preview_save_history_and_source_refresh(meal_env):
+    env = meal_env
+    body = evidence_body(env.client)
+    preview = env.client.post(
+        "/api/v1/nutrition/calculate",
+        json={"items": body["items"], "analysis_context": body["analysis_context"]},
+    ).json()["data"]
+    assert preview["analysis_context"] == body["analysis_context"]
+    assert preview["items"][0]["origin"]["ingredient_name"] == "쌀"
+    saved = save(env, body=body).json()["data"]["meal"]
+    assert saved["analysis_context"] == body["analysis_context"]
+    assert saved["contains_estimates"] is True
+    snapshot_before = saved["items"][0]["calculation"]
+    stored = env.db.scalar(select(MealLogItem))
+    assert stored.origin["method"] == "ingredient_estimate"
+    assert "origin" not in stored.portion_snapshot
+    assert snapshot_before["origin"]["reference_recipe_name"] == "입력 당시 참고 레시피"
+    assert snapshot_before["source"]["food_code"] == "RICE"
+    assert snapshot_before["basis"]["text"] == "100g"
+    # Refresh the public food record; stored calculation/evidence must remain immutable.
+    env.rows[0]["AMT_NUM1"] = "999"
+    apply_import(
+        env.db,
+        prepare_import(
+            "nutrition",
+            nutrition_path=snapshot(env.path.parent, "nutrition", rows=env.rows),
+        ),
+    )
+    env.db.commit()
+    detail = env.client.get(BASE + "/" + saved["id"], headers=env.headers).json()[
+        "data"
+    ]
+    assert detail["items"][0]["calculation"] == snapshot_before
+    assert detail["total"]["nutrients"]["energy_kcal"] == 150
+    summary = env.client.get(BASE, headers=env.headers).json()["data"]["items"][0]
+    assert summary["analysis_context"] == body["analysis_context"]
+    assert summary["contains_estimates"] is True
+    assert (
+        env.client.get(BASE + "/" + saved["id"], headers=env.other_headers).status_code
+        == 404
+    )
+
+
+def test_evidence_preserves_time_edits_and_confirmed_quantity_updates(meal_env):
+    env = meal_env
+    body = evidence_body(env.client)
+    saved = save(env, body=body).json()["data"]["meal"]
+    path = BASE + "/" + saved["id"]
+    timed = env.client.patch(
+        path,
+        headers=env.headers,
+        json={"expected_version": 1, "eaten_at": "2026-11-20T10:00:00+09:00"},
+    ).json()["data"]
+    assert timed["analysis_context"] == body["analysis_context"]
+    assert timed["items"] == saved["items"]
+    body["items"][0]["amount"] = 50
+    body["items"][0]["origin"]["quantity_basis"] = "user_adjusted"
+    changed = env.client.patch(
+        path,
+        headers=env.headers,
+        json={
+            "expected_version": 2,
+            "items": body["items"],
+            "analysis_context": body["analysis_context"],
+        },
+    ).json()["data"]
+    assert changed["analysis_context"] == body["analysis_context"]
+    assert (
+        changed["items"][0]["calculation"]["origin"]["quantity_basis"]
+        == "user_adjusted"
+    )
+    assert changed["total"]["nutrients"]["energy_kcal"] == 75
+
+
+def test_evidence_is_part_of_idempotency_and_cannot_override_nutrients(meal_env):
+    env = meal_env
+    body = evidence_body(env.client)
+    key = str(uuid4())
+    first = save(env, body=body, key=key)
+    assert first.status_code == 201
+    assert save(env, body=body, key=key).json()["data"]["replayed"] is True
+    changed = {**body, "analysis_context": {"excluded_ingredients": []}}
+    assert save(env, body=changed, key=key).status_code == 409
+    body["items"][0]["origin"]["nutrients"] = {"energy_kcal": 99999}
+    assert save(env, body=body).status_code == 422
+    assert count(env.db, MealLog) == 1
+
+
+@pytest.mark.parametrize("estimated", [False, True])
+def test_old_records_and_pending_requests_do_not_gain_invented_provenance(
+    meal_env, estimated
+):
+    import hashlib
+    import json
+
+    from app.schemas.meal_record import MealCreate
+
+    env = meal_env
+    body = meal_body(env.client)
+    if estimated:
+        body["items"][0]["amount_is_estimate"] = True
+    key = str(uuid4())
+    saved = save(env, body=body, key=key).json()["data"]["meal"]
+    assert saved["analysis_context"] is None
+    assert saved["items"][0]["calculation"]["origin"] is None
+    legacy = MealCreate.model_validate(body).model_dump(mode="json")
+    legacy.pop("analysis_context")
+    for item in legacy["items"]:
+        item.pop("origin")
+        if not estimated:
+            item.pop("amount_is_estimate")
+    expected = hashlib.sha256(
+        json.dumps(legacy, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    assert env.db.scalar(select(MealCreateRequest.request_hash)) == expected
+    assert save(env, body=body, key=key).status_code == 200
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {
+            "analysis_context": {
+                "excluded_ingredients": [
+                    {
+                        "dish_name": "요리",
+                        "ingredient_name": "재료",
+                        "reason": "unknown",
+                    }
+                ]
+            }
+        },
+        {
+            "analysis_context": {
+                "excluded_ingredients": [
+                    {
+                        "dish_name": "요리",
+                        "ingredient_name": "재료",
+                        "reason": "unmatched",
+                    }
+                ]
+                * 49
+            }
+        },
+        {
+            "analysis_context": {
+                "excluded_ingredients": [
+                    {
+                        "dish_name": "\u0000",
+                        "ingredient_name": "재료",
+                        "reason": "unmatched",
+                    }
+                ]
+            }
+        },
+    ],
+)
+def test_evidence_payload_is_bounded_and_validated(meal_env, change):
+    env = meal_env
+    assert save(env, body={**evidence_body(env.client), **change}).status_code == 422
+    assert count(env.db, MealLog) == 0
+
+
 @pytest.mark.parametrize(
     "method,path",
     [
@@ -355,6 +546,9 @@ def test_legacy_records_keep_stored_values_and_migration_preserves_existing_rows
     assert response.status_code == 200
     meal = response.json()["data"]
     assert meal["version"] == 1 and meal["legacy_snapshot_missing"] is True
+    assert meal["analysis_context"] is None
+    assert meal["contains_estimates"] is False
+    assert env.db.scalar(select(MealLogItem)).origin is None
     assert meal["items"][0]["calculation"] is None
     assert meal["total"]["nutrients"]["energy_kcal"] == 222.2
 

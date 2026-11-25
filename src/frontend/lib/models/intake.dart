@@ -29,9 +29,12 @@ class FoodChoice {
     this.basisUnit,
     this.servingReference,
     this.category,
+    this.sourceProvider,
+    this.sourceCode,
   });
   final String id, revision, name;
   final String? basisText, basisUnit, servingReference, category;
+  final String? sourceProvider, sourceCode;
   bool get hasServing => _validServing(servingReference);
   static bool _validServing(String? reference) {
     final match = RegExp(
@@ -63,6 +66,8 @@ class FoodChoice {
       basisUnit: basis['unit'] as String?,
       category: row['category'] as String?,
       servingReference: reference,
+      sourceProvider: source['provider'] as String?,
+      sourceCode: source['food_code'] as String?,
     );
   }
   Map<String, dynamic> toStorage() => {
@@ -73,6 +78,8 @@ class FoodChoice {
     'unit': basisUnit,
     'serving': servingReference,
     'category': category,
+    if (sourceProvider != null) 'provider': sourceProvider,
+    if (sourceCode != null) 'code': sourceCode,
   };
   factory FoodChoice.fromStorage(Map<String, dynamic> row) => FoodChoice(
     id: row['id'] as String,
@@ -82,7 +89,118 @@ class FoodChoice {
     basisUnit: row['unit'] as String?,
     servingReference: row['serving'] as String?,
     category: row['category'] as String?,
+    sourceProvider: row['provider'] as String?,
+    sourceCode: row['code'] as String?,
   );
+}
+
+class FoodOrigin {
+  const FoodOrigin({
+    required this.method,
+    required this.quantityBasis,
+    this.recognizedName,
+    this.ingredientName,
+    this.referenceRecipeName,
+  });
+  final String method, quantityBasis;
+  final String? recognizedName, ingredientName, referenceRecipeName;
+  Map<String, dynamic> toJson() => {
+    'method': method,
+    'quantity_basis': quantityBasis,
+    if (recognizedName != null) 'recognized_name': recognizedName,
+    if (ingredientName != null) 'ingredient_name': ingredientName,
+    if (referenceRecipeName != null)
+      'reference_recipe_name': referenceRecipeName,
+  };
+  factory FoodOrigin.fromJson(Map<String, dynamic> row) {
+    final method = row['method'] as String,
+        basis = row['quantity_basis'] as String;
+    if (!{
+          'manual',
+          'photo',
+          'similar_food',
+          'ingredient_estimate',
+        }.contains(method) ||
+        !{
+          'user_entered',
+          'source_serving',
+          'ai_estimate',
+          'user_adjusted',
+        }.contains(basis)) {
+      throw const FormatException('Unknown input context');
+    }
+    final result = FoodOrigin(
+      method: method,
+      quantityBasis: basis,
+      recognizedName: row['recognized_name'] as String?,
+      ingredientName: row['ingredient_name'] as String?,
+      referenceRecipeName: row['reference_recipe_name'] as String?,
+    );
+    if ((result.method != 'manual' && result.recognizedName == null) ||
+        (result.method == 'ingredient_estimate' &&
+            result.ingredientName == null) ||
+        (result.method != 'ingredient_estimate' &&
+            (result.ingredientName != null ||
+                result.referenceRecipeName != null))) {
+      throw const FormatException('Inconsistent input context');
+    }
+    return result;
+  }
+  FoodOrigin adjusted() => FoodOrigin(
+    method: method,
+    quantityBasis: 'user_adjusted',
+    recognizedName: recognizedName,
+    ingredientName: ingredientName,
+    referenceRecipeName: referenceRecipeName,
+  );
+}
+
+class ExcludedIngredient {
+  const ExcludedIngredient(this.dishName, this.name, this.reason);
+  final String dishName, name, reason;
+  Map<String, dynamic> toJson() => {
+    'dish_name': dishName,
+    'ingredient_name': name,
+    'reason': reason,
+  };
+  factory ExcludedIngredient.fromJson(Map<String, dynamic> row) {
+    final result = ExcludedIngredient(
+      row['dish_name'] as String,
+      row['ingredient_name'] as String,
+      row['reason'] as String,
+    );
+    if (!{'user_excluded', 'unmatched', 'water'}.contains(result.reason)) {
+      throw const FormatException('Unknown exclusion context');
+    }
+    return result;
+  }
+}
+
+class AnalysisContext {
+  const AnalysisContext(this.excluded);
+  final List<ExcludedIngredient> excluded;
+  bool get partial => excluded.any((item) => item.reason != 'water');
+  Map<String, dynamic> toJson() => {
+    'excluded_ingredients': [for (final item in excluded) item.toJson()],
+  };
+  factory AnalysisContext.fromJson(Map<String, dynamic> row) {
+    final result = AnalysisContext(
+      List.unmodifiable([
+        for (final item in row['excluded_ingredients'] as List)
+          ExcludedIngredient.fromJson(intakeMap(item)),
+      ]),
+    );
+    if (result.excluded.length > 48) {
+      throw const FormatException('Too many exclusions');
+    }
+    return result;
+  }
+}
+
+class IngredientReviewSelection {
+  const IngredientReviewSelection(this.items, this.excluded);
+  final List<FoodSelection> items;
+  final List<ExcludedIngredient> excluded;
 }
 
 class FoodSelection {
@@ -91,23 +209,27 @@ class FoodSelection {
     this.amount,
     this.unit, {
     this.estimated = false,
+    this.origin,
   });
   final FoodChoice food;
   final double amount;
   final String unit;
   final bool estimated;
+  final FoodOrigin? origin;
   Map<String, dynamic> toJson() => {
     'food_id': food.id,
     'revision_id': food.revision,
     'amount': amount,
     'unit': unit,
     if (estimated) 'amount_is_estimate': true,
+    if (origin != null) 'origin': origin!.toJson(),
   };
   Map<String, dynamic> toStorage() => {
     'food': food.toStorage(),
     'amount': amount,
     'unit': unit,
     if (estimated) 'estimated': true,
+    if (origin != null) 'origin': origin!.toJson(),
   };
   factory FoodSelection.fromStorage(Map<String, dynamic> row) {
     final result = FoodSelection(
@@ -115,6 +237,9 @@ class FoodSelection {
       (row['amount'] as num).toDouble(),
       row['unit'] as String,
       estimated: row['estimated'] as bool? ?? false,
+      origin: row['origin'] == null
+          ? null
+          : FoodOrigin.fromJson(intakeMap(row['origin'])),
     );
     if (!result.amount.isFinite ||
         result.amount <= 0 ||
@@ -190,6 +315,8 @@ class SavedIntake {
     required this.total,
     this.items = const [],
     required this.legacy,
+    this.analysisContext,
+    this.containsEstimates = false,
   });
   final String id;
   final int version;
@@ -197,12 +324,18 @@ class SavedIntake {
   final IntakeTotal total;
   final List<FoodSelection> items;
   final bool legacy;
+  final AnalysisContext? analysisContext;
+  final bool containsEstimates;
   factory SavedIntake.fromJson(Map<String, dynamic> row) => SavedIntake(
     id: row['id'] as String,
     version: row['version'] as int,
     eatenAt: DateTime.parse(row['eaten_at'] as String).toUtc(),
     total: IntakeTotal.fromJson(intakeMap(row['total'])),
     legacy: row['legacy_snapshot_missing'] as bool,
+    containsEstimates: row['contains_estimates'] as bool? ?? false,
+    analysisContext: row['analysis_context'] == null
+        ? null
+        : AnalysisContext.fromJson(intakeMap(row['analysis_context'])),
     items: [
       for (final value in (row['items'] as List? ?? []))
         _selection(intakeMap(value)),
@@ -213,6 +346,7 @@ class SavedIntake {
         basis = calculation?['basis'] as Map<String, dynamic>?;
     final serving = calculation?['serving'] as Map<String, dynamic>?,
         input = calculation?['input'] as Map<String, dynamic>?;
+    final source = calculation?['source'] as Map<String, dynamic>?;
     final food = FoodChoice(
       id: row['food_id'] as String,
       revision: row['revision_id'] as String,
@@ -220,6 +354,8 @@ class SavedIntake {
       basisText: basis?['text'] as String?,
       basisUnit: basis?['unit'] as String?,
       servingReference: serving?['text'] as String?,
+      sourceProvider: source?['provider'] as String?,
+      sourceCode: row['food_code'] as String?,
     );
     // Preserve the user's confirmed unit where evidence exists; old records retain saved g/mL.
     final unit = input?['unit'];
@@ -230,6 +366,9 @@ class SavedIntake {
       ((original ? input!['amount'] : row['amount']) as num).toDouble(),
       (original ? unit : row['amount_unit']) as String,
       estimated: calculation?['amount_is_estimate'] as bool? ?? false,
+      origin: calculation?['origin'] == null
+          ? null
+          : FoodOrigin.fromJson(intakeMap(calculation!['origin'])),
     );
   }
 }
@@ -241,13 +380,21 @@ class IntakePage {
 }
 
 class PendingIntake {
-  const PendingIntake(this.owner, this.key, this.eatenAt, this.items);
+  const PendingIntake(
+    this.owner,
+    this.key,
+    this.eatenAt,
+    this.items, {
+    this.analysisContext,
+  });
   final String owner, key;
   final DateTime eatenAt;
   final List<FoodSelection> items;
+  final AnalysisContext? analysisContext;
   Map<String, dynamic> get body => {
     'eaten_at': eatenAt.toUtc().toIso8601String(),
     'items': items.map((item) => item.toJson()).toList(),
+    if (analysisContext != null) 'analysis_context': analysisContext!.toJson(),
   };
   Map<String, dynamic> toStorage() => {
     'version': 1,
@@ -255,6 +402,7 @@ class PendingIntake {
     'key': key,
     'eaten_at': eatenAt.toUtc().toIso8601String(),
     'items': items.map((item) => item.toStorage()).toList(),
+    if (analysisContext != null) 'analysis_context': analysisContext!.toJson(),
   };
   factory PendingIntake.fromStorage(Map<String, dynamic> row) {
     if (row['version'] != 1) {
@@ -268,6 +416,9 @@ class PendingIntake {
         for (final item in row['items'] as List)
           FoodSelection.fromStorage(intakeMap(item)),
       ],
+      analysisContext: row['analysis_context'] == null
+          ? null
+          : AnalysisContext.fromJson(intakeMap(row['analysis_context'])),
     );
     if (!RegExp(r'^[a-f0-9]{32}$').hasMatch(result.key) ||
         result.items.isEmpty ||

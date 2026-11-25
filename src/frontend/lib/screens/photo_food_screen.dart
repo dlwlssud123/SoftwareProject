@@ -30,13 +30,13 @@ class _PhotoFoodScreenState extends State<PhotoFoodScreen> {
   ];
   late final _factors = List.filled(widget.result.foods.length, 1.0);
   late final _included = List.filled(widget.result.foods.length, true);
-  final _ingredients = <int, List<FoodSelection>>{};
+  final _ingredients = <int, IngredientReviewSelection>{};
 
   Future<void> _estimateIngredients(int index) async {
     final api = widget.aiApi;
     if (api == null) return;
     final dish = widget.result.foods[index];
-    final items = await Navigator.of(context).push<List<FoodSelection>>(
+    final items = await Navigator.of(context).push<IngredientReviewSelection>(
       MaterialPageRoute(
         builder: (_) => IngredientReviewScreen(
           aiApi: api,
@@ -46,7 +46,7 @@ class _PhotoFoodScreenState extends State<PhotoFoodScreen> {
         ),
       ),
     );
-    if (items == null || items.isEmpty || !mounted) return;
+    if (items == null || items.items.isEmpty || !mounted) return;
     setState(() {
       _ingredients[index] = items;
       _included[index] = true;
@@ -71,6 +71,7 @@ class _PhotoFoodScreenState extends State<PhotoFoodScreen> {
         widget.result.foods[index].grams.toDouble(),
         'g',
         'AI가 제안한 대략적인 1인분이에요. 실제 양에 맞게 바꿔 주세요.',
+        manuallySelected: true,
       );
       _included[index] = true;
     });
@@ -86,15 +87,19 @@ class _PhotoFoodScreenState extends State<PhotoFoodScreen> {
     final selections = [
       for (var i = 0; i < _matches.length; i++)
         if (_included[i] && _matches[i] != null)
-          _matches[i]!.portion(_factors[i]),
+          _matches[i]!.portion(
+            _factors[i],
+            recognizedName: widget.result.foods[i].name,
+          ),
       for (var i = 0; i < _matches.length; i++)
         if (_included[i])
-          for (final item in _ingredients[i] ?? <FoodSelection>[])
+          for (final item in _ingredients[i]?.items ?? <FoodSelection>[])
             FoodSelection(
               item.food,
               _ingredientAmount(item, i),
               item.unit,
               estimated: true,
+              origin: _factors[i] == 1 ? item.origin : item.origin?.adjusted(),
             ),
     ];
     final saved = await Navigator.of(context).push<SavedIntake>(
@@ -102,6 +107,10 @@ class _PhotoFoodScreenState extends State<PhotoFoodScreen> {
         builder: (_) => IntakeEditor(
           api: widget.api,
           initialItems: selections,
+          initialContext: AnalysisContext([
+            for (final entry in _ingredients.entries)
+              if (_included[entry.key]) ...entry.value.excluded,
+          ]),
           initialNotice: _ingredients.keys.any((i) => _included[i])
               ? '예상한 1인분 재료를 기준으로 계산한 참고값이에요. 체크를 뺀 재료나 빠진 기름·양념의 영양은 합계에 포함되지 않아요.'
               : null,
@@ -126,12 +135,12 @@ class _PhotoFoodScreenState extends State<PhotoFoodScreen> {
     final itemCount = [
       for (var i = 0; i < _matches.length; i++)
         if (_included[i])
-          _ingredients[i]?.length ?? (_matches[i] == null ? 0 : 1),
+          _ingredients[i]?.items.length ?? (_matches[i] == null ? 0 : 1),
     ].fold<int>(0, (sum, count) => sum + count);
     final withinQuantity = _ingredients.entries.every(
       (entry) =>
           !_included[entry.key] ||
-          entry.value.every(
+          entry.value.items.every(
             (item) => _ingredientAmount(item, entry.key) <= 10000,
           ),
     );
@@ -168,9 +177,9 @@ class _PhotoFoodScreenState extends State<PhotoFoodScreen> {
                     ),
                     if (widget.result.foods[i].confidence != 'high')
                       const Text('음식 이름이 맞는지 꼭 확인해 주세요.'),
-                    if (_ingredients[i] case final items?) ...[
+                    if (_ingredients[i] case final result?) ...[
                       const Notice('확인한 예상 재료의 영양을 합산해요. 실제 재료와 양에 따라 달라요.'),
-                      for (final item in items)
+                      for (final item in result.items)
                         Text(
                           '${item.food.name} · ${_ingredientAmount(item, i)} ${item.unit}',
                         ),

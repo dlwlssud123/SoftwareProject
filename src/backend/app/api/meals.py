@@ -107,7 +107,9 @@ def record_items(db, meal_ids):
                     key: item.nutrients.get(key) for key in NutrientAmounts.model_fields
                 },
                 calculation_version=item.calculation_version,
-                calculation=item.portion_snapshot,
+                calculation={**item.portion_snapshot, "origin": item.origin}
+                if item.portion_snapshot is not None
+                else None,
             )
         )
     return grouped
@@ -133,6 +135,10 @@ def record(meal, items):
         items=items,
         total=meal_total(portions),
         legacy_snapshot_missing=any(item.calculation is None for item in items),
+        analysis_context=meal.analysis_context,
+        contains_estimates=any(
+            item.calculation and item.calculation.amount_is_estimate for item in items
+        ),
     )
 
 
@@ -168,7 +174,11 @@ def replace_items(db, meal, selections):
                 nutrients=portion.nutrients.model_dump(),
                 calculation_version=calculation.calculation_version,
                 order_no=order_no,
-                portion_snapshot=portion.model_dump(mode="json"),
+                # Keep the old calculation JSON readable by the previous API image on rollback.
+                portion_snapshot=portion.model_dump(mode="json", exclude={"origin"}),
+                origin=portion.origin.model_dump(mode="json")
+                if portion.origin is not None
+                else None,
             )
         )
     db.flush()
@@ -185,10 +195,14 @@ def create_meal(
 ):
     key_hash = hashlib.sha256(idempotency_key.encode()).hexdigest()
     fingerprint = body.model_dump(mode="json")
+    if fingerprint["analysis_context"] is None:
+        del fingerprint["analysis_context"]
     # Keep pre-AI pending receipts replayable when the optional estimate flag is false.
     for item in fingerprint["items"]:
         if not item["amount_is_estimate"]:
             del item["amount_is_estimate"]
+        if item["origin"] is None:
+            del item["origin"]
     request_hash = hashlib.sha256(
         json.dumps(fingerprint, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
@@ -233,7 +247,13 @@ def create_meal(
                     headers=NO_STORE,
                 ) from None
         else:
-            meal = MealLog(user_id=auth.user.id, eaten_at=body.eaten_at)
+            meal = MealLog(
+                user_id=auth.user.id,
+                eaten_at=body.eaten_at,
+                analysis_context=body.analysis_context.model_dump(mode="json")
+                if body.analysis_context
+                else None,
+            )
             db.add(meal)
             db.flush()
             replace_items(db, meal, body.items)
@@ -307,6 +327,8 @@ def update_meal(
         check_version(meal, body.expected_version)
         if body.items is not None:
             replace_items(db, meal, body.items)
+        if body.analysis_context is not None:
+            meal.analysis_context = body.analysis_context.model_dump(mode="json")
         if body.eaten_at is not None:
             meal.eaten_at = body.eaten_at
         meal.version += 1

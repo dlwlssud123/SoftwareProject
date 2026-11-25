@@ -34,6 +34,7 @@ class MealLog(Base):
     )
     eaten_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     version: Mapped[int] = mapped_column(Integer, server_default="1")
+    analysis_context: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -62,6 +63,7 @@ class MealLogItem(Base):
     calculation_version: Mapped[str] = mapped_column(String(64))
     order_no: Mapped[int | None] = mapped_column(Integer)
     portion_snapshot: Mapped[dict | None] = mapped_column(JSONB)
+    origin: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True))
 
 
 class MealCreateRequest(Base):

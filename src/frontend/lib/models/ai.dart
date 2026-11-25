@@ -8,12 +8,16 @@ class PhotoMatch {
     this.description, {
     this.isSimilar = false,
     this.nutrients,
+    this.quantityBasis = 'ai_estimate',
+    this.manuallySelected = false,
   });
   final FoodChoice food;
   final double amount;
   final String unit, description;
   final bool isSimilar;
   final IntakeNutrients? nutrients;
+  final String quantityBasis;
+  final bool manuallySelected;
 
   factory PhotoMatch.fromJson(Map<String, dynamic> row) {
     final serving = intakeMap(row['serving']);
@@ -35,11 +39,35 @@ class PhotoMatch {
       nutrients: nutrition is Map<String, dynamic>
           ? IntakeNutrients.fromJson(nutrition)
           : null,
+      quantityBasis: serving['basis'] == 'source_serving'
+          ? 'source_serving'
+          : 'ai_estimate',
     );
   }
 
-  FoodSelection portion(double factor) =>
-      FoodSelection(food, amount * factor, unit, estimated: true);
+  FoodSelection portion(
+    double factor, {
+    String? recognizedName,
+    FoodOrigin? origin,
+  }) => FoodSelection(
+    food,
+    amount * factor,
+    unit,
+    estimated: true,
+    origin:
+        origin ??
+        (recognizedName == null
+            ? null
+            : FoodOrigin(
+                method: manuallySelected
+                    ? 'manual'
+                    : isSimilar
+                    ? 'similar_food'
+                    : 'photo',
+                recognizedName: recognizedName,
+                quantityBasis: factor == 1 ? quantityBasis : 'user_adjusted',
+              )),
+  );
 }
 
 class PhotoDish {

@@ -23,8 +23,14 @@ class IntakeApi {
 
   Future<PendingIntake> prepare(
     DateTime eatenAt,
-    List<FoodSelection> items,
-  ) async {
+    List<FoodSelection> items, {
+    AnalysisContext? analysisContext,
+  }) async {
+    if (analysisContext != null) {
+      analysisContext = AnalysisContext(
+        List.unmodifiable(analysisContext.excluded),
+      );
+    }
     final chosen = List<FoodSelection>.unmodifiable(items);
     if (chosen.isEmpty ||
         chosen.length > 30 ||
@@ -47,6 +53,8 @@ class IntakeApi {
       final body = {
         'eaten_at': eatenAt.toUtc().toIso8601String(),
         'items': chosen.map((item) => item.toJson()).toList(),
+        if (analysisContext != null)
+          'analysis_context': analysisContext.toJson(),
       };
       if (jsonEncode(body) != jsonEncode(pending.body)) {
         throw const ApiException(
@@ -56,7 +64,7 @@ class IntakeApi {
       }
       return pending;
     }
-    final task = _prepare(eatenAt, chosen);
+    final task = _prepare(eatenAt, chosen, analysisContext: analysisContext);
     _preparing = task;
     try {
       return await task;
@@ -96,9 +104,15 @@ class IntakeApi {
     ),
   );
 
-  Future<IntakePreview> preview(List<FoodSelection> items) => _client.post(
+  Future<IntakePreview> preview(
+    List<FoodSelection> items, {
+    AnalysisContext? analysisContext,
+  }) => _client.post(
     '/api/v1/nutrition/calculate',
-    body: {'items': items.map((item) => item.toJson()).toList()},
+    body: {
+      'items': items.map((item) => item.toJson()).toList(),
+      if (analysisContext != null) 'analysis_context': analysisContext.toJson(),
+    },
     parse: (body) => _read(body, IntakePreview.fromJson),
   );
 
@@ -133,6 +147,7 @@ class IntakeApi {
     SavedIntake original,
     DateTime eatenAt, {
     List<FoodSelection>? items,
+    AnalysisContext? analysisContext,
   }) => _private(
     (token) => _client.patch(
       '/api/v1/meals/${Uri.encodeComponent(original.id)}',
@@ -141,6 +156,8 @@ class IntakeApi {
         'expected_version': original.version,
         'eaten_at': eatenAt.toUtc().toIso8601String(),
         if (items != null) 'items': items.map((item) => item.toJson()).toList(),
+        if (analysisContext != null)
+          'analysis_context': analysisContext.toJson(),
       },
       parse: (body) => _read(body, SavedIntake.fromJson),
     ),
@@ -200,43 +217,47 @@ class IntakeApi {
     }
   }
 
-  Future<PendingIntake> _prepare(DateTime eatenAt, List<FoodSelection> items) =>
-      _private((_) async {
-        final owner = _account.session!.userId;
-        final random = Random.secure();
-        final attempt = PendingIntake(
-          owner,
-          List.generate(
-            16,
-            (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
-          ).join(),
-          eatenAt.toUtc(),
-          List.unmodifiable(items),
+  Future<PendingIntake> _prepare(
+    DateTime eatenAt,
+    List<FoodSelection> items, {
+    AnalysisContext? analysisContext,
+  }) => _private((_) async {
+    final owner = _account.session!.userId;
+    final random = Random.secure();
+    final attempt = PendingIntake(
+      owner,
+      List.generate(
+        16,
+        (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+      ).join(),
+      eatenAt.toUtc(),
+      List.unmodifiable(items),
+      analysisContext: analysisContext,
+    );
+    final previous = await _readPending(owner);
+    if (previous != null) {
+      if (jsonEncode(previous.body) != jsonEncode(attempt.body)) {
+        throw const ApiException(
+          ApiErrorType.badResponse,
+          '먼저 이전 식사의 저장을 확인해 주세요.',
         );
-        final previous = await _readPending(owner);
-        if (previous != null) {
-          if (jsonEncode(previous.body) != jsonEncode(attempt.body)) {
-            throw const ApiException(
-              ApiErrorType.badResponse,
-              '먼저 이전 식사의 저장을 확인해 주세요.',
-            );
-          }
-          return previous;
-        }
-        try {
-          await _storage.write(
-            key: '$_scope:$owner',
-            value: jsonEncode(attempt.toStorage()),
-          );
-        } on Exception {
-          throw const ApiException(
-            ApiErrorType.badResponse,
-            '기기에 저장 요청을 보관하지 못했어요. 다시 시도해 주세요.',
-          );
-        }
-        _checkOwner(owner);
-        return attempt;
-      });
+      }
+      return previous;
+    }
+    try {
+      await _storage.write(
+        key: '$_scope:$owner',
+        value: jsonEncode(attempt.toStorage()),
+      );
+    } on Exception {
+      throw const ApiException(
+        ApiErrorType.badResponse,
+        '기기에 저장 요청을 보관하지 못했어요. 다시 시도해 주세요.',
+      );
+    }
+    _checkOwner(owner);
+    return attempt;
+  });
 
   Future<SavedIntake> submit(PendingIntake pending) => _private((token) async {
     _checkOwner(pending.owner);

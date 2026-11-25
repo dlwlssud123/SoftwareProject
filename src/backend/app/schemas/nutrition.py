@@ -3,10 +3,11 @@
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import AwareDatetime, Field
+from pydantic import AwareDatetime, Field, model_validator
 
 from app.schemas.catalog import ContractModel, NutrientAmounts, Page
 from app.schemas.common import SuccessResponse
+from app.schemas.intake_evidence import AnalysisContext, PortionOrigin
 
 
 class FoodSource(ContractModel):
@@ -40,6 +41,7 @@ class FoodPortionRequest(ContractModel):
     revision_id: UUID
     amount: Annotated[float, Field(strict=True, gt=0, le=10000)]
     amount_is_estimate: Annotated[bool, Field(strict=True)] = False
+    origin: PortionOrigin | None = None
     unit: Literal[
         "g",
         "kg",
@@ -57,9 +59,20 @@ class FoodPortionRequest(ContractModel):
         "조각",
     ]
 
+    @model_validator(mode="after")
+    def estimate_context(self):
+        if (
+            self.origin is not None
+            and self.origin.method != "manual"
+            and not self.amount_is_estimate
+        ):
+            raise ValueError("Photo and ingredient portions must be marked estimated")
+        return self
+
 
 class NutritionCalculationRequest(ContractModel):
     items: list[FoodPortionRequest] = Field(min_length=1, max_length=30)
+    analysis_context: AnalysisContext | None = None
 
 
 class ServingReference(ContractModel):
@@ -87,6 +100,7 @@ class CalculatedPortion(ContractModel):
     factor: float | None
     approx_ml: bool
     amount_is_estimate: bool = False
+    origin: PortionOrigin | None = None
     nutrients: NutrientAmounts | None
     missing: list[str]
     note: str
@@ -113,6 +127,7 @@ class NutritionCalculation(ContractModel):
     calculation_version: Literal["food-portion-v1"] = "food-portion-v1"
     items: list[CalculatedPortion]
     total: NutritionTotal
+    analysis_context: AnalysisContext | None = None
 
 
 FoodListResponse = SuccessResponse[Page[FoodRecord]]
