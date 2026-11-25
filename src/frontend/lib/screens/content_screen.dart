@@ -9,17 +9,21 @@ import '../services/settings.dart';
 import 'topic_screens.dart';
 import '../data/community_api.dart';
 import 'community_screens.dart';
+import '../data/health_video_api.dart';
+import 'health_video_screens.dart';
 
 class ContentScreen extends StatefulWidget {
   const ContentScreen({
     required this.settings,
     this.topicApi,
     this.communityApi,
+    this.healthVideoApi,
     super.key,
   });
   final AppSettings settings;
   final TopicApi? topicApi;
   final CommunityApi? communityApi;
+  final HealthVideoApi? healthVideoApi;
   @override
   State<ContentScreen> createState() => _ContentScreenState();
 }
@@ -27,36 +31,6 @@ class ContentScreen extends StatefulWidget {
 class _ContentScreenState extends State<ContentScreen> {
   int selected = 0;
   bool get showVideos => selected == 1;
-  static const health = [
-    (
-      title: '의자 스트레칭',
-      category: '건강·운동',
-      query: '시니어 의자 스트레칭',
-      icon: Icons.accessibility_new_rounded,
-      color: Color(0xFFE4EEDC),
-    ),
-    (
-      title: '부드러운 한 끼',
-      category: '요리·식사',
-      query: '부드러운 어르신 요리',
-      icon: Icons.soup_kitchen_outlined,
-      color: Color(0xFFFAEACF),
-    ),
-    (
-      title: '편안한 호흡',
-      category: '건강·운동',
-      query: '시니어 편안한 호흡 운동',
-      icon: Icons.air_rounded,
-      color: Color(0xFFE5EDF5),
-    ),
-    (
-      title: '웃음 체조',
-      category: '재미·웃음',
-      query: '시니어 웃음 체조',
-      icon: Icons.sentiment_very_satisfied_rounded,
-      color: Color(0xFFF7E4DA),
-    ),
-  ];
   static const play = [
     (
       title: '추억의 풍경을 만나요',
@@ -224,25 +198,10 @@ class _ContentScreenState extends State<ContentScreen> {
                       ),
                     ] else ...[
                       const SectionTitle('건강쇼츠'),
-                      const Text('보고 싶은 주제를 누르면 YouTube에서 영상을 볼 수 있어요.'),
-                      const SizedBox(height: 12),
-                      ServiceGrid(
-                        children: [
-                          for (final item in health)
-                            ServiceButton(
-                              title: item.title,
-                              subtitle: item.category,
-                              icon: item.icon,
-                              background: item.color,
-                              onTap: () => openLink(
-                                context,
-                                Uri.https('www.youtube.com', '/results', {
-                                  'search_query': item.query,
-                                }),
-                              ),
-                            ),
-                        ],
-                      ),
+                      if (widget.healthVideoApi case final api?)
+                        HealthVideoCatalog(api: api, settings: widget.settings)
+                      else
+                        const Notice('건강 영상 목록은 서버 연결 후 이용할 수 있어요.'),
                       const SectionTitle('영상으로 즐기는 취미'),
                       ServiceGrid(
                         children: [
@@ -284,7 +243,7 @@ class _ContentScreenState extends State<ContentScreen> {
                         ),
                       const SizedBox(height: 12),
                       const Text(
-                        '영상은 외부 YouTube 검색으로 연결돼요.',
+                        '건강 영상은 확인한 목록에서 재생하고, 취미 영상은 YouTube 검색으로 연결돼요.',
                         style: TextStyle(fontSize: 14, color: muted),
                       ),
                     ],

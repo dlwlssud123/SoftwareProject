@@ -8,6 +8,7 @@ import 'data/topic_api.dart';
 import 'data/facility_api.dart';
 import 'data/ai_api.dart';
 import 'data/community_api.dart';
+import 'data/health_video_api.dart';
 import 'services/settings.dart';
 import 'services/account.dart';
 import 'theme.dart';
@@ -30,6 +31,7 @@ class ValueFlowApp extends StatelessWidget {
     this.facilityApi,
     this.aiApi,
     this.communityApi,
+    this.healthVideoApi,
     super.key,
   });
   final DemoRepository repository;
@@ -44,6 +46,7 @@ class ValueFlowApp extends StatelessWidget {
   final FacilityApi? facilityApi;
   final AiApi? aiApi;
   final CommunityApi? communityApi;
+  final HealthVideoApi? healthVideoApi;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: settings,
@@ -80,6 +83,7 @@ class ValueFlowApp extends StatelessWidget {
       facilityApi: facilityApi,
       aiApi: aiApi,
       communityApi: communityApi,
+      healthVideoApi: healthVideoApi,
     );
     final auth = account;
     if (auth == null) return shell();
@@ -103,6 +107,7 @@ class AppShell extends StatefulWidget {
     this.facilityApi,
     this.aiApi,
     this.communityApi,
+    this.healthVideoApi,
     super.key,
   });
   final DemoRepository repository;
@@ -115,6 +120,7 @@ class AppShell extends StatefulWidget {
   final FacilityApi? facilityApi;
   final AiApi? aiApi;
   final CommunityApi? communityApi;
+  final HealthVideoApi? healthVideoApi;
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -152,6 +158,7 @@ class _AppShellState extends State<AppShell> {
       settings: widget.settings,
       topicApi: widget.topicApi,
       communityApi: widget.communityApi,
+      healthVideoApi: widget.healthVideoApi,
     ),
   ];
   static const labels = ['식단추천', '영양분석', 'AI 도우미', '놀이터'];

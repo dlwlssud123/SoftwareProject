@@ -1,0 +1,32 @@
+[
+  {
+    "id": "chair-stretching",
+    "topic": "stretching",
+    "title": "의자에 앉아 스트레칭",
+    "publisher": "인천광역시서구체육회",
+    "video_id": "REfwqrdhab4",
+    "source_url": "https://www.seohae.go.kr/open_content/office/bbs/bbsMsgDetail.do?bcd=notice&msg_seq=25922",
+    "checked_on": "2026-11-25",
+    "active": true
+  },
+  {
+    "id": "hand-exercise",
+    "topic": "hands",
+    "title": "어르신 손유희 운동",
+    "publisher": "인천광역시서구체육회",
+    "video_id": "4oNZBxJMSIg",
+    "source_url": "https://www.seohae.go.kr/open_content/office/bbs/bbsMsgDetail.do?bcd=notice&msg_seq=25922",
+    "checked_on": "2026-11-25",
+    "active": true
+  },
+  {
+    "id": "healthy-life-class",
+    "topic": "healthy_life",
+    "title": "건강백세운동교실 이야기",
+    "publisher": "국민건강보험",
+    "video_id": "nRsgoNsmayk",
+    "source_url": "https://www.youtube.com/@nhicsns",
+    "checked_on": "2026-11-25",
+    "active": true
+  }
+]

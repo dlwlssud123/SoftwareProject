@@ -168,10 +168,10 @@ void main() {
     await tapVisible(tester, find.byKey(const Key('playground-videos')));
     expect(find.byKey(const Key('number-game-start')), findsNothing);
     expect(find.text('건강쇼츠'), findsOneWidget);
-    expect(find.text('의자 스트레칭'), findsOneWidget);
-    expect(find.text('부드러운 한 끼'), findsOneWidget);
+    expect(find.text('건강 영상 목록은 서버 연결 후 이용할 수 있어요.'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('영상으로 즐기는 취미'), 200);
     await tester.scrollUntilVisible(find.text('그때 그 시절'), 160);
+    await tester.pumpAndSettle();
     expect(find.text('그때 그 시절').hitTestable(), findsOneWidget);
     await tapVisible(tester, find.byKey(const Key('tab-1')));
     await tapVisible(tester, find.byKey(const Key('tab-3')));
