@@ -6,9 +6,10 @@ from datetime import UTC, datetime, timedelta, timezone
 from threading import BoundedSemaphore
 
 from agetech_data.nutrition.foods import FoodRecord as DataFoodRecord
+from agetech_data.nutrition.match import FoodIndex, search_dishes
 from agetech_data.nutrition.portion import serving_reference
 from fastapi import APIRouter, Request
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -144,11 +145,44 @@ def _serving(revision, estimate):
     )
 
 
-def _matches(db, dish):
+def _photo_foods():
+    return active_foods().where(
+        FoodRevision.basis_unit.in_(("g", "mL")),
+        FoodRevision.basis_amount > 0,
+        FoodRevision.nutrients["energy_kcal"].as_float().is_not(None),
+    )
+
+
+def _similar_food_index(db):
+    # Read compact matching metadata, not thousands of full nutrition/source JSON records.
+    rows = db.execute(
+        _photo_foods()
+        .where(FoodRevision.normalized["db_group"].as_string() == "음식")
+        .with_only_columns(
+            Food.food_code.label("food_code"),
+            FoodRevision.name.label("name"),
+            FoodRevision.normalized["db_group"].as_string().label("db_group"),
+            FoodRevision.basis_unit.label("basis_unit"),
+            FoodRevision.normalized["ref_name"].as_string().label("ref_name"),
+        )
+    ).mappings()
+    return FoodIndex([dict(row) for row in rows], ("음식",))
+
+
+def _matches(db, dish, fallback_index):
     # Names are search terms, never trusted SQL or automatically confirmed food IDs.
     stmt = (
-        active_foods()
+        _photo_foods()
         .where(FoodRevision.name.icontains(dish.name, autoescape=True))
+        .where(
+            or_(
+                FoodRevision.normalized["db_group"]
+                .as_string()
+                .is_distinct_from("원재료성"),
+                # A raw apple may match '사과, 생것'; shrimp must not replace shrimp fried rice.
+                func.trim(func.split_part(FoodRevision.name, ",", 1)) == dish.name,
+            )
+        )
         .order_by(
             (FoodRevision.name == dish.name).desc(),
             FoodRevision.name,
@@ -156,12 +190,31 @@ def _matches(db, dish):
         )
         .limit(5)
     )
+    rows = list(db.execute(stmt))
+    similar = not rows
+    if similar:
+        codes = [
+            candidate["food_code"]
+            for candidate in search_dishes(dish.name, fallback_index(), limit=5)[:5]
+        ]
+        if codes:
+            found = {
+                food.food_code: (food, revision, imported_at)
+                for food, revision, imported_at in db.execute(
+                    _photo_foods().where(
+                        Food.food_code.in_(codes),
+                        FoodRevision.normalized["db_group"].as_string() == "음식",
+                    )
+                )
+            }
+            rows = [found[code] for code in codes if code in found]
     return [
         MatchedFood(
             food=food_record(food, revision, imported_at),
             serving=_serving(revision, dish.standard_serving_grams),
+            match_basis="name" if revision.name == dish.name else "similar",
         )
-        for food, revision, imported_at in db.execute(stmt)
+        for food, revision, imported_at in rows
     ]
 
 
@@ -173,10 +226,20 @@ def photo(request: Request, payload: PhotoRequest, db: DbSession, auth: CurrentA
         inference = nvidia_ai.recognize(clean)
         try:
             _active(db, auth)
+            index = None
+
+            def fallback_index():
+                nonlocal index
+                if index is None:
+                    index = _similar_food_index(db)
+                return index
+
             result = PhotoResult(
                 is_food=inference.is_food,
                 foods=[
-                    PhotoDish(**dish.model_dump(), matches=_matches(db, dish))
+                    PhotoDish(
+                        **dish.model_dump(), matches=_matches(db, dish, fallback_index)
+                    )
                     for dish in inference.foods
                 ],
                 model=get_settings().nvidia_model,

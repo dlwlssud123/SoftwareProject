@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/intake_api.dart';
 import '../models/ai.dart';
 import '../models/intake.dart';
+import '../models/recommendations.dart' show nutrientLabel;
 import '../widgets/common.dart';
 import 'intake_screens.dart';
 
@@ -16,14 +17,20 @@ class PhotoFoodScreen extends StatefulWidget {
 
 class _PhotoFoodScreenState extends State<PhotoFoodScreen> {
   late final _matches = [
-    for (final dish in widget.result.foods) dish.matches.firstOrNull,
+    for (final dish in widget.result.foods)
+      dish.matches.where((match) => !match.isSimilar).firstOrNull,
   ];
   late final _factors = List.filled(widget.result.foods.length, 1.0);
   late final _included = List.filled(widget.result.foods.length, true);
 
   Future<void> _find(int index) async {
     final food = await Navigator.of(context).push<FoodChoice>(
-      MaterialPageRoute(builder: (_) => FoodSearchScreen(api: widget.api)),
+      MaterialPageRoute(
+        builder: (_) => FoodSearchScreen(
+          api: widget.api,
+          initialQuery: widget.result.foods[index].name,
+        ),
+      ),
     );
     if (food == null || !mounted) return;
     setState(() {
@@ -94,6 +101,10 @@ class _PhotoFoodScreenState extends State<PhotoFoodScreen> {
                     if (widget.result.foods[i].confidence != 'high')
                       const Text('음식 이름이 맞는지 꼭 확인해 주세요.'),
                     if (_matches[i] case final match?) ...[
+                      if (match.isSimilar)
+                        Notice(
+                          '${widget.result.foods[i].name} 대신 ${match.food.name}의 영양정보로 대략 계산해요. 재료와 조리법에 따라 달라요.',
+                        ),
                       Text(
                         '영양 DB 음식: ${match.food.name}',
                         style: const TextStyle(
@@ -109,6 +120,7 @@ class _PhotoFoodScreenState extends State<PhotoFoodScreen> {
                               ? match
                               : null,
                           isExpanded: true,
+                          itemHeight: null,
                           decoration: const InputDecoration(
                             labelText: '맞는 음식 고르기',
                           ),
@@ -116,7 +128,7 @@ class _PhotoFoodScreenState extends State<PhotoFoodScreen> {
                             for (final choice in widget.result.foods[i].matches)
                               DropdownMenuItem(
                                 value: choice,
-                                child: Text(choice.food.name, maxLines: 2),
+                                child: Text(choice.food.name),
                               ),
                           ],
                           onChanged: (value) {
@@ -149,8 +161,26 @@ class _PhotoFoodScreenState extends State<PhotoFoodScreen> {
                         '예상 ${match.amount * _factors[i]} ${match.unit} · ${_factors[i]}인분',
                       ),
                       Text(match.description),
+                    ] else if (widget.result.foods[i].matches.isNotEmpty) ...[
+                      const Notice(
+                        '같은 음식을 찾지 못했어요. 이름이 비슷한 음식의 참고 영양정보예요. 재료와 조리법이 가까운 음식을 골라 주세요.',
+                      ),
+                      for (final choice in widget.result.foods[i].matches)
+                        OutlinedButton(
+                          onPressed: () => setState(() => _matches[i] = choice),
+                          child: Text(
+                            [
+                              '${choice.food.name} 선택',
+                              '${choice.food.basisText ?? 'DB 기준량'} 기준 · 참고값',
+                              if (choice.nutrients case final nutrients?)
+                                for (final entry
+                                    in IntakeNutrients.labels.entries)
+                                  '${entry.value.$1} ${nutrientLabel(nutrients.values[entry.key], entry.value.$2)}',
+                            ].join('\n'),
+                          ),
+                        ),
                     ] else
-                      const Text('연결할 영양 DB 음식을 찾지 못했어요. 직접 찾아 주세요.'),
+                      const Text('비슷한 음식도 찾지 못했어요. 음식 이름을 바꿔 직접 찾아 주세요.'),
                     OutlinedButton(
                       onPressed: () => _find(i),
                       child: const Text('다른 음식 검색'),

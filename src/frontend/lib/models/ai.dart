@@ -1,15 +1,25 @@
 import 'intake.dart';
 
 class PhotoMatch {
-  const PhotoMatch(this.food, this.amount, this.unit, this.description);
+  const PhotoMatch(
+    this.food,
+    this.amount,
+    this.unit,
+    this.description, {
+    this.isSimilar = false,
+    this.nutrients,
+  });
   final FoodChoice food;
   final double amount;
   final String unit, description;
+  final bool isSimilar;
+  final IntakeNutrients? nutrients;
 
   factory PhotoMatch.fromJson(Map<String, dynamic> row) {
     final serving = intakeMap(row['serving']);
     final amount = (serving['amount'] as num).toDouble();
     final unit = serving['unit'] as String;
+    final nutrition = intakeMap(row['food'])['nutrients'];
     if (!amount.isFinite ||
         amount <= 0 ||
         amount > 10000 ||
@@ -21,6 +31,10 @@ class PhotoMatch {
       amount,
       unit,
       serving['description'] as String,
+      isSimilar: row['match_basis'] == 'similar',
+      nutrients: nutrition is Map<String, dynamic>
+          ? IntakeNutrients.fromJson(nutrition)
+          : null,
     );
   }
 

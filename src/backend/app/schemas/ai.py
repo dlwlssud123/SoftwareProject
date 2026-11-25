@@ -95,6 +95,7 @@ class ServingSuggestion(ContractModel):
 class MatchedFood(ContractModel):
     food: FoodRecord
     serving: ServingSuggestion
+    match_basis: Literal["name", "similar"] = "name"
 
 
 class PhotoDish(RecognizedDish):

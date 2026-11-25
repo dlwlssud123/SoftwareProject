@@ -9,11 +9,13 @@ from sqlalchemy import func, select, update
 from test_auth import guest
 from test_foods_api import foods_db  # noqa: F401
 from test_nvidia_ai import picture
+from test_public_data_import import snapshot
 from test_topic_requests import parallel
 
 from app.api import ai
 from app.core.config import get_settings
-from app.models import AIUsageBucket, AuthSession, MealLog
+from app.jobs.import_public_data import apply_import, prepare_import
+from app.models import AIUsageBucket, AuthSession, Food, MealLog
 from app.schemas.ai import ChatAnswer, FoodInference
 from app.services import nvidia_ai
 
@@ -129,8 +131,134 @@ def test_photo_defaults_to_source_serving_or_explicit_ai_estimate(ai_db, monkeyp
     assert milk["matches"][0]["serving"]["amount"] == 250
     assert milk["matches"][0]["serving"]["basis"] == "ai_estimate"
     assert rice["matches"][0]["food"]["nutrients"]["energy_kcal"] == 150
+    assert rice["matches"][0]["match_basis"] == "name"
     assert call.call_args.args[0].startswith(b"\xff\xd8")
     assert db.scalar(select(func.count()).select_from(MealLog)) == 0
+
+
+@pytest.fixture
+def similar_db(ai_db, tmp_path):
+    client, db = ai_db
+    rows = [
+        {"FOOD_CD": "FRIED_EGG", "FOOD_NM_KR": "볶음밥_달걀"},
+        {"FOOD_CD": "RAW", "FOOD_NM_KR": "새우볶음밥재료", "DB_GRP_NM": "원재료성"},
+        {"FOOD_CD": "BAD_BASIS", "FOOD_NM_KR": "볶음밥_새우", "SERVING_SIZE": "?"},
+        {"FOOD_CD": "NO_ENERGY", "FOOD_NM_KR": "볶음밥_새우", "AMT_NUM1": ""},
+    ]
+    rows += [
+        {"FOOD_CD": f"FRIED_{index}", "FOOD_NM_KR": f"볶음밥_채소{index}"}
+        for index in range(7)
+    ]
+    source = [
+        {
+            "DB_GRP_NM": "음식",
+            "SERVING_SIZE": "100g",
+            "AMT_NUM1": "180",
+            "AMT_NUM3": "5",
+            "AMT_NUM13": "0",
+            **row,
+        }
+        for row in rows
+    ]
+    path = snapshot(tmp_path, dataset="nutrition", rows=source)
+    apply_import(db, prepare_import("nutrition", nutrition_path=path))
+    db.commit()
+    return client, db
+
+
+def recognized_foods(client, monkeypatch, names):
+    _, headers = guest(client)
+    monkeypatch.setattr(
+        nvidia_ai,
+        "recognize",
+        lambda _: FoodInference.model_validate(
+            {
+                "is_food": True,
+                "foods": [
+                    {
+                        "name": name,
+                        "confidence": "medium",
+                        "standard_serving_grams": 200,
+                    }
+                    for name in names
+                ],
+            }
+        ),
+    )
+    return read(
+        client.post(
+            BASE + "/food-photo",
+            headers=headers,
+            json={
+                "image_base64": base64.b64encode(picture()).decode(),
+                "allow_external_processing": True,
+            },
+        )
+    )["foods"]
+
+
+def test_similar_candidates_use_active_dishes_and_real_source_nutrients(
+    similar_db, monkeypatch
+):
+    client, db = similar_db
+    result = recognized_foods(client, monkeypatch, ["계란볶음밥"])[0]
+    assert result["name"] == "계란볶음밥"
+    match = result["matches"][0]
+    assert match["match_basis"] == "similar"
+    assert match["food"]["name"] == "볶음밥_달걀"
+    assert match["food"]["source"]["food_code"] == "FRIED_EGG"
+    assert match["food"]["nutrients"]["energy_kcal"] == 180
+    assert match["food"]["nutrients"]["sodium_mg"] == 0
+    assert match["food"]["nutrients"]["fat_g"] is None
+    assert match["food"]["source"]["revision_id"]
+    assert match["serving"]["amount"] == 200
+    assert db.scalar(select(func.count()).select_from(MealLog)) == 0
+
+
+def test_fallback_filters_raw_invalid_missing_energy_and_inactive_rows(
+    similar_db, monkeypatch
+):
+    client, db = similar_db
+    egg = db.scalar(select(Food).where(Food.food_code == "FRIED_EGG"))
+    egg.active_revision_id = None
+    db.commit()
+    raw, valid, inactive = recognized_foods(
+        client, monkeypatch, ["새우볶음밥", "채소볶음밥", "계란볶음밥"]
+    )
+    assert raw["matches"] == []
+    assert inactive["matches"] == []
+    candidates = valid["matches"]
+    assert candidates and len(candidates) <= 5
+    codes = {item["food"]["source"]["food_code"] for item in candidates}
+    assert not codes & {"RAW", "BAD_BASIS", "NO_ENERGY", "FRIED_EGG"}
+    assert all(item["match_basis"] == "similar" for item in candidates)
+
+
+def test_fallback_metadata_is_loaded_once_and_candidates_are_bounded(
+    similar_db, monkeypatch
+):
+    client, _ = similar_db
+    index = Mock(wraps=ai._similar_food_index)
+    monkeypatch.setattr(ai, "_similar_food_index", index)
+    foods = recognized_foods(client, monkeypatch, ["채소볶음밥", "계란볶음밥"])
+    assert len(foods[0]["matches"]) == 5
+    assert all(0 < len(food["matches"]) <= 5 for food in foods)
+    index.assert_called_once()
+
+
+def test_name_match_does_not_build_fallback_index(ai_db, monkeypatch):
+    client, _ = ai_db
+    index = Mock(side_effect=AssertionError("Fallback should be lazy"))
+    monkeypatch.setattr(ai, "_similar_food_index", index)
+    assert recognized_foods(client, monkeypatch, ["쌀밥"])[0]["matches"]
+    index.assert_not_called()
+
+
+def test_partial_name_match_is_also_marked_for_user_confirmation(ai_db, monkeypatch):
+    client, _ = ai_db
+    matches = recognized_foods(client, monkeypatch, ["밥"])[0]["matches"]
+    assert matches[0]["food"]["name"] == "쌀밥"
+    assert matches[0]["match_basis"] == "similar"
 
 
 def test_nonfood_or_unmatched_food_is_not_filled_with_sample_nutrition(

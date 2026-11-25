@@ -54,8 +54,13 @@ class IntakeNutrientView extends StatelessWidget {
 }
 
 class FoodSearchScreen extends StatefulWidget {
-  const FoodSearchScreen({required this.api, super.key});
+  const FoodSearchScreen({
+    required this.api,
+    this.initialQuery = '',
+    super.key,
+  });
   final IntakeApi api;
+  final String initialQuery;
   @override
   State<FoodSearchScreen> createState() => _FoodSearchScreenState();
 }
@@ -65,6 +70,13 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
   Future<FoodPage>? _page;
   String _term = '';
   int _offset = 0;
+  @override
+  void initState() {
+    super.initState();
+    _query.text = widget.initialQuery;
+    if (widget.initialQuery.trim().isNotEmpty) _search();
+  }
+
   void _search([int offset = 0]) {
     final term = _query.text.trim();
     if (term.isEmpty) {

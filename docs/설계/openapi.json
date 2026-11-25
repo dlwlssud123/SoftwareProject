@@ -9690,6 +9690,15 @@
           },
           "serving": {
             "$ref": "#/components/schemas/ServingSuggestion"
+          },
+          "match_basis": {
+            "type": "string",
+            "enum": [
+              "name",
+              "similar"
+            ],
+            "title": "Match Basis",
+            "default": "name"
           }
         },
         "additionalProperties": false,

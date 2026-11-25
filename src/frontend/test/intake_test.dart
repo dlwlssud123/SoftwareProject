@@ -313,6 +313,112 @@ void main() {
   ], '사진에서 실제 양을 측정한 값이 아닌 예상 1인분이에요.');
 
   testWidgets(
+    'similar food shows source nutrients and requires selection before calculation',
+    (tester) async {
+      final server = _Server();
+      final candidate = PhotoMatch.fromJson({
+        'match_basis': 'similar',
+        'food': {
+          ...server.food,
+          'nutrients': {
+            'energy_kcal': 150,
+            'protein_g': 3,
+            'carbohydrate_g': 30,
+            'fat_g': null,
+            'sodium_mg': 0,
+          },
+        },
+        'serving': {'amount': 200, 'unit': 'g', 'description': '예상 1인분'},
+      });
+      await _pump(
+        tester,
+        PhotoFoodScreen(
+          result: PhotoRecognition([
+            PhotoDish('잡곡밥', 'medium', 200, [candidate]),
+          ], '음식 후보예요.'),
+          api: server.api,
+        ),
+      );
+      expect(candidate.isSimilar, isTrue);
+      expect(candidate.nutrients!.values['fat_g'], isNull);
+      expect(find.textContaining('이름이 비슷한 음식'), findsOneWidget);
+      expect(find.textContaining('열량 150 kcal'), findsOneWidget);
+      expect(find.textContaining('지방 정보 없음'), findsOneWidget);
+      expect(server.requests, isEmpty);
+      await tester.scrollUntilVisible(find.text('이 음식으로 영양 확인'), 180);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, '이 음식으로 영양 확인'),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.ensureVisible(find.textContaining('쌀밥 선택'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('쌀밥 선택'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('잡곡밥 대신 쌀밥'), findsOneWidget);
+      expect(server.requests, isEmpty);
+      await tester.ensureVisible(find.text('이 음식으로 영양 확인'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('이 음식으로 영양 확인'));
+      await tester.pumpAndSettle();
+      final request = server.requests.singleWhere(
+        (r) => r.path.endsWith('/nutrition/calculate'),
+      );
+      expect(request.data['items'][0]['food_id'], server.food['food_id']);
+      expect(request.data['items'][0]['amount'], 200);
+      expect(request.data['items'][0]['amount_is_estimate'], isTrue);
+      expect(server.meal, isNull);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'unmatched photo can search its recognized name without retyping',
+    (tester) async {
+      final server = _Server();
+      await _pump(
+        tester,
+        PhotoFoodScreen(
+          result: const PhotoRecognition([
+            PhotoDish('잡곡밥', 'low', 200, []),
+          ], '음식 후보예요.'),
+          api: server.api,
+        ),
+      );
+      expect(find.textContaining('비슷한 음식도 찾지 못했어요'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('다른 음식 검색'), 180);
+      await tester.tap(find.text('다른 음식 검색'));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('food-search')))
+            .controller!
+            .text,
+        '잡곡밥',
+      );
+      expect(server.requests.single.path, contains('/api/v1/foods'));
+      expect(server.requests.single.queryParameters['q'], '잡곡밥');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  test(
+    'legacy photo response without similarity or nutrient fields still decodes',
+    () {
+      final server = _Server();
+      final match = PhotoMatch.fromJson({
+        'food': server.food,
+        'serving': {'amount': 200, 'unit': 'g', 'description': '원천 1회 분량'},
+      });
+      expect(match.isSimilar, isFalse);
+      expect(match.nutrients, isNull);
+    },
+  );
+
+  testWidgets(
     'photo starts at one serving, half portion changes calculation without auto-save',
     (tester) async {
       final server = _Server();
