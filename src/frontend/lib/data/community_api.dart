@@ -206,37 +206,47 @@ class CommunityApi {
       return result;
     });
   });
-  Future<CommunityPost> submit(PendingCommunityPost pending) async {
-    _check(pending.owner);
-    final post = await _private(
-      (token) => _client.post(
-        '$_root/posts',
-        token: token,
-        body: pending.payload,
-        parse: (body) => _read(body, (row) {
-          if (row['replayed'] is! bool) {
-            throw const FormatException('Invalid replay state');
-          }
-          final post = CommunityPost.fromJson(topicMap(row['post']));
-          if (!post.isMine ||
-              post.category != pending.category ||
-              post.title != pending.title ||
-              post.body != pending.body) {
-            throw const FormatException('Wrong submitted post');
-          }
-          return post;
-        }),
-      ),
-    );
-    // The confirmed server result remains valid if local receipt cleanup fails.
-    try {
-      await _receipt(pending.owner, () async {
+  Future<void> _clearPending(PendingCommunityPost pending) =>
+      _receipt(pending.owner, () async {
         final current = await _pending(pending.owner);
         if (current?.submissionId == pending.submissionId) {
           await _storage.delete(key: '$_scope:${pending.owner}');
         }
         _check(pending.owner);
       });
+
+  Future<CommunityPost> submit(PendingCommunityPost pending) async {
+    _check(pending.owner);
+    final post =
+        await _private(
+          (token) => _client.post(
+            '$_root/posts',
+            token: token,
+            body: pending.payload,
+            parse: (body) => _read(body, (row) {
+              if (row['replayed'] is! bool) {
+                throw const FormatException('Invalid replay state');
+              }
+              final post = CommunityPost.fromJson(topicMap(row['post']));
+              if (!post.isMine ||
+                  post.category != pending.category ||
+                  post.title != pending.title ||
+                  post.body != pending.body) {
+                throw const FormatException('Wrong submitted post');
+              }
+              return post;
+            }),
+          ),
+        ).onError<ApiException>((error, stack) async {
+          // A deleted submission has a terminal receipt and must never be recreated.
+          if (error.statusCode == 404 && error.code == 'COMMUNITY_NOT_FOUND') {
+            await _clearPending(pending);
+          }
+          Error.throwWithStackTrace(error, stack);
+        });
+    // The confirmed server result remains valid if local receipt cleanup fails.
+    try {
+      await _clearPending(pending);
     } on Object {
       _check(pending.owner);
     }
