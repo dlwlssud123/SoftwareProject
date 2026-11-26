@@ -1,3 +1,4 @@
+import '../services/usage_recorder.dart';
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
@@ -21,6 +22,11 @@ class _NumberOrderGameState extends State<NumberOrderGame> {
   }
 
   void reset() {
+    UsageRecorder.current?.record(
+      'game_started',
+      'playground',
+      action: 'start',
+    );
     numbers = List.generate(9, (index) => index + 1)..shuffle();
     nextNumber = 1;
     hint = null;
@@ -31,6 +37,13 @@ class _NumberOrderGameState extends State<NumberOrderGame> {
     setState(() {
       if (number == nextNumber) {
         nextNumber++;
+        if (nextNumber > numbers.length) {
+          UsageRecorder.current?.record(
+            'game_completed',
+            'playground',
+            action: 'complete',
+          );
+        }
         hint = null;
       } else {
         hint = '$nextNumber부터 찾아볼까요? 천천히 눌러 주세요.';
@@ -205,6 +218,11 @@ class _ProverbGameState extends State<ProverbGame> {
   }
 
   void reset() {
+    UsageRecorder.current?.record(
+      'game_started',
+      'playground',
+      action: 'start',
+    );
     questions = [..._proverbs]..shuffle();
     questions = questions.take(5).toList();
     questionIndex = 0;
@@ -237,6 +255,13 @@ class _ProverbGameState extends State<ProverbGame> {
     if (selected == null || questionIndex >= questions.length) return;
     setState(() {
       questionIndex++;
+      if (questionIndex == questions.length) {
+        UsageRecorder.current?.record(
+          'game_completed',
+          'playground',
+          action: 'complete',
+        );
+      }
       if (questionIndex < questions.length) prepareQuestion();
     });
     scrollController.jumpTo(0);

@@ -1,3 +1,4 @@
+import '../services/usage_recorder.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -118,6 +119,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
         imageQuality: 80,
       );
       if (mounted && image != null) {
+        UsageRecorder.current?.record(
+          'photo_selected',
+          'nutrition',
+          action: 'open',
+        );
         setState(() {
           photo = image;
           example = false;

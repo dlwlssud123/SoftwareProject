@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import Collections from './components/Collections'
+import UsageDashboard from './components/UsageDashboard'
 import Guides from './components/Guides'
 import TopicRequests from './components/TopicRequests'
 import CommunityReports from './components/CommunityReports'
@@ -8,6 +9,7 @@ import StatusMessage from './components/StatusMessage'
 import type { AdminConnection } from './components/AccessBoundary'
 
 const pages = {
+  usage: { title: '앱 이용 현황', description: '기능별 요청·오류·응답 시간과 사용 편의 기록을 확인합니다.' },
   community: {
     title: '커뮤니티 신고',
     description: '문제가 있는 글의 신고를 확인하고 숨김·기각을 처리합니다.',
@@ -125,7 +127,7 @@ export default function App({ connection }: { connection: AdminConnection }) {
                 </a>
               ))}
           </div>
-        ) : page === 'community' ? <CommunityReports key={connection.session.token} connection={connection} onDirtyChange={setCommunityDirty} /> : page === 'collections' ? <Collections connection={connection} /> : page === 'contents' ? <Guides connection={connection} onDirtyChange={setGuideDirty} /> : page === 'requests' ? <TopicRequests key={connection.session.userId} connection={connection} onDirtyChange={setTopicDirty} /> : (
+        ) : page === 'usage' ? <UsageDashboard key={connection.session.token} connection={connection} /> : page === 'community' ? <CommunityReports key={connection.session.token} connection={connection} onDirtyChange={setCommunityDirty} /> : page === 'collections' ? <Collections connection={connection} /> : page === 'contents' ? <Guides connection={connection} onDirtyChange={setGuideDirty} /> : page === 'requests' ? <TopicRequests key={connection.session.userId} connection={connection} onDirtyChange={setTopicDirty} /> : (
           <section className="card">
             <h3>{pages[page].title}</h3>
             <p>{pages[page].description}</p>

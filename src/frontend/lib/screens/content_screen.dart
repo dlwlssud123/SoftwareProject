@@ -1,3 +1,4 @@
+import '../services/usage_recorder.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme.dart';
@@ -120,7 +121,19 @@ class _ContentScreenState extends State<ContentScreen> {
                                   color: selected == index ? blue : line,
                                 ),
                               ),
-                              onPressed: () => setState(() => selected = index),
+                              onPressed: () {
+                                if (selected != index) {
+                                  UsageRecorder.current?.record(
+                                    'screen_view',
+                                    [
+                                      'playground',
+                                      'shorts',
+                                      'community',
+                                    ][index],
+                                  );
+                                }
+                                setState(() => selected = index);
+                              },
                               child: Text(
                                 ['게임하기', '영상 보기', '이웃 이야기'][index],
                                 textAlign: TextAlign.center,
@@ -274,6 +287,11 @@ class _MemoryGameState extends State<MemoryGame> {
   }
 
   void reset() {
+    UsageRecorder.current?.record(
+      'game_started',
+      'playground',
+      action: 'start',
+    );
     timer?.cancel();
     cards = ['🌷', '🌷', '🍊', '🍊', '🐱', '🐱', '🌳', '🌳']..shuffle();
     opened.clear();
@@ -293,6 +311,13 @@ class _MemoryGameState extends State<MemoryGame> {
         attempts++;
         if (cards[opened[0]] == cards[opened[1]]) {
           matched.addAll(opened);
+          if (matched.length == cards.length) {
+            UsageRecorder.current?.record(
+              'game_completed',
+              'playground',
+              action: 'complete',
+            );
+          }
           opened.clear();
         } else {
           timer = Timer(const Duration(milliseconds: 1100), () {

@@ -847,6 +847,207 @@
         ]
       }
     },
+    "/api/v1/usage-events": {
+      "post": {
+        "tags": [
+          "usage"
+        ],
+        "summary": "Collect",
+        "operationId": "collect_api_v1_usage_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsageBatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_UsageAccepted_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/usage-events": {
+      "get": {
+        "tags": [
+          "usage"
+        ],
+        "summary": "Dashboard",
+        "operationId": "dashboard_api_v1_admin_usage_events_get",
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 30,
+              "minimum": 1,
+              "default": 7,
+              "title": "Days"
+            }
+          },
+          {
+            "name": "feature",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "app",
+                    "meal",
+                    "recipes",
+                    "nutrition",
+                    "assistant",
+                    "welfare",
+                    "playground",
+                    "shorts",
+                    "community",
+                    "guides",
+                    "meal_plan",
+                    "saved_recipes",
+                    "shopping",
+                    "settings",
+                    "account"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Feature"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "success",
+                    "failure",
+                    "cancelled",
+                    "started"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Outcome"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_UsagePage_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/usage-events/prune": {
+      "post": {
+        "tags": [
+          "usage"
+        ],
+        "summary": "Cleanup",
+        "operationId": "cleanup_api_v1_admin_usage_events_prune_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse_UsagePruned_"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ServiceSession": []
+          }
+        ]
+      }
+    },
     "/api/v1/foods": {
       "get": {
         "tags": [
@@ -10024,6 +10225,19 @@
         ],
         "title": "GuideSummary"
       },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
       "HealthData": {
         "properties": {
           "status": {
@@ -14964,6 +15178,54 @@
         ],
         "title": "SuccessResponse[Union[ProfileData, NoneType]]"
       },
+      "SuccessResponse_UsageAccepted_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UsageAccepted"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[UsageAccepted]"
+      },
+      "SuccessResponse_UsagePage_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UsagePage"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[UsagePage]"
+      },
+      "SuccessResponse_UsagePruned_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UsagePruned"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessResponse[UsagePruned]"
+      },
       "SuccessResponse_WelfareChatResult_": {
         "properties": {
           "data": {
@@ -15316,6 +15578,697 @@
           "candidates"
         ],
         "title": "UncertainAllergen"
+      },
+      "UsageAccepted": {
+        "properties": {
+          "accepted": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Accepted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accepted"
+        ],
+        "title": "UsageAccepted"
+      },
+      "UsageBatch": {
+        "properties": {
+          "consent_version": {
+            "type": "string",
+            "const": "usage-v1",
+            "title": "Consent Version"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/UsageInput"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Events"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "consent_version",
+          "events"
+        ],
+        "title": "UsageBatch"
+      },
+      "UsageDateCount": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "count"
+        ],
+        "title": "UsageDateCount"
+      },
+      "UsageFeatureStats": {
+        "properties": {
+          "feature": {
+            "type": "string",
+            "enum": [
+              "app",
+              "meal",
+              "recipes",
+              "nutrition",
+              "assistant",
+              "welfare",
+              "playground",
+              "shorts",
+              "community",
+              "guides",
+              "meal_plan",
+              "saved_recipes",
+              "shopping",
+              "settings",
+              "account"
+            ],
+            "title": "Feature"
+          },
+          "events": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Events"
+          },
+          "requests": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Requests"
+          },
+          "success": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Success"
+          },
+          "failure": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Failure"
+          },
+          "cancelled": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Cancelled"
+          },
+          "avg_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feature",
+          "events",
+          "requests",
+          "success",
+          "failure",
+          "cancelled",
+          "avg_ms"
+        ],
+        "title": "UsageFeatureStats"
+      },
+      "UsageInput": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Event Id"
+          },
+          "event": {
+            "type": "string",
+            "enum": [
+              "app_open",
+              "app_error",
+              "screen_view",
+              "screen_exit",
+              "request_started",
+              "request_finished",
+              "setting_changed",
+              "read_aloud",
+              "photo_selected",
+              "food_selected",
+              "video_open",
+              "game_started",
+              "game_completed"
+            ],
+            "title": "Event"
+          },
+          "feature": {
+            "type": "string",
+            "enum": [
+              "app",
+              "meal",
+              "recipes",
+              "nutrition",
+              "assistant",
+              "welfare",
+              "playground",
+              "shorts",
+              "community",
+              "guides",
+              "meal_plan",
+              "saved_recipes",
+              "shopping",
+              "settings",
+              "account"
+            ],
+            "title": "Feature"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "view",
+              "recommend",
+              "save",
+              "delete",
+              "recognize",
+              "calculate",
+              "record",
+              "ask",
+              "open",
+              "complete",
+              "change",
+              "start"
+            ],
+            "title": "Action",
+            "default": "view"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "success",
+              "failure",
+              "cancelled",
+              "started"
+            ],
+            "title": "Outcome",
+            "default": "success"
+          },
+          "app_version": {
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}(?:\\+[0-9]{1,10})?$",
+            "title": "App Version"
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "android",
+              "ios",
+              "web",
+              "desktop"
+            ],
+            "title": "Platform"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3600000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "error_kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "network",
+                  "timeout",
+                  "server",
+                  "unauthorized",
+                  "forbidden",
+                  "validation",
+                  "conflict",
+                  "cancelled",
+                  "bad_response",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Kind"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "result_count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Count"
+          },
+          "result_kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "generated",
+                  "references_only",
+                  "no_evidence"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Kind"
+          },
+          "setting_kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "text_size",
+                  "voice"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Setting Kind"
+          },
+          "setting_value": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "normal",
+                  "large",
+                  "largest",
+                  "enabled",
+                  "disabled"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Setting Value"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_id",
+          "event",
+          "feature",
+          "app_version",
+          "platform"
+        ],
+        "title": "UsageInput"
+      },
+      "UsagePage": {
+        "properties": {
+          "checked_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked At"
+          },
+          "retention_days": {
+            "type": "integer",
+            "const": 30,
+            "title": "Retention Days"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Limit"
+          },
+          "app_opens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "App Opens"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/UsageFeatureStats"
+            },
+            "type": "array",
+            "title": "Features"
+          },
+          "daily": {
+            "items": {
+              "$ref": "#/components/schemas/UsageDateCount"
+            },
+            "type": "array",
+            "title": "Daily"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UsageRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checked_at",
+          "retention_days",
+          "total",
+          "offset",
+          "limit",
+          "app_opens",
+          "features",
+          "daily",
+          "items"
+        ],
+        "title": "UsagePage"
+      },
+      "UsagePruned": {
+        "properties": {
+          "removed": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Removed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "removed"
+        ],
+        "title": "UsagePruned"
+      },
+      "UsageRecord": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Event Id"
+          },
+          "event": {
+            "type": "string",
+            "enum": [
+              "app_open",
+              "app_error",
+              "screen_view",
+              "screen_exit",
+              "request_started",
+              "request_finished",
+              "setting_changed",
+              "read_aloud",
+              "photo_selected",
+              "food_selected",
+              "video_open",
+              "game_started",
+              "game_completed"
+            ],
+            "title": "Event"
+          },
+          "feature": {
+            "type": "string",
+            "enum": [
+              "app",
+              "meal",
+              "recipes",
+              "nutrition",
+              "assistant",
+              "welfare",
+              "playground",
+              "shorts",
+              "community",
+              "guides",
+              "meal_plan",
+              "saved_recipes",
+              "shopping",
+              "settings",
+              "account"
+            ],
+            "title": "Feature"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "view",
+              "recommend",
+              "save",
+              "delete",
+              "recognize",
+              "calculate",
+              "record",
+              "ask",
+              "open",
+              "complete",
+              "change",
+              "start"
+            ],
+            "title": "Action",
+            "default": "view"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "success",
+              "failure",
+              "cancelled",
+              "started"
+            ],
+            "title": "Outcome",
+            "default": "success"
+          },
+          "app_version": {
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}(?:\\+[0-9]{1,10})?$",
+            "title": "App Version"
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "android",
+              "ios",
+              "web",
+              "desktop"
+            ],
+            "title": "Platform"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3600000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "error_kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "network",
+                  "timeout",
+                  "server",
+                  "unauthorized",
+                  "forbidden",
+                  "validation",
+                  "conflict",
+                  "cancelled",
+                  "bad_response",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Kind"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "result_count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Count"
+          },
+          "result_kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "generated",
+                  "references_only",
+                  "no_evidence"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Kind"
+          },
+          "setting_kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "text_size",
+                  "voice"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Setting Kind"
+          },
+          "setting_value": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "normal",
+                  "large",
+                  "largest",
+                  "enabled",
+                  "disabled"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Setting Value"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_id",
+          "event",
+          "feature",
+          "app_version",
+          "platform",
+          "created_at"
+        ],
+        "title": "UsageRecord"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       },
       "WelfareApplication": {
         "properties": {

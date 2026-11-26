@@ -214,6 +214,7 @@ def build_steps(
                     needs=("rag_load",),
                 )
             )
+    steps.append(Step("prune_usage_events", ("-m", "app.jobs.prune_usage_events")))
     return steps
 
 

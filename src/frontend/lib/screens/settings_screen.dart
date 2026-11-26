@@ -79,9 +79,31 @@ class SettingsScreen extends StatelessWidget {
             label: const Text('음성 미리 듣기'),
           ),
           TextButton(onPressed: settings.stop, child: const Text('읽어주기 중지')),
+          const SectionTitle('사용성 개선'),
+          Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            child: SwitchListTile.adaptive(
+              key: const Key('usage-sharing'),
+              title: const Text('앱 이용 기록 보내기'),
+              subtitle: const Text(
+                '선택 사항이에요. 기능 사용 횟수·오류 종류·처리 시간·글자/음성 설정만 보내요. 질문·사진·건강정보는 포함하지 않아요. 관리자만 조회하며 30일 지난 기록은 정리해요. 끄면 새로운 전송을 중단해요.',
+              ),
+              value: settings.usageSharing,
+              onChanged: (value) async {
+                try {
+                  await settings.setUsageSharing(value);
+                } catch (_) {
+                  if (context.mounted) {
+                    showMessage(context, '설정을 저장하지 못했어요. 다시 시도해 주세요.');
+                  }
+                }
+              },
+            ),
+          ),
           const SectionTitle('개인정보 안내'),
           const Notice(
-            '서버 연결 식단 추천에서는 식사·건강 조건을 전송하고 추천 결과를 서버에 보관해요. 전송 항목은 추천을 요청하기 전에 안내해요. 사진은 기기에서만 사용해요.',
+            '서버 연결 식단 추천에서는 식사·건강 조건을 전송하고 추천 결과를 서버에 보관해요. 전송 항목은 추천을 요청하기 전에 안내해요. 사진 인식·AI 질문은 별도 동의를 받은 뒤 외부 AI로 전송해요. 사용성 개선 기록에는 사진·질문·건강정보 원문을 담지 않아요.',
             color: muted,
           ),
           const SectionTitle('앱 정보'),

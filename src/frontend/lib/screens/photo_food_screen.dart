@@ -1,3 +1,4 @@
+import '../services/usage_recorder.dart';
 import 'package:flutter/material.dart';
 
 import '../data/intake_api.dart';
@@ -234,6 +235,11 @@ class _PhotoFoodScreenState extends State<PhotoFoodScreen> {
                           ],
                           onChanged: (value) {
                             if (value != null) {
+                              UsageRecorder.current?.record(
+                                'food_selected',
+                                'nutrition',
+                                action: 'change',
+                              );
                               setState(() => _matches[i] = value);
                             }
                           },
