@@ -1,0 +1,95 @@
+name: Public Data Refresh
+
+on:
+  schedule:
+    # 18:00 UTC = 03:00 KST
+    # Sun 18:00 UTC -> Mon 03:00 KST (weekly full refresh)
+    # Mon-Fri, Sat 18:00 UTC -> Tue-Sun 03:00 KST (daily welfare refresh)
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Refresh mode'
+        required: true
+        default: 'welfare_only'
+        type: choice
+        options:
+          - welfare_only
+          - full
+          - dry_run
+          - skip_refresh
+
+concurrency:
+  group: valueflow-data-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    environment: development
+    timeout-minutes: 60
+    steps:
+      - name: Trigger data refresh on enterprise server
+        shell: bash
+        env:
+          SSH_KEY: ${{ secrets.VALUEFLOW_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VALUEFLOW_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ vars.VALUEFLOW_DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.VALUEFLOW_DEPLOY_PORT }}
+          DEPLOY_USER: ${{ vars.VALUEFLOW_DEPLOY_USER }}
+          DEPLOY_DIR: ${{ vars.VALUEFLOW_DEPLOY_DIR }}
+        run: |
+          set -euo pipefail
+          umask 077
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ && "$DEPLOY_USER" =~ ^[a-zA-Z0-9_-]+$ ]]
+          [[ "$DEPLOY_PORT" =~ ^[0-9]{1,5}$ && "$DEPLOY_DIR" =~ ^/[a-zA-Z0-9_./-]+$ ]]
+          [[ "$DEPLOY_DIR" != / && "$DEPLOY_DIR" != *..* && -n "$SSH_KEY" && -n "$KNOWN_HOSTS" ]]
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            selected_mode="${{ inputs.mode }}"
+          else
+            # In UTC: Sunday(7) 18:00 UTC is Monday 03:00 KST
+            weekday=$(date -u +%u)
+            if [[ "$weekday" -eq 7 ]]; then
+              selected_mode="full"
+            else
+              selected_mode="welfare_only"
+            fi
+          fi
+
+          case "$selected_mode" in
+            welfare_only)
+              refresh_args="--welfare-only --verify"
+              ;;
+            full)
+              refresh_args="--verify"
+              ;;
+            dry_run)
+              refresh_args="--dry-run"
+              ;;
+            skip_refresh)
+              refresh_args="--skip-refresh --verify"
+              ;;
+            *)
+              echo "Unknown mode: $selected_mode" >&2
+              exit 2
+              ;;
+          esac
+
+          echo "Selected mode: $selected_mode (arguments: $refresh_args)"
+
+          key="$RUNNER_TEMP/valueflow-key"
+          hosts="$RUNNER_TEMP/valueflow-hosts"
+          printf '%s\n' "$SSH_KEY" > "$key"
+          printf '%s\n' "$KNOWN_HOSTS" > "$hosts"
+          trap 'rm -f -- "$key" "$hosts"' EXIT
+          ssh_opts=(-i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$hosts" -o ConnectTimeout=15)
+          target="$DEPLOY_USER@$DEPLOY_HOST"
+
+          # Execute refresh.sh on the target server
+          ssh "${ssh_opts[@]}" -p "$DEPLOY_PORT" "$target" "bash '$DEPLOY_DIR/refresh.sh' $refresh_args"
+
+          printf '### Data Refresh Completed\nMode: %s\nArguments: %s\n' "$selected_mode" "$refresh_args" >> "$GITHUB_STEP_SUMMARY"

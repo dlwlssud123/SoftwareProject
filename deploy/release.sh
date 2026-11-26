@@ -81,6 +81,9 @@ trap recover EXIT
 install -m 644 -- "$source_dir/compose.yaml" "$root/compose.yaml"
 mkdir -p -- "$root/initdb"
 install -m 644 -- "$source_dir/initdb/001-vector.sql" "$root/initdb/001-vector.sql"
+if [[ -f "$source_dir/refresh.sh" ]]; then
+  install -m 755 -- "$source_dir/refresh.sh" "$root/refresh.sh"
+fi
 set_image "$target"
 "${compose[@]}" up --detach --wait --wait-timeout "$wait_seconds" db
 backup="$root/backups/$(date -u +%Y%m%dT%H%M%SZ)-${revision:0:12}-$$.dump"

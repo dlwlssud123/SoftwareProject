@@ -153,7 +153,7 @@ jobs:
           test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$IMAGE")" = "$GITHUB_SHA"
           mkdir release
           docker save "$IMAGE" | gzip -1 > release/image.tar.gz
-          cp deploy/release.sh deploy/compose.yaml release/
+          cp deploy/release.sh deploy/compose.yaml deploy/refresh.sh release/
           cp -R deploy/initdb release/initdb
       - name: Transfer, back up, migrate and verify
         shell: bash
