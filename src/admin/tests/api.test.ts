@@ -10,6 +10,33 @@ const job = () => ({ id: userId, kind: 'public_data_daily', status: 'succeeded',
   created_at: '2026-11-19T23:50:00Z', next_run_at: '2026-11-20T00:00:00Z', started_at: null, finished_at: null, error_code: null })
 
 describe('관리자 API 경계', () => {
+  it('명시적으로 켠 프록시는 현재 HTTPS 웹 origin으로만 로그인 요청을 보낸다', async () => {
+    vi.stubEnv('VITE_API_SAME_ORIGIN_PROXY', 'true')
+    vi.stubGlobal('location', new URL('https://admin.example.test'))
+    const send = vi.fn<typeof fetch>().mockResolvedValueOnce(reply(session())).mockResolvedValueOnce(reply(session()))
+    try {
+      await createAdminApi(undefined, send, false).login('admin', 'fixture password')
+      expect(send.mock.calls.map(([url]) => url.toString())).toEqual([
+        'https://admin.example.test/api/v1/admin/login', 'https://admin.example.test/api/v1/admin/me',
+      ])
+      for (const [, options] of send.mock.calls) {
+        expect(options).toMatchObject({ redirect: 'error', credentials: 'omit', cache: 'no-store' })
+      }
+    } finally { vi.unstubAllEnvs(); vi.unstubAllGlobals() }
+  })
+  it('프록시는 명시적 설정이 없거나 HTTP 운영 origin이면 인증정보를 보내지 않는다', async () => {
+    const send = vi.fn<typeof fetch>()
+    try {
+      vi.stubGlobal('location', new URL('https://admin.example.test'))
+      vi.stubEnv('VITE_API_SAME_ORIGIN_PROXY', '')
+      expect(createAdminApi(undefined, send, false).configured).toBe(false)
+      vi.stubEnv('VITE_API_SAME_ORIGIN_PROXY', 'true')
+      vi.stubGlobal('location', new URL('http://public.test'))
+      const api = createAdminApi(undefined, send, false)
+      await expect(api.login('admin', 'fixture')).rejects.toBeInstanceOf(ApiError)
+      expect(send).not.toHaveBeenCalled()
+    } finally { vi.unstubAllEnvs(); vi.unstubAllGlobals() }
+  })
   it('기존 공통 요청의 data/meta 응답 형식과 헤더를 유지한다', async () => {
     const send = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ data: { role: 'admin' }, meta: { request_id: 'fixture' } })))
     const result = await createAdminApi('https://example.test', send).requestJson('/api/v1/admin/me', { headers: { Authorization: `Bearer ${token}` } })
