@@ -144,3 +144,19 @@ bash deploy/test-release.sh valueflow-backend:ci "$(git rev-parse HEAD)"
 ## 선택적 KURE 임베딩 서비스
 
 기본 배포는 RAG 모델을 기동하지 않는다. 실제 자원과 원천 인덱스 확인 후 `rag` 프로필의 embedding 서비스를 별도 이미지로 준비하며 호스트 포트를 열지 않는다. 기존 API 자동배포는 해당 이미지를 빌드·게시하지 않는다. 환경 변수·토큰·모델 캐시·준비 확인·정기 배치와의 메모리 조정은 [복지 RAG 안내](../docs/data/welfare_rag_api.md)를 따른다.
+
+## 공공데이터 정기 갱신 예약 실행 (4번 작업)
+
+서버 배포 디렉토리의 `refresh.sh`는 일회성 API 컨테이너를 띄워 DB 잠금과 데이터 볼륨 마운트 하에 안전하게 `daily_refresh.py`를 실행한다.
+
+- **복지 매일 갱신**: 화~일 03:00 KST (`--welfare-only --verify`)
+- **레시피·영양 주간 갱신**: 월 03:00 KST (`--verify`)
+- **예약 방식**:
+  1. **GitHub Actions 스케줄러 (`.github/workflows/data-refresh.yml`)**: 매일 18:00 UTC (03:00 KST)에 기업 서버로 SSH 연결해 `refresh.sh`를 자동 호출하며, `workflow_dispatch`를 통한 즉시 수동 실행 및 상태 확인도 지원한다.
+  2. **서버 crontab 등록** (KST 시간대 서버 기준):
+     ```cron
+     0 3 * * 1 /home/kapje90/Documents/ValueFlow/refresh.sh --verify >> /home/kapje90/Documents/ValueFlow/data/processed/cron.log 2>&1
+     0 3 * * 0,2-6 /home/kapje90/Documents/ValueFlow/refresh.sh --welfare-only --verify >> /home/kapje90/Documents/ValueFlow/data/processed/cron.log 2>&1
+     ```
+- 장애 시 스냅샷 롤백과 DB 트랜잭션 롤백으로 기존 정상 데이터가 안전하게 유지되며, 최근 성공 시각과 실패 단계는 `job_runs` 테이블 및 관리자 웹 **[수집 작업]** 화면에서 확인할 수 있다.
+
