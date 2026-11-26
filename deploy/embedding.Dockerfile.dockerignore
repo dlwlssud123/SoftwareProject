@@ -1,0 +1,11 @@
+**
+!pyproject.toml
+!uv.lock
+!README.md
+!src
+!src/data
+!src/data/**
+**/__pycache__
+**/.env*
+**/*.key
+**/*.pem

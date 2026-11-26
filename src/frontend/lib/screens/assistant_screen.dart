@@ -13,6 +13,7 @@ import '../widgets/common.dart';
 import 'profile_form.dart';
 import 'nutrition_screen.dart';
 import 'welfare_screens.dart';
+import 'welfare_chat_screen.dart';
 import 'topic_screens.dart';
 import 'facility_screens.dart';
 
@@ -126,6 +127,20 @@ class AssistantScreen extends StatelessWidget {
           );
         },
       ),
+      if (aiApi != null)
+        FeatureTile(
+          title: '복지 물어보기',
+          subtitle: '공식 자료에서 지원 내용과 출처 찾아보기',
+          icon: Icons.question_answer_outlined,
+          color: const Color(0xFFCE4149),
+          background: const Color(0xFFFFF0F0),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) =>
+                  WelfareChatScreen(api: aiApi!, settings: settings),
+            ),
+          ),
+        ),
       const SectionTitle('편리한 도우미'),
       ServiceGrid(
         children: [

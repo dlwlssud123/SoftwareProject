@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import '../core/network/api_client.dart';
 import '../core/network/api_exception.dart';
 import '../models/ai.dart';
+import '../models/welfare_chat.dart';
 import '../models/intake.dart';
 import '../services/account.dart';
 
@@ -57,6 +58,18 @@ class AiApi {
     'chat',
     {'message': message.trim()},
     (row) => row['answer'] as String,
+    token,
+  );
+
+  Future<WelfareChatAnswer> welfareChat(
+    String message,
+    CancelToken token, {
+    String? region,
+    String? district,
+  }) => _send(
+    'welfare-chat',
+    {'message': message.trim(), 'region': ?region, 'district': ?district},
+    WelfareChatAnswer.fromJson,
     token,
   );
 

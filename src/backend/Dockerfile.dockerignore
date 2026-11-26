@@ -24,3 +24,8 @@
 **/.env*
 **/*.key
 **/*.pem
+
+!docs/
+!docs/data/
+!docs/data/sql/
+!docs/data/sql/rag_search.sql
