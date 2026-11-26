@@ -35,7 +35,8 @@ function integer(value: unknown): number {
 }
 
 export function createAdminApi(
-  baseUrl = import.meta.env?.VITE_API_BASE_URL ?? '',
+  baseUrl = import.meta.env?.VITE_API_BASE_URL ??
+    (import.meta.env?.VITE_API_SAME_ORIGIN_PROXY === 'true' ? globalThis.location?.origin ?? '' : ''),
   send: typeof fetch = fetch,
   allowLocalHttp = import.meta.env?.DEV ?? false,
 ) {

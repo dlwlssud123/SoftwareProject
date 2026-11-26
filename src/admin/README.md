@@ -1,5 +1,15 @@
 # ValueFlow 관리자 웹
 
+## Vercel 배포
+
+관리자 화면은 Vercel, API·DB는 기존 기업 서버를 사용한다. Vercel 프로젝트는 Vite, Node 24.x, `npm ci` → `npm run build`, 출력 `dist`로 설정한다. Git 연동 시 저장소 Root Directory는 `src/admin`, 운영 브랜치는 `main`이다.
+
+`vercel.json`은 `VITE_API_SAME_ORIGIN_PROXY=true`를 명시해 브라우저의 현재 HTTPS origin을 API 대상으로 사용하고 `/api/v1/*`만 기업 서버로 프록시한다. 로그인·토큰·관리 요청은 Vercel을 거쳐 서버로 전달되며 API 응답은 브라우저/CDN 캐시를 사용하지 않는다. 이 구성은 백엔드 CORS 변경이 필요 없다. 명시적인 `VITE_API_BASE_URL`이 있으면 그 설정이 우선하며, 직접 API를 호출하는 구성에서는 기존 CORS 등록이 필요하다.
+
+현재 프록시 대상은 임시 Cloudflare HTTPS 주소다. 터널 주소가 바뀌면 `vercel.json`의 destination을 수정하고 재배포한다. Vercel 로그인 토큰·`.vercel` 메타데이터·`.env*` 파일은 저장소나 배포 소스에 포함하지 않는다. 관리자 비밀번호와 서버 AI 키는 프론트 환경변수로 등록하지 않는다.
+
+배포 후 웹 루트·정적 파일 200, 같은 origin의 `/api/v1/health/ready`, 로그인 전 `/api/v1/admin/me` 401 및 API 응답의 no-store 헤더를 확인한다. 실제 관리자 계정으로 로그인한 뒤 조회·권한·로그아웃까지 확인하는 것은 별도 검증이다.
+
 ## 커뮤니티 신고 처리 (2026-11-25)
 
 `커뮤니티 신고` 메뉴에서 미처리 신고를 20건씩 조회하고 원문·신고 이유를 확인한다. 처리 사유를 적고 확인 후 글 숨김 또는 신고 기각을 서버에 반영한다. 글의 expected_post_version을 보내 동시 변경을 감지하며 409에서는 목록을 새로 읽고 다시 선택하도록 한다. 신고자 식별 정보는 표시하지 않는다. API는 기존 `/api/v1/admin/community/reports`를 사용하며 새 DB 마이그레이션은 없다.
