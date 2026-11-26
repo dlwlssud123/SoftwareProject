@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <!-- 밥그릇 그라데이션 (따뜻한 테라코타 도자기 느낌) -->
+    <linearGradient id="bowlGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF9E64"/>
+      <stop offset="60%" stop-color="#E86E30"/>
+      <stop offset="100%" stop-color="#C24E16"/>
+    </linearGradient>
+
+    <!-- 밥그릇 안쪽/테두리 그라데이션 -->
+    <linearGradient id="rimGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFA875"/>
+      <stop offset="50%" stop-color="#FFC5A3"/>
+      <stop offset="100%" stop-color="#FFA875"/>
+    </linearGradient>
+
+    <!-- 쌀밥 윤기 그라데이션 -->
+    <radialGradient id="riceGrad" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="70%" stop-color="#FFF8EE"/>
+      <stop offset="100%" stop-color="#EFE3D0"/>
+    </radialGradient>
+
+    <!-- 김(스팀) 그라데이션 -->
+    <linearGradient id="steamGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#FF8A65" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#FFAB91" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- 숟가락 나무 그라데이션 -->
+    <linearGradient id="woodGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E0A96D"/>
+      <stop offset="100%" stop-color="#9C6634"/>
+    </linearGradient>
+
+    <filter id="softShadow" x="-15%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+
+  <!-- 배경에 모락모락 피어나는 따뜻한 김 (하트 & 곡선) -->
+  <path d="M 92,30 C 88,18 98,12 94,5" fill="none" stroke="url(#steamGrad)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 108,32 C 114,20 106,14 112,6" fill="none" stroke="url(#steamGrad)" stroke-width="4" stroke-linecap="round"/>
+  <!-- 작은 하트 김 -->
+  <path d="M 100,16 C 98,12 92,13 93,17 C 94,20 100,24 100,24 C 100,24 106,20 107,17 C 108,13 102,12 100,16 Z" fill="#FF8A65" opacity="0.45"/>
+
+  <!-- 뒤쪽 손: 작은 나무 숟가락을 들고 있음 -->
+  <g transform="rotate(22 155 95)">
+    <!-- 숟가락 자루 -->
+    <rect x="156" y="60" width="8" height="52" rx="4" fill="url(#woodGrad)"/>
+    <!-- 숟가락 머리 -->
+    <ellipse cx="160" cy="52" rx="11" ry="15" fill="url(#woodGrad)" filter="url(#softShadow)"/>
+    <ellipse cx="160" cy="52" rx="7" ry="11" fill="#C6894D" opacity="0.5"/>
+  </g>
+
+  <!-- 몽글몽글 고봉밥 머리 (구름/쌀밥 볼륨감) -->
+  <g filter="url(#softShadow)">
+    <!-- 밥 덩어리 베이스 곡선들 -->
+    <circle cx="68" cy="88" r="32" fill="url(#riceGrad)"/>
+    <circle cx="132" cy="88" r="32" fill="url(#riceGrad)"/>
+    <circle cx="100" cy="65" r="38" fill="url(#riceGrad)"/>
+    <circle cx="78" cy="60" r="28" fill="url(#riceGrad)"/>
+    <circle cx="122" cy="60" r="28" fill="url(#riceGrad)"/>
+    <circle cx="100" cy="85" r="42" fill="url(#riceGrad)"/>
+  </g>
+
+  <!-- 머리 위 귀여운 노란 완두콩/조 쌀알 포인트 -->
+  <circle cx="88" cy="38" r="5" fill="#84CC16" stroke="#65A30D" stroke-width="1.5"/>
+  <circle cx="90" cy="36" r="1.5" fill="#DCFCE7"/>
+
+  <!-- 도자기 밥그릇 (몸체) -->
+  <g filter="url(#softShadow)">
+    <!-- 밥그릇 받침 굽 -->
+    <path d="M 78,168 L 122,168 L 118,178 L 82,178 Z" fill="#9C3B0E"/>
+
+    <!-- 밥그릇 본체 (둥근 반원 형태) -->
+    <path d="M 38,102 C 38,150 70,170 100,170 C 130,170 162,150 162,102 Z" fill="url(#bowlGrad)"/>
+
+    <!-- 밥그릇 입술 전 테두리 림 (Rim) -->
+    <ellipse cx="100" cy="102" rx="63" ry="9" fill="url(#rimGrad)"/>
+
+    <!-- 밥그릇 전통 매화/구름 띠 장식 -->
+    <path d="M 52,126 Q 100,146 148,126" fill="none" stroke="#FFA875" stroke-width="3" stroke-dasharray="8 5" opacity="0.8"/>
+  </g>
+
+  <!-- 밥심이의 귀여운 눈, 코, 입 (얼굴 표정) -->
+  <!-- 눈: 기분 좋게 사르르 웃는 반달눈 (어르신들에게 따뜻한 미소) -->
+  <path d="M 72,85 Q 81,77 90,85" fill="none" stroke="#2B1D14" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M 110,85 Q 119,77 128,85" fill="none" stroke="#2B1D14" stroke-width="3.5" stroke-linecap="round"/>
+
+  <!-- 방긋 웃는 볼터치 (복스러운 복숭아빛) -->
+  <ellipse cx="68" cy="94" rx="10" ry="7" fill="#FF7043" opacity="0.45"/>
+  <ellipse cx="132" cy="94" rx="10" ry="7" fill="#FF7043" opacity="0.45"/>
+
+  <!-- 오밀조밀 작은 코 & 입 -->
+  <ellipse cx="100" cy="89" rx="2" ry="1.5" fill="#E0A96D"/>
+  <!-- 활짝 웃는 작은 입과 혀 -->
+  <path d="M 94,95 C 94,103 106,103 106,95 Z" fill="#E11D48"/>
+  <path d="M 96,98 Q 100,95 104,98" fill="none" stroke="#FB7185" stroke-width="2"/>
+
+  <!-- 앞쪽 작은 손 (양손으로 밥그릇을 꼭 쥐고 있는 귀여운 포즈) -->
+  <ellipse cx="50" cy="108" rx="8" ry="7" fill="#FFF8EE" stroke="#E5D6C0" stroke-width="1.5" filter="url(#softShadow)"/>
+  <ellipse cx="150" cy="108" rx="8" ry="7" fill="#FFF8EE" stroke="#E5D6C0" stroke-width="1.5" filter="url(#softShadow)"/>
+
+  <!-- 반짝이 별 효과 (식사의 즐거움) -->
+  <path d="M 44,52 Q 44,60 36,60 Q 44,60 44,68 Q 44,60 52,60 Q 44,60 44,52 Z" fill="#FBBF24" opacity="0.8"/>
+  <path d="M 160,42 Q 160,48 154,48 Q 160,48 160,54 Q 160,48 166,48 Q 160,48 160,42 Z" fill="#FBBF24" opacity="0.7"/>
+</svg>

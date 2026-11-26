@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <!-- 피부톤 그라데이션 -->
+    <radialGradient id="skinGrad" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#FFF5EB"/>
+      <stop offset="80%" stop-color="#FFE0CC"/>
+      <stop offset="100%" stop-color="#FCD2B5"/>
+    </radialGradient>
+
+    <!-- 단정한 갈색 머리칼 -->
+    <linearGradient id="hairGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#5C3A21"/>
+      <stop offset="100%" stop-color="#3D2312"/>
+    </linearGradient>
+
+    <!-- 싱그러운 민트/에메랄드 조끼(앞치마) -->
+    <linearGradient id="vestGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <!-- 포인트 노란 스카프 -->
+    <linearGradient id="scarfGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="100%" stop-color="#EAB308"/>
+    </linearGradient>
+
+    <filter id="doranShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="3.5" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- 뒤쪽 머리카락 실루엣 -->
+  <circle cx="100" cy="85" r="54" fill="url(#hairGrad)"/>
+  <!-- 사과머리/귀여운 위 꽁지머리 묶음 -->
+  <ellipse cx="100" cy="30" rx="14" ry="12" fill="url(#hairGrad)" filter="url(#doranShadow)"/>
+  <ellipse cx="100" cy="38" rx="8" ry="4" fill="#F43F5E"/> <!-- 빨간 머리방울 -->
+
+  <!-- 몸체 & 앞치마 (조끼) -->
+  <g filter="url(#doranShadow)">
+    <!-- 흰색 이너 티셔츠 -->
+    <path d="M 68,140 Q 100,128 132,140 L 138,185 Q 100,195 62,185 Z" fill="#FFFFFF"/>
+    <!-- 민트색 앞치마/작업 조끼 -->
+    <path d="M 72,142 C 72,142 82,155 100,155 C 118,155 128,142 128,142 L 134,185 Q 100,195 66,185 Z" fill="url(#vestGrad)"/>
+    <!-- 앞치마 귀여운 주머니 -->
+    <rect x="86" y="162" width="28" height="20" rx="6" fill="#047857"/>
+    <!-- 주머니 밖으로 삐죽 나온 볼펜/체크리스트 -->
+    <rect x="91" y="156" width="4" height="12" rx="2" fill="#F59E0B"/>
+    <rect x="99" y="153" width="10" height="15" rx="1" fill="#E2E8F0"/>
+  </g>
+
+  <!-- 노란 목스카프 -->
+  <path d="M 86,134 Q 100,146 114,134 Q 106,142 100,142 Q 94,142 86,134 Z" fill="url(#scarfGrad)" filter="url(#doranShadow)"/>
+  <!-- 스카프 매듭 -->
+  <circle cx="100" cy="140" r="4.5" fill="#CA8A04"/>
+
+  <!-- 얼굴 본체 -->
+  <ellipse cx="100" cy="92" rx="46" ry="42" fill="url(#skinGrad)" filter="url(#doranShadow)"/>
+
+  <!-- 귀 (양쪽) -->
+  <ellipse cx="53" cy="94" rx="8" ry="11" fill="url(#skinGrad)"/>
+  <ellipse cx="53" cy="94" rx="5" ry="7" fill="#FBCFE8" opacity="0.6"/>
+  <ellipse cx="147" cy="94" rx="8" ry="11" fill="url(#skinGrad)"/>
+  <ellipse cx="147" cy="94" rx="5" ry="7" fill="#FBCFE8" opacity="0.6"/>
+
+  <!-- 앞머리 (단정하고 산뜻한 뱅 헤어) -->
+  <path d="M 54,82 C 55,62 72,48 100,48 C 128,48 145,62 146,82 C 140,74 128,70 118,74 C 108,77 100,72 90,75 C 80,78 68,72 54,82 Z" fill="url(#hairGrad)"/>
+  <!-- 옆머리 살짝 내려온 단발 라인 -->
+  <path d="M 54,78 C 50,90 52,104 55,108 C 56,104 56,92 58,84 Z" fill="url(#hairGrad)"/>
+  <path d="M 146,78 C 150,90 148,104 145,108 C 144,104 144,92 142,84 Z" fill="url(#hairGrad)"/>
+
+  <!-- 초롱초롱하고 싹싹한 눈 (눈웃음 & 반짝이) -->
+  <!-- 왼눈 -->
+  <ellipse cx="80" cy="93" rx="8" ry="10" fill="#2E1C0C"/>
+  <circle cx="77" cy="89" r="3.5" fill="#FFFFFF"/>
+  <circle cx="83" cy="96" r="1.5" fill="#FFFFFF"/>
+  <!-- 오른눈 (찡긋 윙크하거나 다정한 눈웃음) -->
+  <ellipse cx="120" cy="93" rx="8" ry="10" fill="#2E1C0C"/>
+  <circle cx="117" cy="89" r="3.5" fill="#FFFFFF"/>
+  <circle cx="123" cy="96" r="1.5" fill="#FFFFFF"/>
+
+  <!-- 부드러운 아치형 눈썹 -->
+  <path d="M 72,80 Q 80,75 88,80" fill="none" stroke="#5C3A21" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M 112,80 Q 120,75 128,80" fill="none" stroke="#5C3A21" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- 사랑스러운 복숭아빛 볼터치 -->
+  <circle cx="68" cy="103" r="11" fill="#FB7185" opacity="0.45"/>
+  <circle cx="132" cy="103" r="11" fill="#FB7185" opacity="0.45"/>
+
+  <!-- 앙증맞은 코 -->
+  <ellipse cx="100" cy="99" rx="2" ry="1.5" fill="#F43F5E" opacity="0.7"/>
+
+  <!-- 활짝 웃는 입 (자신감 있고 정겨운 미소) -->
+  <path d="M 91,108 Q 100,120 109,108" fill="#E11D48" stroke="#BE123C" stroke-width="2" stroke-linecap="round"/>
+  <path d="M 95,110 Q 100,113 105,110" fill="#FFFFFF"/>
+
+  <!-- 오른쪽 손: 엄지 척! "최고예요!" 손동작 -->
+  <g transform="translate(142, 120)" filter="url(#doranShadow)">
+    <circle cx="16" cy="16" r="12" fill="url(#skinGrad)"/>
+    <!-- 엄지 손가락 척 세움 -->
+    <rect x="12" y="2" width="8" height="16" rx="4" fill="url(#skinGrad)" transform="rotate(-15 16 10)"/>
+    <!-- 칭찬 반짝이 효과 -->
+    <path d="M 32,8 Q 32,13 27,13 Q 32,13 32,18 Q 32,13 37,13 Q 32,13 32,8 Z" fill="#F59E0B"/>
+  </g>
+
+  <!-- 왼쪽 손: 어르신을 향해 살포시 배에 손 얹거나 안심시키는 제스처 -->
+  <ellipse cx="56" cy="145" rx="8" ry="7" fill="url(#skinGrad)" filter="url(#doranShadow)"/>
+</svg>
