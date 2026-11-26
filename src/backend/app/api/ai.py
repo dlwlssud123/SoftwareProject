@@ -41,7 +41,8 @@ from app.schemas.ai import (
     ServingSuggestion,
 )
 from app.schemas.common import ErrorResponse, SuccessResponse, build_meta
-from app.services import nvidia_ai
+from app.schemas.welfare_chat import WelfareChatRequest, WelfareChatResult
+from app.services import nvidia_ai, rag_embedding, welfare_rag
 from app.services.food_nutrition import active_foods
 
 router = APIRouter(
@@ -109,8 +110,9 @@ def _budget(db, auth):
 
 
 @contextmanager
-def _request_slot():
-    nvidia_ai.check_enabled()
+def _request_slot(*, check_provider=True):
+    if check_provider:
+        nvidia_ai.check_enabled()
     if not _slots.acquire(blocking=False):
         raise AppError(
             429,
@@ -138,6 +140,21 @@ def chat(request: Request, payload: ChatRequest, db: DbSession, auth: CurrentAut
         data=ChatResult(answer=answer.answer, model=get_settings().nvidia_model),
         meta=build_meta(request),
     )
+
+
+@router.post("/welfare-chat", response_model=SuccessResponse[WelfareChatResult])
+def welfare_chat(
+    request: Request, payload: WelfareChatRequest, db: DbSession, auth: CurrentAuth
+):
+    rag_embedding.check_enabled()
+    with _request_slot(check_provider=False):
+        _budget(db, auth)
+        response = welfare_rag.answer(db, payload)
+        try:
+            _active(db, auth)
+        except SQLAlchemyError:
+            raise rag_embedding.unavailable() from None
+    return SuccessResponse(data=response, meta=build_meta(request))
 
 
 def _serving(revision, estimate):

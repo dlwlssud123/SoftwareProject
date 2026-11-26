@@ -140,3 +140,7 @@ bash deploy/test-release.sh valueflow-backend:ci "$(git rev-parse HEAD)"
 현재 로컬 검증과 실제 기업 서버·GitHub Actions 검증은 구분한다. SSH 키 등록과 첫 서버 구동 전에는 자동 배포가 연결됐다고 판정하지 않는다.
 
 구성 근거는 [GitHub 이미지 게시](https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images), [공유 runner 보안 지침](https://docs.github.com/en/actions/reference/security/secure-use), [uv Docker 구성](https://docs.astral.sh/uv/guides/integration/docker/)이다.
+
+## 선택적 KURE 임베딩 서비스
+
+기본 배포는 RAG 모델을 기동하지 않는다. 실제 자원과 원천 인덱스 확인 후 `rag` 프로필의 embedding 서비스를 별도 이미지로 준비하며 호스트 포트를 열지 않는다. 기존 API 자동배포는 해당 이미지를 빌드·게시하지 않는다. 환경 변수·토큰·모델 캐시·준비 확인·정기 배치와의 메모리 조정은 [복지 RAG 안내](../docs/data/welfare_rag_api.md)를 따른다.

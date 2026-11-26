@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -23,6 +24,38 @@ class Settings(BaseSettings):
     kakao_app_id: int | None = Field(default=None, gt=0)
     nvidia_api_key: SecretStr | None = None
     nvidia_ai_enabled: bool = False
+    welfare_rag_enabled: bool = False
+    rag_embedding_url: str | None = None
+    rag_embedding_token: SecretStr | None = Field(default=None, min_length=32)
+    rag_embedding_timeout_seconds: float = Field(default=5, ge=1, le=15)
+
+    @field_validator("rag_embedding_url", mode="before")
+    @classmethod
+    def embedding_origin(cls, value):
+        if value in (None, ""):
+            return None
+        parts = urlsplit(value)
+        if (
+            parts.scheme not in ("http", "https")
+            or not parts.hostname
+            or parts.username is not None
+            or parts.password is not None
+            or parts.path not in ("", "/")
+            or parts.query
+            or parts.fragment
+            or any(c.isspace() or ord(c) < 32 for c in value)
+        ):
+            raise ValueError(
+                "RAG_EMBEDDING_URL must be an HTTP(S) origin without credentials"
+            )
+        _ = parts.port
+        return value.rstrip("/")
+
+    @field_validator("rag_embedding_token", mode="before")
+    @classmethod
+    def empty_embedding_token(cls, value):
+        return None if value == "" else value
+
     nvidia_model: str = Field(
         default="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
         min_length=1,
