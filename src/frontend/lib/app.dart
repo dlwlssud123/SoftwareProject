@@ -12,6 +12,7 @@ import 'data/health_video_api.dart';
 import 'services/settings.dart';
 import 'services/account.dart';
 import 'theme.dart';
+import 'services/usage_recorder.dart';
 import 'screens/meal_screen.dart';
 import 'screens/assistant_screen.dart';
 import 'screens/nutrition_screen.dart';
@@ -125,7 +126,74 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
+  final _tabWatch = Stopwatch();
+  int? _tabGeneration;
+  String? _shellUser;
+  static const _usageFeatures = [
+    'meal',
+    'nutrition',
+    'assistant',
+    'playground',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _shellUser = widget.account?.session?.userId;
+    WidgetsBinding.instance.addObserver(this);
+    UsageRecorder.current?.record('app_open', 'app', action: 'open');
+    _enterTab();
+  }
+
+  void _enterTab() {
+    if (widget.account != null &&
+        widget.account?.session?.userId != _shellUser) {
+      return;
+    }
+    final recorder = UsageRecorder.current;
+    recorder?.record('screen_view', _usageFeatures[selected]);
+    _tabGeneration = recorder?.generation;
+    _tabWatch.reset();
+    if (recorder != null && recorder.enabled() && recorder.token() != null) {
+      _tabWatch.start();
+    }
+  }
+
+  void _exitTab() {
+    if (!_tabWatch.isRunning) return;
+    _tabWatch.stop();
+    final recorder = UsageRecorder.current;
+    recorder?.changed();
+    // An old shell may dispose after account or consent changes. Do not attribute its duration to the new session.
+    if (recorder == null || recorder.generation != _tabGeneration) {
+      return;
+    }
+    recorder.record(
+      'screen_exit',
+      _usageFeatures[selected],
+      durationMs: _tabWatch.elapsedMilliseconds,
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _enterTab();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _exitTab();
+      UsageRecorder.current?.flush();
+    }
+  }
+
+  @override
+  void dispose() {
+    _exitTab();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
   static const initialTab = 0;
   int selected = initialTab;
   final visitedTabs = <int>{initialTab};
@@ -246,10 +314,13 @@ class _AppShellState extends State<AppShell> {
                           return false;
                         });
                       }
+                      if (selected != i) _exitTab();
+                      final changed = selected != i;
                       setState(() {
                         visitedTabs.add(i);
                         selected = i;
                       });
+                      if (changed) _enterTab();
                     },
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(minHeight: 58),

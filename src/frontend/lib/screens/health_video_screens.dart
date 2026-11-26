@@ -1,3 +1,4 @@
+import '../services/usage_recorder.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../core/network/api_exception.dart';
@@ -209,7 +210,14 @@ class _HealthVideoDetailState extends State<HealthVideoDetail> {
           const SizedBox(height: 20),
           FilledButton.icon(
             key: const Key('health-video-play'),
-            onPressed: () => openLink(context, item.watchUrl),
+            onPressed: () {
+              UsageRecorder.current?.record(
+                'video_open',
+                'shorts',
+                action: 'open',
+              );
+              openLink(context, item.watchUrl);
+            },
             icon: const Icon(Icons.play_arrow),
             label: const Text('YouTube에서 영상 재생'),
           ),

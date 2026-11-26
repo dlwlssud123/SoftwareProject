@@ -20,6 +20,7 @@ DEFAULT_ORDER = [
     "rag_index",
     "rag_export",
     "rag_load",
+    "prune_usage_events",
 ]
 
 
@@ -137,7 +138,7 @@ def test_build_steps_order_and_options():
     assert steps["rag_index"].runtime == steps["rag_export"].runtime == "rag"
     assert [s.name for s in dr.build_steps(refresh=False, rag=False)] == DEFAULT_ORDER[
         1:6
-    ]
+    ] + ["prune_usage_events"]
     refresh = dr.build_steps(sources=["recipes", "seasonal_foods"])[0]
     assert refresh.args[-3:] == ("--source", "recipes", "seasonal_foods")
     verify = [
@@ -148,7 +149,7 @@ def test_build_steps_order_and_options():
     # the RAG load runs in the backend python (no psql) and is re-checked with --verify
     assert steps["rag_load"].runtime == "backend"
     assert steps["rag_load"].args == ("-m", "app.jobs.load_rag_index", "--apply")
-    last = dr.build_steps(verify=True)[-1]
+    last = next(s for s in dr.build_steps(verify=True) if s.name == "rag_load_verify")
     assert (last.name, last.needs, last.args[-1]) == (
         "rag_load_verify",
         ("rag_load",),
@@ -169,6 +170,7 @@ def test_welfare_only_plan_reuses_weekly_files_and_skips_nutrition_work(capsys):
         "rag_export",
         "rag_load",
         "rag_load_verify",
+        "prune_usage_events",
     ]
     assert steps["refresh"]["args"][-3:] == [
         "--source",
@@ -320,7 +322,9 @@ def test_snapshot_wait_only_for_readable_incomplete_snapshots(tmp_path):
 def test_dry_run_prints_plan_without_database(capsys):
     assert dr.main(["--dry-run", "--skip-refresh", "--no-rag"]) == 0
     plan = json.loads(capsys.readouterr().out)
-    assert [s["name"] for s in plan["steps"]] == DEFAULT_ORDER[1:6]
+    assert [s["name"] for s in plan["steps"]] == DEFAULT_ORDER[1:6] + [
+        "prune_usage_events"
+    ]
     assert plan["steps"][0]["waits_for_complete"] == [
         "data/raw/welfare/central_elderly.json",
         "data/raw/welfare/local_elderly.json",

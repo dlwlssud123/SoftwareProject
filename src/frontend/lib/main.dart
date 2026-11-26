@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart'
     show KakaoSdk;
 import 'app.dart';
+import 'services/usage_recorder.dart';
 import 'core/network/api_client.dart';
 import 'core/network/api_config.dart';
 import 'data/recipe_api.dart';
@@ -69,6 +70,54 @@ Future<void> main() async {
       kakaoEnabled: kakaoEnabled,
     );
     account.restore();
+  }
+  if (account != null) {
+    final telemetryClient = ApiClient();
+    final usage = UsageRecorder(
+      enabled: () => settings.usageSharing,
+      token: () => account?.session?.token,
+      platform: kIsWeb
+          ? 'web'
+          : defaultTargetPlatform == TargetPlatform.android
+          ? 'android'
+          : defaultTargetPlatform == TargetPlatform.iOS
+          ? 'ios'
+          : 'desktop',
+      send: (events, token) => telemetryClient.post<void>(
+        '/api/v1/usage-events',
+        token: token,
+        body: {'consent_version': 'usage-v1', 'events': events},
+        receiveTimeout: const Duration(seconds: 5),
+        parse: (_) {},
+      ),
+    );
+    UsageRecorder.current = usage;
+    final previousFlutterError = FlutterError.onError;
+    FlutterError.onError = (details) {
+      usage.record(
+        'app_error',
+        'app',
+        outcome: 'failure',
+        errorKind: 'unknown',
+      );
+      if (previousFlutterError != null) {
+        previousFlutterError(details);
+      } else {
+        FlutterError.presentError(details);
+      }
+    };
+    final previousPlatformError = PlatformDispatcher.instance.onError;
+    PlatformDispatcher.instance.onError = (error, stack) {
+      usage.record(
+        'app_error',
+        'app',
+        outcome: 'failure',
+        errorKind: 'unknown',
+      );
+      return previousPlatformError?.call(error, stack) ?? false;
+    };
+    settings.addListener(usage.changed);
+    account.addListener(usage.changed);
   }
   runApp(
     ValueFlowApp(

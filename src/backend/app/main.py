@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from time import monotonic
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
@@ -27,6 +28,7 @@ from app.api.saved_welfare import router as saved_welfare_router
 from app.api.shopping import router as shopping_router
 from app.api.topic_requests import admin_router as admin_topics_router
 from app.api.topic_requests import router as topics_router
+from app.api.usage import router as usage_router
 from app.api.welfare import router as welfare_router
 from app.core.ai_body_limit import AIBodyLimit
 from app.core.config import get_settings
@@ -58,6 +60,7 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def track_request(request: Request, call_next):
         request.state.request_id = str(uuid4())
+        started_at = monotonic()
 
         try:
             response = await call_next(request)
@@ -75,6 +78,23 @@ def create_app() -> FastAPI:
                 message="서버 오류가 발생했습니다.",
             )
 
+        if response.status_code >= 400 or request.url.path != "/api/v1/health/ready":
+            # Route templates omit query strings, user IDs, coordinates and prompt contents.
+            route = getattr(request.scope.get("route"), "path", "unmatched")
+            method = (
+                request.method
+                if request.method
+                in {"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"}
+                else "OTHER"
+            )
+            logger.info(
+                "Request request_id=%s method=%s route=%s status=%s duration_ms=%s",
+                request.state.request_id,
+                method,
+                route,
+                response.status_code,
+                round((monotonic() - started_at) * 1000),
+            )
         response.headers["X-Request-ID"] = request.state.request_id
         if request.url.path.rstrip("/") == "/api/v1/meal-facilities/nearby":
             response.headers["Cache-Control"] = "no-store"
@@ -105,6 +125,13 @@ def create_app() -> FastAPI:
 
     app.add_middleware(AIBodyLimit)
     app.add_middleware(
+        AIBodyLimit,
+        max_bytes=32768,
+        prefix="/api/v1/usage-events",
+        code="USAGE_BODY_TOO_LARGE",
+        message="이용 기록 묶음이 너무 큽니다.",
+    )
+    app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
         allow_credentials=False,
@@ -120,6 +147,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix="/api/v1")
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(ai_router, prefix="/api/v1")
+    app.include_router(usage_router, prefix="/api/v1")
     app.include_router(foods_router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1")
     app.include_router(admin_login_router, prefix="/api/v1")
